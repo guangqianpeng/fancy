@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_log_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_log_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_log_module</h2><table width="100%"><tr><td align="left"><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#access_log">access_log</a><br>     <a href="#log_format">log_format</a><br>     <a href="#open_log_file_cache">open_log_file_cache</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_log_module</code> module writes request logs
+in the specified format.
+</p><p>
+Requests are logged in the context of a location where processing ends.
+It may be different from the original location, if an
+<a href="ngx_http_core_module.html#internal">internal
+redirect</a> happens during request processing.
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+log_format compression '$remote_addr - $remote_user [$time_local] '
+                       '"$request" $status $bytes_sent '
+                       '"$http_referer" "$http_user_agent" "$gzip_ratio"';
+
+access_log /spool/logs/nginx-access.log compression buffer=32k;
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="access_log"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>access_log</strong> 
+    <code><i>path</i></code>
+    [<code><i>format</i></code>
+    [<code>buffer</code>=<code><i>size</i></code>]
+    [<code>gzip[=<code><i>level</i></code>]</code>]
+    [<code>flush</code>=<code><i>time</i></code>]
+    [<code>if</code>=<code><i>condition</i></code>]];</code><br><code><strong>access_log</strong> <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>access_log logs/access.log combined;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code>, <code>if in location</code>, <code>limit_except</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the path, format, and configuration for a buffered log write.
+Several logs can be specified on the same level.
+Logging to <a href="../syslog.html">syslog</a>
+can be configured by specifying
+the “<code>syslog:</code>” prefix in the first parameter.
+The special value <code>off</code> cancels all
+<code>access_log</code> directives on the current level.
+If the format is not specified then the predefined
+“<code>combined</code>” format is used.
+</p><p>
+If either the <code>buffer</code> or <code>gzip</code>
+(1.3.10, 1.2.7)
+parameter is used, writes to log will be buffered.
+</p> <blockquote class="note">
+The buffer size must not exceed the size of an atomic write to a disk file.
+For FreeBSD this size is unlimited.
+</blockquote><p> 
+</p><p>
+When buffering is enabled, the data will be written to the file:
+</p> <ul class="compact">
+
+<li>
+if the next log line does not fit into the buffer;
+</li>
+
+<li>
+if the buffered data is older than specified by the <code>flush</code>
+parameter (1.3.10, 1.2.7);
+</li>
+
+<li>
+when a worker process is <a href="../control.html">re-opening</a> log
+files or is shutting down.
+</li>
+
+</ul><p> 
+</p><p>
+If the <code>gzip</code> parameter is used, then the buffered data will
+be compressed before writing to the file.
+The compression level can be set between 1 (fastest, less compression)
+and 9 (slowest, best compression).
+By default, the buffer size is equal to 64K bytes, and the compression level
+is set to 1.
+Since the data is compressed in atomic blocks, the log file can be decompressed
+or read by “<code>zcat</code>” at any time.
+</p><p>
+Example:
+</p> <blockquote class="example"><pre>
+access_log /path/to/log.gz combined gzip flush=5m;
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+For gzip compression to work, nginx must be built with the zlib library.
+</blockquote><p> 
+</p><p>
+The file path can contain variables (0.7.6+),
+but such logs have some constraints:
+</p> <ul class="compact">
+
+<li>
+the <a href="../ngx_core_module.html#user">user</a>
+whose credentials are used by worker processes should
+have permissions to create files in a directory with
+such logs;
+</li>
+
+<li>
+buffered writes do not work;
+</li>
+
+<li>
+the file is opened and closed for each log write.
+However, since the descriptors of frequently used files can be stored
+in a <a href="#open_log_file_cache">cache</a>, writing to the old file
+can continue during the time specified by the <a href="#open_log_file_cache">open_log_file_cache</a>
+directive’s <code>valid</code> parameter
+</li>
+
+<li>
+during each log write the existence of the request’s
+<a href="ngx_http_core_module.html#root">root directory</a>
+is checked, and if it does not exist the log is not
+created.
+It is thus a good idea to specify both
+<a href="ngx_http_core_module.html#root">root</a>
+and <code>access_log</code> on the same level:
+<blockquote class="example"><pre>
+server {
+    root       /spool/vhost/data/$host;
+    access_log /spool/vhost/logs/$host;
+    ...
+</pre></blockquote>
+</li>
+
+</ul><p> 
+</p><p>
+The <code>if</code> parameter (1.7.0) enables conditional logging.
+A request will not be logged if the <code><i>condition</i></code> evaluates to “0”
+or an empty string.
+In the following example, the requests with response codes 2xx and 3xx
+will not be logged:
+</p> <blockquote class="example"><pre>
+map $status $loggable {
+    ~^[23]  0;
+    default 1;
+}
+
+access_log /path/to/access.log combined if=$loggable;
+</pre></blockquote><p> 
+</p><a name="log_format"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>log_format</strong> 
+    <code><i>name</i></code>
+    [<code>escape</code>=<code>default</code>|<code>json</code>]
+    <code><i>string</i></code> ...;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>log_format combined "...";</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies log format.
+</p><a name="log_format_escape"></a><p>
+The <code>escape</code> parameter (1.11.8) allows setting
+<code>json</code> or <code>default</code> characters escaping
+in variables, by default, <code>default</code> escaping is used.
+</p><p>
+The log format can contain common variables, and variables that
+exist only at the time of a log write:
+</p> <dl class="compact">
+
+<dt id="var_bytes_sent"><code>$bytes_sent</code></dt>
+<dd>
+the number of bytes sent to a client
+</dd>
+
+<dt id="var_connection"><code>$connection</code></dt>
+<dd>
+connection serial number
+</dd>
+
+<dt id="var_connection_requests"><code>$connection_requests</code>
+</dt>
+<dd>
+the current number of requests made through a connection (1.1.18)
+</dd>
+
+<dt id="var_msec"><code>$msec</code></dt>
+<dd>
+time in seconds with a milliseconds resolution at the time of the log write
+</dd>
+
+<dt id="var_pipe"><code>$pipe</code></dt>
+<dd>
+“<code>p</code>” if request was pipelined, “<code>.</code>”
+otherwise
+</dd>
+
+<dt id="var_request_length"><code>$request_length</code></dt>
+<dd>
+request length (including request line, header, and request body)
+</dd>
+
+<dt id="var_request_time"><code>$request_time</code></dt>
+<dd>
+request processing time in seconds with a milliseconds resolution;
+time elapsed between the first bytes were read from the client and
+the log write after the last bytes were sent to the client
+</dd>
+
+<dt id="var_status"><code>$status</code></dt>
+<dd>
+response status
+</dd>
+
+<dt id="var_time_iso8601"><code>$time_iso8601</code></dt>
+<dd>
+local time in the ISO 8601 standard format
+</dd>
+
+<dt id="var_time_local"><code>$time_local</code></dt>
+<dd>
+local time in the Common Log Format
+</dd>
+
+</dl><p> 
+
+</p> <blockquote class="note">
+In the modern nginx versions variables
+<a href="ngx_http_core_module.html#var_status">$status</a>
+(1.3.2, 1.2.2),
+<a href="ngx_http_core_module.html#var_bytes_sent">$bytes_sent</a>
+(1.3.8, 1.2.5),
+<a href="ngx_http_core_module.html#var_connection">$connection</a>
+(1.3.8, 1.2.5),
+<a href="ngx_http_core_module.html#var_connection_requests">$connection_requests</a>
+(1.3.8, 1.2.5),
+<a href="ngx_http_core_module.html#var_msec">$msec</a>
+(1.3.9, 1.2.6),
+<a href="ngx_http_core_module.html#var_request_time">$request_time</a>
+(1.3.9, 1.2.6),
+<a href="ngx_http_core_module.html#var_pipe">$pipe</a>
+(1.3.12, 1.2.7),
+<a href="ngx_http_core_module.html#var_request_length">$request_length</a>
+(1.3.12, 1.2.7),
+<a href="ngx_http_core_module.html#var_time_iso8601">$time_iso8601</a>
+(1.3.12, 1.2.7),
+and
+<a href="ngx_http_core_module.html#var_time_local">$time_local</a>
+(1.3.12, 1.2.7)
+are also available as common variables.
+</blockquote><p> 
+
+</p><p>
+Header lines sent to a client have the prefix
+“<code>sent_http_</code>”, for example,
+<code>$sent_http_content_range</code>.
+</p><p>
+The configuration always includes the predefined
+“<code>combined</code>” format:
+</p> <blockquote class="example"><pre>
+log_format combined '$remote_addr - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent '
+                    '"$http_referer" "$http_user_agent"';
+</pre></blockquote><p> 
+</p><a name="open_log_file_cache"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>open_log_file_cache</strong> 
+<code>max</code>=<code><i>N</i></code>
+[<code>inactive</code>=<code><i>time</i></code>]
+[<code>min_uses</code>=<code><i>N</i></code>]
+[<code>valid</code>=<code><i>time</i></code>];</code><br><code><strong>open_log_file_cache</strong> <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>open_log_file_cache off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a cache that stores the file descriptors of frequently used logs
+whose names contain variables.
+The directive has the following parameters:
+</p> <dl class="compact">
+
+<dt><code>max</code></dt>
+<dd>
+sets the maximum number of descriptors in a cache;
+if the cache becomes full the least recently used (LRU)
+descriptors are closed
+</dd>
+
+<dt><code>inactive</code></dt>
+<dd>
+sets the time after which the cached descriptor is closed
+if there were no access during this time;
+by default, 10 seconds
+</dd>
+
+<dt><code>min_uses</code></dt>
+<dd>
+sets the minimum number of file uses during the time
+defined by the <code>inactive</code> parameter
+to let the descriptor stay open in a cache;
+by default, 1
+</dd>
+
+<dt><code>valid</code></dt>
+<dd>
+sets the time after which it should be checked that the file
+still exists with the same name; by default, 60 seconds
+</dd>
+
+<dt><code>off</code></dt>
+<dd>
+disables caching
+</dd>
+
+</dl><p> 
+</p><p>
+Usage example:
+</p> <blockquote class="example"><pre>
+open_log_file_cache max=1000 inactive=20s valid=1m min_uses=2;
+</pre></blockquote><p> 
+</p>
+
+</div></div></body></html>

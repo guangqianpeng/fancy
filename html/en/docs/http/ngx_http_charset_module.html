@@ -1,0 +1,294 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_charset_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_charset_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_charset_module</h2><table width="100%"><tr><td align="left"><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#charset">charset</a><br>     <a href="#charset_map">charset_map</a><br>     <a href="#charset_types">charset_types</a><br>     <a href="#override_charset">override_charset</a><br>     <a href="#source_charset">source_charset</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_charset_module</code> module adds the specified
+charset to the “Content-Type” response header field.
+In addition, the module can convert data from one charset to another,
+with some limitations:
+</p> <ul class="compact">
+
+<li>
+conversion is performed one way — from server to client,
+</li>
+
+<li>
+only single-byte charsets can be converted
+</li>
+
+<li>
+or single-byte charsets to/from UTF-8.
+</li>
+
+</ul><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+include        conf/koi-win;
+
+charset        windows-1251;
+source_charset koi8-r;
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="charset"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>charset</strong> <code><i>charset</i></code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>charset off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code>, <code>if in location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Adds the specified charset to the “Content-Type”
+response header field.
+If this charset is different from the charset specified
+in the <a href="#source_charset">source_charset</a> directive, a conversion is performed.
+</p><p>
+The parameter <code>off</code> cancels the addition of charset
+to the “Content-Type” response header field.
+</p><p>
+A charset can be defined with a variable:
+</p> <blockquote class="example"><pre>
+charset $charset;
+</pre></blockquote><p> 
+In such a case, all possible values of a variable need to be present
+in the configuration at least once in the form of the
+<a href="#charset_map">charset_map</a>, <a href="#charset">charset</a>, or
+<a href="#source_charset">source_charset</a> directives.
+For <code>utf-8</code>, <code>windows-1251</code>, and
+<code>koi8-r</code> charsets, it is sufficient to include the files
+<code>conf/koi-win</code>, <code>conf/koi-utf</code>, and
+<code>conf/win-utf</code> into configuration.
+For other charsets, simply making a fictitious conversion table works,
+for example:
+</p> <blockquote class="example"><pre>
+charset_map iso-8859-5 _ { }
+</pre></blockquote><p> 
+</p><p>
+In addition, a charset can be set in the
+“X-Accel-Charset” response header field.
+This capability can be disabled using the
+<a href="ngx_http_proxy_module.html#proxy_ignore_headers">proxy_ignore_headers</a>,
+<a href="ngx_http_fastcgi_module.html#fastcgi_ignore_headers">fastcgi_ignore_headers</a>,
+<a href="ngx_http_uwsgi_module.html#uwsgi_ignore_headers">uwsgi_ignore_headers</a>,
+and
+<a href="ngx_http_scgi_module.html#scgi_ignore_headers">scgi_ignore_headers</a>
+directives.
+</p><a name="charset_map"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>charset_map</strong> <code><i>charset1</i></code> <code><i>charset2</i></code> { ... }</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Describes the conversion table from one charset to another.
+A reverse conversion table is built using the same data.
+Character codes are given in hexadecimal.
+Missing characters in the range 80-FF are replaced with “<code>?</code>”.
+When converting from UTF-8, characters missing in a one-byte charset
+are replaced with “<code>&amp;#XXXX;</code>”.
+</p><p>
+Example:
+</p> <blockquote class="example"><pre>
+charset_map koi8-r windows-1251 {
+    C0 FE ; # small yu
+    C1 E0 ; # small a
+    C2 E1 ; # small b
+    C3 F6 ; # small ts
+    ...
+}
+</pre></blockquote><p> 
+</p><p>
+When describing a conversion table to UTF-8, codes for the UTF-8 charset should
+be given in the second column, for example:
+</p> <blockquote class="example"><pre>
+charset_map koi8-r utf-8 {
+    C0 D18E ; # small yu
+    C1 D0B0 ; # small a
+    C2 D0B1 ; # small b
+    C3 D186 ; # small ts
+    ...
+}
+</pre></blockquote><p> 
+</p><p>
+Full conversion tables from <code>koi8-r</code> to
+<code>windows-1251</code>, and from <code>koi8-r</code> and
+<code>windows-1251</code> to <code>utf-8</code>
+are provided in the distribution files <code>conf/koi-win</code>,
+<code>conf/koi-utf</code>, and <code>conf/win-utf</code>.
+</p><a name="charset_types"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>charset_types</strong> <code><i>mime-type</i></code> ...;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>charset_types text/html text/xml text/plain text/vnd.wap.wml
+application/javascript application/rss+xml;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 0.7.9.
+            </p></div><p>
+Enables module processing in responses with the specified MIME types
+in addition to “<code>text/html</code>”.
+The special value “<code>*</code>” matches any MIME type (0.8.29).
+</p><p>
+</p> <blockquote class="note">
+Until version 1.5.4, “<code>application/x-javascript</code>” was used
+as the default MIME type instead of “<code>application/javascript</code>”.
+</blockquote><p> 
+</p><a name="override_charset"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>override_charset</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>override_charset off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code>, <code>if in location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Determines whether a conversion should be performed for answers
+received from a proxied or a FastCGI/uwsgi/SCGI server
+when the answers already carry a charset in the “Content-Type”
+response header field.
+If conversion is enabled, a charset specified in the received
+response is used as a source charset.
+</p> <blockquote class="note">
+It should be noted that if a response is received in a subrequest
+then the conversion from the response charset to the main request charset
+is always performed, regardless of the <code>override_charset</code>
+directive setting.
+</blockquote><p> 
+</p><a name="source_charset"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>source_charset</strong> <code><i>charset</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code>, <code>if in location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines the source charset of a response.
+If this charset is different from the charset specified
+in the <a href="#charset">charset</a> directive, a conversion is performed.
+</p>
+
+</div></div></body></html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Информация о nginScript</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../en/docs/njs_about.html">english</a><br>русский<br><br><a href="../../">новости</a> [en]<br><a href="../../ru/">об nginx</a><br><a href="../../ru/download.html">скачать</a><br><a href="../../en/security_advisories.html">безопасность</a> [en]<br><a href="./">документация</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">книги</a> [en]<br><a href="../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Информация о nginScript</h2><table width="100%"><tr><td align="left"><a href="#supported">Готовая функциональность</a><br><a href="#not_supported">Функциональность в разработке</a><br><a href="#install">Загрузка и установка</a><br>     <a href="#install_package">Установка пакета Linux</a><br>     <a href="#install_sources">Установка из исходных файлов</a><br><a href="#issues">Известные проблемы</a><br></td></tr></table><a name="summary"></a><p>
+nginScript - это подмножество языка JavaScript, который позволяет
+задавать обработчики location и переменных в
+<a href="http/ngx_http_js_module.html">http</a> и
+<a href="stream/ngx_stream_js_module.html">stream</a>.
+nginScript совместим с
+<a href="http://www.ecma-international.org/ecma-262/5.1/">ECMAScript 5.1</a>
+c некоторыми расширениями
+<a href="http://www.ecma-international.org/ecma-262/6.0/">ECMAScript 6</a>.
+Совместимость находится в стадии развития.
+</p><a name="supported"></a><center><h4>Готовая функциональность</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+Логические значения, числа, строки, объекты, массивы,
+функции и регулярные выражения
+</li>
+
+<li>
+ES5.1 операторы, ES7 операторы возведения в степень
+</li>
+
+<li>
+ES5.1 инструкции: <code>var</code>, <code>if</code>,
+<code>else</code>, <code>switch</code>, <code>for</code>,
+<code>for in</code>, <code>while</code>,
+<code>do while</code>, <code>break</code>,
+<code>continue</code>, <code>return</code>, <code>try</code>,
+<code>catch</code>, <code>throw</code>, <code>finally</code>
+</li>
+
+<li>
+ES6 методы и свойства <code>Number</code> и
+<code>Math</code>
+</li>
+
+<li>
+Методы <code>String</code>:
+<ul class="compact">
+
+<li>
+ES5.1:
+<code>fromCharCode</code>, <code>concat</code>,
+<code>slice</code>, <code>substring</code>,
+<code>substr</code>, <code>charAt</code>,
+<code>charCodeAt</code>, <code>indexOf</code>,
+<code>lastIndexOf</code>, <code>toLowerCase</code>,
+<code>toUpperCase</code>, <code>trim</code>,
+<code>search</code>, <code>match</code>, <code>split</code>,
+<code>replace</code>
+</li>
+
+<li>
+ES6:
+<code>fromCodePoint</code>, <code>codePointAt</code>,
+<code>includes</code>, <code>startsWith</code>,
+<code>endsWith</code>, <code>repeat</code>
+</li>
+
+<li>
+нестандартные:
+<code>fromUTF8</code>, <code>toUTF8</code>,
+<code>fromBytes</code>, <code>toBytes</code>
+</li>
+</ul>
+
+</li>
+
+<li>
+<code>Object</code>:
+рудиментарная поддержка <code>Object.create()</code> без списка свойств
+</li>
+
+<li>
+Методы <code>Array</code>:
+<ul class="compact">
+<li>
+ES5.1:
+<code>isArray</code>, <code>slice</code>, <code>splice</code>,
+<code>push</code>, <code>pop</code>, <code>unshift</code>,
+<code>shift</code>, <code>reverse</code>, <code>sort</code>,
+<code>join</code>, <code>concat</code>, <code>indexOf</code>,
+<code>lastIndexOf</code>, <code>forEach</code>,
+<code>some</code>, <code>every</code>, <code>filter</code>,
+<code>map</code>, <code>reduce</code>,
+<code>reduceRight</code>
+</li>
+
+<li>
+ES7: <code>includes</code>
+</li>
+</ul>
+
+</li>
+
+<li>
+ES5.1 методы <code>Function</code>:
+<code>call</code>, <code>apply</code>, <code>bind</code>
+</li>
+
+<li>
+ES5.1 методы <code>RegExp</code>:
+<code>test</code>, <code>exec</code>
+</li>
+
+<li>
+ES5.1 методы <code>Date</code>
+</li>
+
+<li>
+ES5.1 глобальные функции:
+<code>isFinite</code>, <code>isNaN</code>,
+<code>parseFloat</code>, <code>parseInt</code>,
+<code>decodeURI</code>, <code>decodeURIComponent</code>,
+<code>encodeURI</code>, <code>encodeURIComponent</code>
+</li>
+
+</ul><p> 
+</p><a name="not_supported"></a><center><h4>Функциональность в разработке</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+ES6 объявления <code>let</code> и <code>const</code>
+</li>
+
+<li>
+вложенные функции
+</li>
+
+<li>
+замыкания
+</li>
+
+<li>
+labels
+</li>
+
+<li>
+массив <code>arguments</code>
+</li>
+
+<li>
+функция <code>eval</code>
+</li>
+
+<li>
+объект <code>JSON</code>
+</li>
+
+<li>
+объект <code>Error</code>
+</li>
+
+<li>
+функции <code>setTimeout</code>, <code>setInterval</code>,
+<code>setImmediate</code>
+</li>
+
+<li>
+дроби без целой части (<code>.235</code>),
+экспоненциальные (<code>3.35e10</code>),
+двоичные (<code>0b0101</code>),
+восьмеричные (<code>0o77</code>),
+шестнадцатеричные (<code>0x1123</code>) литералы
+</li>
+
+</ul><p> 
+</p><a name="install"></a><center><h4>Загрузка и установка</h4></center><p>
+nginScript доступен в двух модулях:
+</p> <ul class="compact">
+
+<li>
+<a href="http/ngx_http_js_module.html">ngx_http_js_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_js_module.html">ngx_stream_js_module</a>
+</li>
+
+</ul><p> 
+По умолчанию модули не собираются
+их необходимо собрать из исходного кода
+или установить из отдельного пакета Linux.
+</p><a name="install_package"></a><center><h4>Установка пакета Linux</h4></center><p>
+Для установки модулей nginScript на Linux могут быть использованы
+<a href="../linux_packages.html#dynmodules">пакеты</a>:
+</p> <ul class="compact">
+
+<li>
+<code>nginx-module-njs</code> —
+<a href="ngx_core_module.html#load_module">динамические</a> модули
+nginScript
+</li>
+
+<li>
+<code>nginx-module-njs-dbg</code> — debug-символы для
+пакета <code>nginx-module-njs</code>
+</li>
+
+</ul><p> 
+</p><a name="install_sources"></a><center><h4>Установка из исходных файлов</h4></center><p>
+<a href="http://hg.nginx.org/njs">Репозиторий</a>
+с исходным кодом nginScript можно клонировать следующей командой:
+(необходим клиент <a href="https://www.mercurial-scm.org">Mercurial</a>):
+</p> <blockquote class="example"><pre>
+hg clone http://hg.nginx.org/njs
+</pre></blockquote><p> 
+Затем модули необходимо собрать с помощью
+конфигурационного параметра <code>--add_module</code>:
+</p> <blockquote class="example"><pre>
+./configure --add-module=<code><i>path-to-njs</i></code>/nginx
+</pre></blockquote><p> 
+Модули также можно собрать как
+<a href="ngx_core_module.html#load_module">динамические</a>:
+</p> <blockquote class="example"><pre>
+./configure --add-dynamic_module=<code><i>path-to-njs</i></code>/nginx
+</pre></blockquote><p> 
+</p><a name="issues"></a><center><h4>Известные проблемы</h4></center><p>
+Модуль экспериментальный, поэтому возможно всё.
+</p></div></div></body></html>

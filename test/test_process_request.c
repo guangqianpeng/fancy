@@ -205,7 +205,7 @@ static void test_one_request(request *r, const char *data)
     }
 
 
-    err = process_request_header(r);
+    err = check_request_header_filed(r);
     if (err == FCY_OK && r->line->uri_static) {
         process_request_static(r);
     }

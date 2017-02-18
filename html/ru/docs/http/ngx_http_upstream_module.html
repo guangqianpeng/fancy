@@ -1,0 +1,1598 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Модуль ngx_http_upstream_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_upstream_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Модуль ngx_http_upstream_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#upstream">upstream</a><br>     <a href="#server">server</a><br>     <a href="#zone">zone</a><br>     <a href="#state">state</a><br>     <a href="#hash">hash</a><br>     <a href="#ip_hash">ip_hash</a><br>     <a href="#keepalive">keepalive</a><br>     <a href="#ntlm">ntlm</a><br>     <a href="#least_conn">least_conn</a><br>     <a href="#least_time">least_time</a><br>     <a href="#health_check">health_check</a><br>     <a href="#match">match</a><br>     <a href="#queue">queue</a><br>     <a href="#sticky">sticky</a><br>     <a href="#sticky_cookie_insert">sticky_cookie_insert</a><br><a href="#variables">Встроенные переменные</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_upstream_module</code>
+позволяет описывать группы серверов,
+которые могут использоваться в директивах
+<a href="ngx_http_proxy_module.html#proxy_pass">proxy_pass</a>,
+<a href="ngx_http_fastcgi_module.html#fastcgi_pass">fastcgi_pass</a>,
+<a href="ngx_http_uwsgi_module.html#uwsgi_pass">uwsgi_pass</a>,
+<a href="ngx_http_scgi_module.html#scgi_pass">scgi_pass</a> и
+<a href="ngx_http_memcached_module.html#memcached_pass">memcached_pass</a>.
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+</p> <blockquote class="example"><pre>
+upstream <strong>backend</strong> {
+    server backend1.example.com       weight=5;
+    server backend2.example.com:8080;
+    server unix:/tmp/backend3;
+
+    server backup1.example.com:8080   backup;
+    server backup2.example.com:8080   backup;
+}
+
+server {
+    location / {
+        proxy_pass http://<strong>backend</strong>;
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+Динамически настраиваемая группа,
+доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>:
+</p> <blockquote class="example"><pre>
+resolver 10.0.0.1;
+
+upstream <strong>dynamic</strong> {
+    zone upstream_dynamic 64k;
+
+    server backend1.example.com      weight=5;
+    server backend2.example.com:8080 fail_timeout=5s slow_start=30s;
+    server 192.0.2.1                 max_fails=3;
+    server backend3.example.com      resolve;
+    server backend4.example.com      service=http resolve;
+
+    server backup1.example.com:8080  backup;
+    server backup2.example.com:8080  backup;
+}
+
+server {
+    location / {
+        proxy_pass http://<strong>dynamic</strong>;
+        health_check;
+    }
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="upstream"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>upstream</strong> <code><i>название</i></code> { ... }</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Описывает группу серверов.
+Серверы могут слушать на разных портах.
+Кроме того, можно одновременно использовать серверы,
+слушающие на TCP- и UNIX-сокетах.
+</p><p>
+Пример:
+</p> <blockquote class="example"><pre>
+upstream backend {
+    server backend1.example.com weight=5;
+    server 127.0.0.1:8080       max_fails=3 fail_timeout=30s;
+    server unix:/tmp/backend3;
+
+    server backup1.example.com  backup;
+}
+</pre></blockquote><p> 
+</p><p>
+По умолчанию запросы распределяются по серверам циклически
+(в режиме round-robin) с учётом весов серверов.
+В вышеприведённом примере каждые 7 запросов будут распределены так:
+5 запросов на <code>backend1.example.com</code>
+и по одному запросу на второй и третий серверы.
+Если при попытке работы с сервером происходит ошибка, то запрос
+передаётся следующему серверу, и так далее до тех пор, пока не будут опробованы
+все работающие серверы.
+Если не удастся получить успешный ответ
+ни от одного из серверов, то клиенту будет возвращён результат работы
+с последним сервером.
+</p><a name="server"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>server</strong> <code><i>адрес</i></code> [<code><i>параметры</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт <code><i>адрес</i></code> и другие <code><i>параметры</i></code>
+сервера.
+Адрес может быть указан в виде доменного имени или IP-адреса,
+и необязательного порта, или в виде пути UNIX-сокета, который
+указывается после префикса “<code>unix:</code>”.
+Если порт не указан, используется порт 80.
+Доменное имя, которому соответствует несколько IP-адресов,
+задаёт сразу несколько серверов.
+</p><p>
+Могут быть заданы следующие параметры:
+</p> <dl class="compact">
+
+<dt id="weight">
+<code>weight</code>=<code><i>число</i></code>
+</dt>
+<dd>
+задаёт вес сервера, по умолчанию 1.
+</dd>
+
+<dt id="max_conns">
+<code>max_conns</code>=<code><i>число</i></code>
+</dt>
+<dd>
+ограничивает максимальное <code><i>число</i></code> одновременных активных
+соединений к проксируемому серверу (1.11.5).
+Значение по умолчанию равно 0 и означает, что ограничения нет.
+Если группа не находится в <a href="#zone">зоне разделяемой памяти</a>,
+то ограничение работает отдельно для каждого рабочего процесса.
+<blockquote class="note">
+При включённых <a href="#keepalive">неактивных постоянных</a> соединениях,
+нескольких
+<a href="../ngx_core_module.html#worker_processes">рабочих процессах</a>
+и <a href="#zone">зоне разделяемой памяти</a>,
+суммарное число активных и неактивных соединений с проксируемым сервером
+может превышать значение <code>max_conns</code>.
+</blockquote>
+<blockquote class="note">
+Начиная с версии 1.5.9 и до версии 1.11.5
+этот параметр был доступен как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote>
+</dd>
+
+<dt id="max_fails">
+<code>max_fails</code>=<code><i>число</i></code>
+</dt>
+<dd>
+задаёт число неудачных попыток работы с сервером, которые должны произойти
+в течение времени, заданного параметром <code>fail_timeout</code>,
+чтобы сервер считался недоступным на период времени, также заданный
+параметром <code>fail_timeout</code>.
+По умолчанию число попыток устанавливается равным 1.
+Нулевое значение отключает учёт попыток.
+Что считается неудачной попыткой, определяется директивами
+<a href="ngx_http_proxy_module.html#proxy_next_upstream">proxy_next_upstream</a>,
+<a href="ngx_http_fastcgi_module.html#fastcgi_next_upstream">fastcgi_next_upstream</a>,
+<a href="ngx_http_uwsgi_module.html#uwsgi_next_upstream">uwsgi_next_upstream</a>,
+<a href="ngx_http_scgi_module.html#scgi_next_upstream">scgi_next_upstream</a> и
+<a href="ngx_http_memcached_module.html#memcached_next_upstream">memcached_next_upstream</a>.
+</dd>
+
+<dt id="fail_timeout">
+<code>fail_timeout</code>=<code><i>время</i></code>
+</dt>
+<dd>
+задаёт
+<ul class="compact">
+
+<li>
+время, в течение которого должно произойти заданное число неудачных
+попыток работы с сервером для того, чтобы сервер считался недоступным;
+</li>
+
+<li>
+и время, в течение которого сервер будет считаться недоступным.
+</li>
+
+</ul>
+По умолчанию параметр равен 10 секундам.
+</dd>
+
+<dt id="backup">
+<code>backup</code>
+</dt>
+<dd>
+помечает сервер как запасной сервер.
+На него будут передаваться запросы в случае, если не работают основные серверы.
+</dd>
+
+<dt id="down">
+<code>down</code>
+</dt>
+<dd>
+помечает сервер как постоянно недоступный.
+</dd>
+
+</dl><p> 
+</p><p>
+Кроме того,
+следующие параметры доступны как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>:
+</p> <dl class="compact">
+
+<dt id="resolve">
+<code>resolve</code>
+</dt>
+<dd>
+отслеживает изменения IP-адресов, соответствующих доменному имени сервера,
+и автоматически изменяет конфигурацию группы
+без необходимости перезапуска nginx (1.5.12).
+Группа должна находиться в <a href="#zone">зоне разделяемой памяти</a>.
+<p>
+Для работы этого параметра
+директива <a href="ngx_http_core_module.html#resolver">resolver</a>
+должна быть задана в блоке
+<a href="ngx_http_core_module.html#http">http</a>.
+Пример:
+</p> <blockquote class="example"><pre>
+http {
+    resolver 10.0.0.1;
+
+    upstream u {
+        zone ...;
+        ...
+        server example.com resolve;
+    }
+}
+</pre></blockquote><p> 
+</p>
+</dd>
+
+<dt id="route">
+<code>route</code>=<code><i>строка</i></code>
+</dt>
+<dd>
+задаёт имя маршрута к серверу.
+</dd>
+
+<dt id="service">
+<code>service</code>=<code><i>имя</i></code>
+</dt>
+<dd>
+включает преобразование
+<a href="https://tools.ietf.org/html/rfc2782">SRV</a>-записей
+DNS и задаёт <code><i>имя</i></code> сервиса (1.9.13).
+Для работы параметра необходимо указать
+параметр <a href="#resolve">resolve</a> для сервера
+и не указывать порт сервера.
+<p>
+Если имя сервиса не содержит точку (“<code>.</code>”), то
+имя составляется в соответствии с
+<a href="https://tools.ietf.org/html/rfc2782">RFC</a>
+и в префикс службы добавляется протокол TCP.
+Например, для получения
+SRV-записи <code>_http._tcp.backend.example.com</code>
+необходимо указать директиву:
+</p> <blockquote class="example"><pre>
+server backend.example.com service=http resolve;
+</pre></blockquote><p> 
+Если имя сервиса содержит одну и более точек, то имя составляется
+при помощи соединения префикса службы и имени сервера.
+Например, для получения SRV-записей
+<code>_http._tcp.backend.example.com</code>
+и <code>server1.backend.example.com</code>
+необходимо указать директивы:
+</p> <blockquote class="example"><pre>
+server backend.example.com service=_http._tcp resolve;
+server example.com service=server1.backend resolve;
+</pre></blockquote><p> 
+</p>
+
+<p>
+SRV-записи с наивысшим приоритетом
+(записи с одинаковым наименьшим значением приоритета)
+преобразуются в основные серверы,
+остальные SRV-записи преобразуются в запасные серверы.
+Если в конфигурации сервера указан параметр <a href="#backup">backup</a>,
+высокоприоритетные SRV-записи преобразуются в запасные серверы,
+остальные SRV-записи игнорируются.
+</p>
+</dd>
+
+<dt id="slow_start">
+<code>slow_start</code>=<code><i>время</i></code>
+</dt>
+<dd>
+задаёт <code><i>время</i></code>, в течение которого вес сервера
+восстановится от нуля до своего номинального значения в ситуации, когда
+неработоспособный (unhealthy) сервер вновь становится работоспособным
+(<a href="#health_check">healthy</a>)
+или когда сервер становится доступным по прошествии времени,
+в течение которого он считался <a href="#fail_timeout">недоступным</a>.
+Значение по умолчанию равно нулю и означает, что медленный старт выключен.
+<blockquote class="note">
+Параметр нельзя использовать совместно с
+методами балансировки нагрузки <a href="#hash">hash</a> и <a href="#ip_hash">ip_hash</a>.
+</blockquote>
+</dd>
+
+</dl><p> 
+</p><p>
+</p> <blockquote class="note">
+Если в группе только один сервер, параметры <code>max_fails</code>,
+<code>fail_timeout</code> и <code>slow_start</code>
+игнорируются и такой сервер никогда не будет считаться недоступным.
+</blockquote><p> 
+</p><a name="zone"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>zone</strong> <code><i>имя</i></code> [<code><i>размер</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.9.0.
+            </p></div><p>
+Задаёт <code><i>имя</i></code> и <code><i>размер</i></code> зоны разделяемой памяти,
+в которой хранятся конфигурация группы и её рабочее состояние,
+разделяемые между рабочими процессами.
+В одной и той же зоне могут быть сразу несколько групп.
+В этом случае достаточно указать <code><i>размер</i></code> только один раз.
+</p><p>
+Дополнительно, как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>,
+в таких группах для изменения состава группы
+или настроек отдельных серверов
+нет необходимости перезапускать nginx.
+Конфигурация доступна через специальный location,
+в котором указана директива
+<a href="ngx_http_upstream_conf_module.html#upstream_conf">upstream_conf</a>.
+</p><a name="state"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>state</strong> <code><i>файл</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.9.7.
+            </p></div><p>
+Задаёт <code><i>файл</i></code>, в котором хранится состояние
+динамически настраиваемой группы.
+</p><p>
+Примеры:
+</p> <blockquote class="example"><pre>
+state /var/lib/nginx/state/servers.conf; # путь для Linux
+state /var/db/nginx/state/servers.conf;  # путь для FreeBSD
+</pre></blockquote><p> 
+</p><p>
+В данный момент состояние ограничено списком серверов с их параметрами.
+Файл читается при парсинге конфигурации и обновляется каждый раз при
+<a href="ngx_http_upstream_conf_module.html#upstream_conf">изменении</a>
+конфигурации группы.
+Изменение содержимого файла напрямую не рекомендуется.
+Директиву нельзя использовать
+совместно с директивой <a href="#server">server</a>.
+</p><p>
+</p> <blockquote class="note">
+Изменения, совершённые в момент
+<a href="../control.html#reconfiguration">перезагрузки конфигурации</a>
+или <a href="../control.html#upgrade">обновления бинарного файла</a>,
+могут быть потеряны.
+</blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="hash"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hash</strong> <code><i>ключ</i></code> [<code>consistent</code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.7.2.
+            </p></div><p>
+Задаёт метод балансировки нагрузки для группы, при котором
+соответствие клиента серверу определяется при помощи
+хэшированного значения <code><i>ключа</i></code>.
+В качестве <code><i>ключа</i></code> может использоваться
+текст, переменные и их комбинации.
+Следует отметить, что любое добавление или удаление серверов в группе
+может привести к перераспределению большинства ключей на другие серверы.
+Метод совместим с библиотекой Perl
+<a href="http://search.cpan.org/perldoc?Cache%3A%3AMemcached">Cache::Memcached</a>.
+</p><p>
+Если задан параметр <code>consistent</code>, то вместо
+вышеописанного метода будет использоваться метод консистентного хэширования
+<a href="http://www.last.fm/user/RJ/journal/2007/04/10/392555/">ketama</a>.
+Метод гарантирует, что при добавлении сервера в группу или его удалении
+на другие серверы будет перераспределено минимальное число ключей.
+Применение метода для кэширующих серверов обеспечивает
+больший процент попаданий в кэш.
+Метод совместим с библиотекой Perl
+<a href="http://search.cpan.org/perldoc?Cache%3A%3AMemcached%3A%3AFast">Cache::Memcached::Fast</a>
+при значении параметра <code><i>ketama_points</i></code> равным 160.
+</p><a name="ip_hash"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>ip_hash</strong>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт для группы метод балансировки нагрузки, при котором запросы
+распределяются по серверам на основе IP-адресов клиентов.
+В качестве ключа для хэширования используются первые три
+октета IPv4-адреса клиента или IPv6-адрес клиента целиком.
+Метод гарантирует, что запросы одного и того же клиента
+будут всегда передаваться на один и тот же сервер.
+Если же этот сервер будет считаться недоступным,
+то запросы этого клиента будут передаваться на другой сервер.
+С большой долей вероятности это также будет один и тот же сервер.
+</p> <blockquote class="note">
+IPv6-адреса поддерживаются начиная с версий 1.3.2 и 1.2.2.
+</blockquote><p> 
+</p><p>
+Если один из серверов нужно убрать на некоторое время, то для сохранения
+текущего хэширования IP-адресов клиентов этот сервер нужно пометить
+параметром <code>down</code>.
+</p><p>
+Пример:
+</p> <blockquote class="example"><pre>
+upstream backend {
+    ip_hash;
+
+    server backend1.example.com;
+    server backend2.example.com;
+    server backend3.example.com <strong>down</strong>;
+    server backend4.example.com;
+}
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+До версий 1.3.1 и 1.2.2 для серверов, использующих метод балансировки нагрузки
+<code>ip_hash</code>, нельзя было задать вес.
+</blockquote><p> 
+</p><a name="keepalive"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>keepalive</strong> <code><i>соединения</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.1.4.
+            </p></div><p>
+Задействует кэш соединений для группы серверов.
+</p><p>
+Параметр <code><i>соединения</i></code> устанавливает максимальное число
+неактивных постоянных соединений с серверами группы, которые будут
+сохраняться в кэше каждого рабочего процесса.
+При превышении этого числа наиболее давно не используемые соединения
+закрываются.
+</p> <blockquote class="note">
+Следует особо отметить, что директива <code>keepalive</code>
+не ограничивает общее число соединений с серверами группы, которые
+рабочие процессы nginx могут открыть.
+Параметр <code><i>соединения</i></code> следует устанавливать достаточно
+консервативно, чтобы серверы группы по-прежнему могли обрабатывать
+новые входящие соединения.
+</blockquote><p> 
+</p><p>
+Пример конфигурации группы серверов memcached с постоянными соединениями:
+</p> <blockquote class="example"><pre>
+upstream memcached_backend {
+    server 127.0.0.1:11211;
+    server 10.0.0.2:11211;
+
+    keepalive 32;
+}
+
+server {
+    ...
+
+    location /memcached/ {
+        set $memcached_key $uri;
+        memcached_pass memcached_backend;
+    }
+
+}
+</pre></blockquote><p> 
+</p><p>
+Для HTTP директиву
+<a href="ngx_http_proxy_module.html#proxy_http_version">proxy_http_version</a>
+следует установить в “<code>1.1</code>”,
+а поле заголовка “Connection” — очистить:
+</p> <blockquote class="example"><pre>
+upstream http_backend {
+    server 127.0.0.1:8080;
+
+    keepalive 16;
+}
+
+server {
+    ...
+
+    location /http/ {
+        proxy_pass http://http_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        ...
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Хоть это и не рекомендуется, но также возможно использование постоянных
+соединений с HTTP/1.0, путём передачи поля заголовка
+“Connection: Keep-Alive” серверу группы.
+</blockquote><p> 
+</p><p>
+Для работы постоянных соединений с FastCGI-серверами потребуется
+включить директиву
+<a href="ngx_http_fastcgi_module.html#fastcgi_keep_conn">fastcgi_keep_conn</a>:
+</p> <blockquote class="example"><pre>
+upstream fastcgi_backend {
+    server 127.0.0.1:9000;
+
+    keepalive 8;
+}
+
+server {
+    ...
+
+    location /fastcgi/ {
+        fastcgi_pass fastcgi_backend;
+        fastcgi_keep_conn on;
+        ...
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+При использовании методов балансировки нагрузки, отличных
+от стандартного round-robin, следует активировать их до
+директивы <code>keepalive</code>.
+</blockquote><p> 
+
+</p> <blockquote class="note">
+Протоколы SCGI и uwsgi не определяют семантику постоянных соединений.
+</blockquote><p> 
+</p><a name="ntlm"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>ntlm</strong>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.9.2.
+            </p></div><p>
+Позволяет проксировать запросы с
+<a href="https://en.wikipedia.org/wiki/Integrated_Windows_Authentication">проверкой
+подлинности NTLM</a>.
+Соединение с сервером группы привязывается к клиентскому соединению
+как только клиент отправляет запрос, в заголовке которого есть поле
+“Authorization” со значением,
+начинающимся с “<code>Negotiate</code>” или “<code>NTLM</code>”.
+Последующие запросы клиента будут проксироваться через это же соединение
+с сервером группы,
+сохраняя контекст аутентификации.
+</p><p>
+Для работы проверки подлинности NTLM
+необходимо разрешить постоянные соединения с серверами группы.
+Директиву <a href="ngx_http_proxy_module.html#proxy_http_version">proxy_http_version</a>
+следует установить в “<code>1.1</code>”,
+а поле заголовка “Connection” — очистить:
+</p> <blockquote class="example"><pre>
+upstream http_backend {
+    server 127.0.0.1:8080;
+
+    ntlm;
+}
+
+server {
+    ...
+
+    location /http/ {
+        proxy_pass http://http_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        ...
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+При использовании методов балансировки нагрузки, отличных
+от стандартного round-robin, следует активировать их до
+директивы <code>ntlm</code>.
+</blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="least_conn"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>least_conn</strong>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table>
+                        <p>
+                    Эта директива появилась в версиях 1.3.1 и 1.2.2.
+                    
+                        </p>
+                    </div><p>
+Задаёт для группы метод балансировки нагрузки, при котором запрос
+передаётся серверу с наименьшим числом активных соединений,
+с учётом весов серверов.
+Если подходит сразу несколько серверов, они выбираются циклически
+(в режиме round-robin) с учётом их весов.
+</p><a name="least_time"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>least_time</strong> <code>header</code> | <code>last_byte</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.7.10.
+            </p></div><p>
+Задаёт для группы метод балансировки нагрузки, при котором запрос
+передаётся серверу с наименьшими средним временем ответа и
+числом активных соединений с учётом весов серверов.
+Если подходит сразу несколько серверов, то они выбираются циклически
+(в режиме round-robin) с учётом их весов.
+</p><p>
+Если указан параметр <code>header</code>,
+то учитывается время получения
+<a href="#var_upstream_header_time">заголовка ответа</a>.
+Если указан параметр <code>last_byte</code>, то учитывается
+время получения <a href="#var_upstream_response_time">всего ответа</a>.
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="health_check"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>health_check</strong> [<code><i>параметры</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Активирует периодические проверки работоспособности серверов в
+<a href="#upstream">группе</a>, указанной в содержащем location.
+</p><p>
+Могут быть заданы следующие необязательные параметры:
+</p> <dl class="compact">
+
+<dt id="interval">
+<code>interval</code>=<code><i>время</i></code>
+</dt>
+<dd>
+задаёт интервал между двумя последовательными проверками,
+по умолчанию 5 секунд.
+</dd>
+
+<dt id="health_check_jitter">
+<code>jitter</code>=<code><i>время</i></code>
+</dt>
+<dd>
+задаёт время, в пределах которого
+случайным образом задерживается каждая проверка,
+по умолчанию задержки нет.
+</dd>
+
+<dt id="fails">
+<code>fails</code>=<code><i>число</i></code>
+</dt>
+<dd>
+задаёт число последовательных неуспешных проверок для определённого сервера,
+после которых сервер будет считаться неработоспособным,
+по умолчанию 1.
+</dd>
+
+<dt id="passes">
+<code>passes</code>=<code><i>число</i></code>
+</dt>
+<dd>
+задаёт число последовательных успешных проверок для определённого сервера,
+после которых сервер будет считаться работоспособным,
+по умолчанию 1.
+</dd>
+
+<dt id="uri">
+<code>uri</code>=<code><i>uri</i></code>
+</dt>
+<dd>
+задаёт URI, используемый в запросах, проверяющих работоспособность,
+по умолчанию “<code>/</code>”.
+</dd>
+
+<dt id="hc_match">
+<code>match</code>=<code><i>имя</i></code>
+</dt>
+<dd>
+указывает на блок <code>match</code> с условиями, которым должен
+удовлетворять ответ, чтобы результат проверки считался успешным.
+По умолчанию код ответа должен быть 2xx или 3xx.
+</dd>
+
+<dt id="health_check_port">
+<code>port</code>=<code><i>число</i></code>
+</dt>
+<dd>
+задаёт порт, используемый при подключении к серверу
+для проверки его работоспособности (1.9.7).
+По умолчанию совпадает с портом <a href="#server">сервера</a>.
+</dd>
+
+</dl><p> 
+</p><p>
+В примере
+</p> <blockquote class="example"><pre>
+location / {
+    proxy_pass http://backend;
+    health_check;
+}
+</pre></blockquote><p> 
+каждому серверу группы <code>backend</code>
+с интервалом в 5 секунд посылаются запросы “<code>/</code>”.
+Если происходит ошибка или таймаут при работе с сервером, или
+код ответа проксируемого сервера не равен
+2xx или 3xx, проверка считается неуспешной и сервер
+признаётся неработоспособным.
+На неработоспособные серверы клиентские запросы передаваться не будут.
+</p><p>
+Проверки работоспособности могут тестировать код ответа,
+наличие или отсутствие определённых полей заголовка и их значений,
+а также содержимое тела ответа.
+Тесты настраиваются отдельно при помощи директивы <a href="#match">match</a>
+и указываются в параметре <code>match</code>.
+Например:
+</p> <blockquote class="example"><pre>
+http {
+    server {
+    ...
+        location / {
+            proxy_pass http://backend;
+            health_check match=welcome;
+        }
+    }
+
+    match welcome {
+        status 200;
+        header Content-Type = text/html;
+        body ~ "Welcome to nginx!";
+    }
+}
+</pre></blockquote><p> 
+В такой конфигурации успешный ответ на проверочный запрос
+должен иметь код 200, тип содержимого “<code>text/html</code>”
+и “<code>Welcome to nginx!</code>” в теле ответа.
+</p><p>
+Группа должна находиться в <a href="#zone">зоне разделяемой памяти</a>.
+</p><p>
+Если для группы задано несколько проверок,
+то при любой неуспешной проверке соответствующий сервер будет
+считаться неработоспособным.
+</p><p>
+</p> <blockquote class="note">
+Обратите внимание, что при использовании проверок
+большинство переменных имеют пустые значения.
+</blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="match"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>match</strong> <code><i>имя</i></code> { ... }</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт именованный набор тестов для анализа ответов
+на запросы проверки работоспособности.
+</p><p>
+В ответе могут быть протестированы следующие объекты:
+</p> <dl class="compact">
+
+<dt><code>status 200;</code></dt>
+<dd>код ответа равен 200</dd>
+
+<dt><code>status ! 500;</code></dt>
+<dd>код ответа не равен 500</dd>
+
+<dt><code>status 200 204;</code></dt>
+<dd>код ответа равен 200 или 204</dd>
+
+<dt><code>status ! 301 302;</code></dt>
+<dd>код ответа не равен ни 301, ни 302</dd>
+
+<dt><code>status 200-399;</code></dt>
+<dd>код ответа находится в диапазоне от 200 до 399</dd>
+
+<dt><code>status ! 400-599;</code></dt>
+<dd>код ответа находится вне диапазона от 400 до 599</dd>
+
+<dt><code>status 301-303 307;</code></dt>
+<dd>код ответа равен 301, 302, 303 или 307</dd>
+
+</dl><p> 
+
+</p> <dl class="compact">
+
+<dt><code>header Content-Type = text/html;</code></dt>
+<dd>
+заголовок содержит “Content-Type”
+со значением <code>text/html</code>
+</dd>
+
+<dt><code>header Content-Type != text/html;</code></dt>
+<dd>
+заголовок содержит “Content-Type”
+со значением, отличным от <code>text/html</code>
+</dd>
+
+<dt><code>header Connection ~ close;</code></dt>
+<dd>
+заголовок содержит “Connection”
+со значением, совпадающим с регулярным выражением <code>close</code>
+</dd>
+
+<dt><code>header Connection !~ close;</code></dt>
+<dd>
+заголовок содержит “Connection”
+со значением, не совпадающим с регулярным выражением <code>close</code>
+</dd>
+
+<dt><code>header Host;</code></dt>
+<dd>заголовок содержит “Host”</dd>
+
+<dt><code>header ! X-Accel-Redirect;</code></dt>
+<dd>заголовок не содержит “X-Accel-Redirect”</dd>
+
+</dl><p> 
+
+</p> <dl class="compact">
+
+<dt><code>body ~ "Welcome to nginx!";</code></dt>
+<dd>
+тело ответа совпадает с регулярным выражением
+“<code>Welcome to nginx!</code>”
+</dd>
+
+<dt><code>body !~ "Welcome to nginx!";</code></dt>
+<dd>
+тело ответа не совпадает с регулярным выражением
+“<code>Welcome to nginx!</code>”
+</dd>
+
+</dl><p> 
+</p><p>
+Если задано несколько тестов,
+то ответ должен удовлетворять всем тестам.
+</p> <blockquote class="note">
+Проверяются только первые 256 Кбайт тела ответа.
+</blockquote><p> 
+</p><p>
+Примеры:
+</p> <blockquote class="example"><pre>
+# код ответа 200, тип содержимого "text/html"
+# и тело ответа содержит "Welcome to nginx!"
+match welcome {
+    status 200;
+    header Content-Type = text/html;
+    body ~ "Welcome to nginx!";
+}
+</pre></blockquote><p> 
+
+</p> <blockquote class="example"><pre>
+# код ответа не равен 301, 302, 303 и 307 и заголовок не содержит "Refresh:"
+match not_redirect {
+    status ! 301-303 307;
+    header ! Refresh;
+}
+</pre></blockquote><p> 
+
+</p> <blockquote class="example"><pre>
+# код ответа успешный и сервер не в сервисном режиме
+match server_ok {
+    status 200-399;
+    body !~ "maintenance mode";
+}
+</pre></blockquote><p> 
+
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="queue"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>queue</strong> 
+<code><i>число</i></code>
+[<code>timeout</code>=<code><i>время</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.5.12.
+            </p></div><p>
+Если при обработке запроса невозможно сразу выбрать сервер группы, то
+запрос будет помещён в очередь.
+Директива задаёт максимальное число запросов, которые могут одновременно
+находиться в очереди.
+Если очередь переполнена
+или за время, задаваемое параметром <code>timeout</code>,
+так и не удастся выбрать сервер для передачи ему запроса,
+клиенту будет возвращена ошибка
+502 (Bad Gateway).
+</p><p>
+По умолчанию параметр <code>timeout</code> равен 60 секундам.
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="sticky"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>sticky</strong> 
+    <code>cookie</code> <code><i>имя</i></code>
+    [<code>expires=</code><code><i>время</i></code>]
+    [<code>domain=</code><code><i>домен</i></code>]
+    [<code>httponly</code>]
+    [<code>secure</code>]
+    [<code>path=</code><code><i>путь</i></code>];</code><br><code><strong>sticky</strong> 
+    <code>route</code> <code><i>переменная</i></code> ...;</code><br><code><strong>sticky</strong> 
+    <code>learn</code>
+    <code>create=</code><code><i>$переменная</i></code>
+    <code>lookup=</code><code><i>$переменная</i></code>
+    <code>zone=</code><code><i>имя</i></code>:<code><i>размер</i></code>
+    [<code>timeout=</code><code><i>время</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.5.7.
+            </p></div><p>
+Включает режим привязки сеансов, в котором запросы клиента
+будут передаваться на один и тот же сервер группы.
+Доступны три метода:
+</p> <dl class="compact">
+<dt id="sticky_cookie"><code>cookie</code></dt>
+<dd>
+
+<p>
+При использовании метода <code>cookie</code> информация о
+назначенном сервере передаётся в HTTP-куке:
+</p> <blockquote class="example"><pre>
+upstream backend {
+    server backend1.example.com;
+    server backend2.example.com;
+
+    sticky cookie srv_id expires=1h domain=.example.com path=/;
+}
+</pre></blockquote><p> 
+</p>
+
+<p>
+Запрос от клиента, ещё не привязанного к определённому серверу,
+передаётся на сервер, выбранный согласно настроенному методу балансировки.
+Дальнейшие запросы от этого клиента передаются на тот же сервер.
+Если назначенный сервер не может обработать запрос, выбирается новый
+сервер как если бы клиент не имел привязки к серверу.
+</p>
+
+<p>
+Первый параметр задаёт имя куки, которую необходимо установить или проверить.
+Дополнительные параметры могут быть следующими:
+</p> <dl class="compact">
+
+<dt><code>expires=</code><code><i>время</i></code></dt>
+<dd>
+Задаёт <code><i>время</i></code>, в течение которого браузеру необходимо хранить куку.
+Специальное значение <code>max</code> устанавливает срок хранения куки до
+31 декабря 2037 года 23:55:55 GMT.
+Если параметр не указан, то время действия куки ограничивается сессией браузера.
+</dd>
+
+<dt><code>domain=</code><code><i>домен</i></code></dt>
+<dd>
+Задаёт <code><i>домен</i></code>, для которого устанавливается кука.
+В значении параметра можно использовать переменные (1.11.5).
+</dd>
+
+<dt><code>httponly</code></dt>
+<dd>
+Добавляет атрибут <code>HttpOnly</code> к куке (1.7.11).
+</dd>
+
+<dt><code>secure</code></dt>
+<dd>
+Добавляет атрибут <code>Secure</code> к куке (1.7.11).
+</dd>
+
+<dt><code>path=</code><code><i>путь</i></code></dt>
+<dd>
+Задаёт <code><i>путь</i></code>, для которого устанавливается кука.
+</dd>
+
+</dl><p> 
+Если пропущен тот или иной параметр, то соответствующего поля в куке не будет.
+</p>
+</dd>
+
+<dt id="sticky_route"><code>route</code></dt>
+<dd>
+
+<p>
+При использовании метода <code>route</code> проксируемый сервер назначает
+клиенту маршрут по получении первого запроса.
+Все последующие запросы от этого клиента будут содержать информацию о
+маршруте в куке или URI.
+Эта информация сравнивается с параметром “<code>route</code>” директивы
+<a href="#server">server</a> для идентификации сервера, на который
+следует проксировать запрос.
+Если параметр “<code>route</code>” не задан, то именем маршрута
+будет являться MD5-хэш IP-адреса и порта
+(или пути UNIX-сокета) в шестнадцатеричном виде.
+Если назначенный сервер не может обработать запрос, выбирается новый сервер
+согласно настроенному методу балансировки как если бы в запросе не было
+информации о маршруте.
+</p>
+
+<p>
+Параметры метода <code>route</code> задают переменные, которые
+могут содержать информацию о маршруте.
+Первая непустая переменная используется для поиска соответствующего сервера.
+</p>
+
+<p>
+Пример:
+</p> <blockquote class="example"><pre>
+map $cookie_jsessionid $route_cookie {
+    ~.+\.(?P&lt;route&gt;\w+)$ $route;
+}
+
+map $request_uri $route_uri {
+    ~jsessionid=.+\.(?P&lt;route&gt;\w+)$ $route;
+}
+
+upstream backend {
+    server backend1.example.com route=a;
+    server backend2.example.com route=b;
+
+    sticky route $route_cookie $route_uri;
+}
+</pre></blockquote><p> 
+В этом примере маршрут берётся из куки “<code>JSESSIONID</code>”,
+если она присутствует в запросе.
+В противном случае используется маршрут из URI.
+</p>
+
+</dd>
+
+<dt id="sticky_learn"><code>learn</code></dt>
+<dd>
+<p>
+При использовании метода <code>learn</code> (1.7.1) nginx
+анализирует ответы от вышестоящего сервера и запоминает
+начатые им сессии, которые обычно передаются в HTTP-куке.
+</p> <blockquote class="example"><pre>
+upstream backend {
+   server backend1.example.com:8080;
+   server backend2.example.com:8081;
+
+   sticky learn
+          create=$upstream_cookie_examplecookie
+          lookup=$cookie_examplecookie
+          zone=client_sessions:1m;
+}
+</pre></blockquote><p> 
+
+В примере выше сервер группы создаёт сессию путём установки
+куки “<code>EXAMPLECOOKIE</code>” в своём ответе.
+Последующие запросы с этой кукой будут передаваться на этот же сервер.
+Если сервер не может обработать запрос, выбирается новый
+сервер как если бы клиент не имел привязки к серверу.
+</p>
+
+<p>
+Параметры <code>create</code> и <code>lookup</code>
+задают переменные, в которых соответственно указывается способ
+создания новых и поиска существующих сессий.
+Оба параметра могут быть указаны больше одного раза
+(в этом случае используется первая непустая переменная).
+</p>
+
+<p>
+Сессии хранятся в зоне разделяемой памяти, <code><i>имя</i></code> и
+<code><i>размер</i></code> которой задаются параметром <code>zone</code>.
+Зоны размером в 1 мегабайт достаточно для хранения около 8 тысяч сессий
+на 64-битной платформе.
+Сессии, к которым не было обращений в течение времени, заданного параметром
+<code>timeout</code>, удаляются из зоны.
+По умолчанию <code>timeout</code> равен 10 минутам.
+</p>
+
+</dd>
+</dl><p> 
+</p><p>
+</p> <blockquote class="note">
+Эта директива доступна как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p><a name="sticky_cookie_insert"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>sticky_cookie_insert</strong> <code><i>имя</i></code>
+[<code>expires=</code><code><i>время</i></code>]
+[<code>domain=</code><code><i>домен</i></code>]
+[<code>path=</code><code><i>путь</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>upstream</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Эта директива устарела начиная с версии 1.5.7.
+Вместо неё следует использовать аналогичную директиву
+<a href="#sticky">sticky</a> с изменённым синтаксисом:
+</p> <blockquote class="note">
+<code>sticky cookie</code> <code><i>имя</i></code>
+[<code>expires=</code><code><i>время</i></code>]
+[<code>domain=</code><code><i>домен</i></code>]
+[<code>path=</code><code><i>путь</i></code>];
+</blockquote><p> 
+</p>
+
+
+<a name="variables"></a><center><h4>Встроенные переменные</h4></center><p>
+Модуль <code>ngx_http_upstream_module</code>
+поддерживает следующие встроенные переменные:
+</p> <dl class="compact">
+
+<dt id="var_upstream_addr"><code>$upstream_addr</code></dt>
+<dd>
+хранит IP-адрес и порт или путь к UNIX-сокету сервера группы.
+Если при обработке запроса были сделаны обращения к нескольким серверам,
+то их адреса разделяются запятой, например,
+“<code>192.168.1.1:80, 192.168.1.2:80, unix:/tmp/sock</code>”.
+Если произошло внутреннее перенаправление от одной группы серверов на другую
+с помощью
+“X-Accel-Redirect” или
+<a href="ngx_http_core_module.html#error_page">error_page</a>,
+то адреса, соответствующие разным группам серверов, разделяются двоеточием,
+например,
+“<code>192.168.1.1:80, 192.168.1.2:80, unix:/tmp/sock : 192.168.10.1:80, 192.168.10.2:80</code>”.
+</dd>
+
+<dt id="var_upstream_bytes_received"><code>$upstream_bytes_received</code></dt>
+<dd>
+число байт, полученных от сервера группы (1.11.4).
+Значения нескольких соединений
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+<dt id="var_upstream_cache_status"><code>$upstream_cache_status</code>
+</dt>
+<dd>
+хранит статус доступа к кэшу ответов (0.8.3).
+Статус может быть одним из “<code>MISS</code>”,
+“<code>BYPASS</code>”, “<code>EXPIRED</code>”,
+“<code>STALE</code>”, “<code>UPDATING</code>”,
+“<code>REVALIDATED</code>” или “<code>HIT</code>”.
+</dd>
+
+<dt id="var_upstream_connect_time"><code>$upstream_connect_time</code>
+</dt>
+<dd>
+хранит время, затраченное на установление соединения с сервером группы (1.9.1);
+время хранится в секундах с точностью до миллисекунд.
+В случае SSL, включает в себя время, потраченное на handshake.
+Времена нескольких соединений
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+<dt id="var_upstream_cookie_"><code>$upstream_cookie_</code><code><i>имя</i></code>
+</dt>
+<dd>
+кука с указанным <code><i>именем</i></code>, переданная сервером группы
+в поле “Set-Cookie” заголовка ответа (1.7.1).
+Необходимо иметь в виду, что куки запоминаются только из ответа
+последнего сервера.
+</dd>
+
+<dt id="var_upstream_header_time"><code>$upstream_header_time</code>
+</dt>
+<dd>
+хранит время,
+затраченное на получение заголовка ответа от сервера группы (1.7.10);
+время хранится в секундах с точностью до миллисекунд.
+Времена нескольких ответов
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+<dt id="var_upstream_http_"><code>$upstream_http_</code><code><i>имя</i></code></dt>
+<dd>
+хранят поля заголовка ответа сервера.
+Например, поле заголовка ответа “Server”
+доступно в переменной <code>$upstream_http_server</code>.
+Правила преобразования имён полей заголовка ответа в имена переменных
+такие же, как для переменных с префиксом
+“<a href="ngx_http_core_module.html#var_http_">$http_</a>”.
+Необходимо иметь в виду, что поля заголовка запоминаются только из ответа
+последнего сервера.
+</dd>
+
+<dt id="var_upstream_response_length"><code>$upstream_response_length</code>
+</dt>
+<dd>
+хранит длину ответа, полученного от сервера группы (0.7.27);
+длина хранится в байтах.
+Длины нескольких ответов
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+<dt id="var_upstream_response_time"><code>$upstream_response_time</code>
+</dt>
+<dd>
+хранит время, затраченное на получение ответа от сервера группы;
+время хранится в секундах с точностью до миллисекунд.
+Времена нескольких ответов
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+<dt id="var_upstream_status"><code>$upstream_status</code></dt>
+<dd>
+хранит статус ответа, полученного от сервера группы.
+Статусы нескольких ответов
+разделяются запятыми и двоеточиями подобно адресам в переменной
+<a href="#var_upstream_addr">$upstream_addr</a>.
+</dd>
+
+</dl><p> 
+</p>
+
+</div></div></body></html>

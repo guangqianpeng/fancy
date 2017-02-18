@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>nginx: пакеты для Linux</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../en/linux_packages.html">english</a><br>русский<br><br><a href="../">новости</a> [en]<br><a href="./">об nginx</a><br><a href="download.html">скачать</a><br><a href="../en/security_advisories.html">безопасность</a> [en]<br><a href="docs/">документация</a><br><a href="docs/faq.html">faq</a><br><a href="../en/books.html">книги</a> [en]<br><a href="support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>nginx: пакеты для Linux</h2><a name="distributions"></a><p>
+В данный момент доступны готовые пакеты для следующих дистрибутивов и их
+версий:
+</p><p>
+RHEL/CentOS:
+
+<blockquote><table width="100%">
+
+<tr>
+<td width="20%">Версия</td>
+<td>Поддерживаемые платформы</td>
+</tr>
+
+<tr>
+<td width="20%">5.x</td>
+<td>x86_64, i386</td>
+</tr>
+
+<tr>
+<td width="20%">6.x</td>
+<td>x86_64, i386</td>
+</tr>
+
+<tr>
+<td width="20%">7.x</td>
+<td>x86_64, ppc64le</td>
+</tr>
+
+</table></blockquote>
+</p><p>
+Debian:
+
+<blockquote><table width="100%">
+
+<tr>
+<td width="20%">Версия</td>
+<td width="20%">Кодовое имя</td>
+<td>Поддерживаемые платформы</td>
+</tr>
+
+<tr>
+<td width="20%">7.x</td>
+<td width="20%">wheezy</td>
+<td>x86_64, i386</td>
+</tr>
+
+<tr>
+<td width="20%">8.x</td>
+<td width="20%">jessie</td>
+<td>x86_64, i386</td>
+</tr>
+
+</table></blockquote>
+</p><p>
+Ubuntu:
+
+<blockquote><table width="100%">
+
+<tr>
+<td width="20%">версия</td>
+<td width="20%">Кодовое имя</td>
+<td>Поддерживаемые платформы</td>
+</tr>
+
+<tr>
+<td width="20%">12.04</td>
+<td width="20%">precise</td>
+<td>x86_64, i386</td>
+</tr>
+
+<tr>
+<td width="20%">14.04</td>
+<td width="20%">trusty</td>
+<td>x86_64, i386, aarch64/arm64</td>
+</tr>
+
+<tr>
+<td width="20%">16.04</td>
+<td width="20%">xenial</td>
+<td>x86_64, i386, ppc64el</td>
+</tr>
+
+</table></blockquote>
+</p><p>
+SLES:
+
+<blockquote><table width="100%">
+<tr>
+<td width="20%">Версия</td>
+<td>Поддерживаемые платформы</td>
+</tr>
+
+<tr>
+<td width="20%">12</td>
+<td>x86_64</td>
+</tr>
+
+</table></blockquote>
+</p><p>
+Чтобы включить автоматическое обновление пакетов для Linux,
+настройте репозиторий yum для дистрибутивов RHEL/CentOS,
+репозиторий apt для дистрибутивов Debian/Ubuntu,
+или репозиторий zypper для SLES.
+</p><a name="stable"></a><center><h4>Готовые пакеты стабильной версии</h4></center><p>
+Для настройки репозитория yum для RHEL/CentOS необходимо
+создать файл с именем <code>/etc/yum.repos.d/nginx.repo</code>
+и таким содержимым:
+
+</p> <blockquote class="example"><pre>
+[nginx]
+name=nginx repo
+baseurl=http://nginx.org/packages/OS/OSRELEASE/$basearch/
+gpgcheck=0
+enabled=1
+</pre></blockquote><p> 
+
+Замените “<code>OS</code>” на “<code>rhel</code>” или
+“<code>centos</code>”,
+в зависимости от используемого дистрибутива, а “<code>OSRELEASE</code>”
+на “<code>5</code>”, “<code>6</code>” или “<code>7</code>”,
+для, соответственно, 5.x, 6.x или 7.x версий.
+</p><p>
+Для Debian/Ubuntu, для проверки подлинности подписи репозитория nginx,
+и чтобы избавиться от предупреждений об отсутствующем PGP-ключе во время
+установки пакета nginx, необходимо добавить ключ, которым были подписаны
+пакеты и репозиторий nginx, в связку ключей программы <code>apt</code>.
+Загрузите <a href="/keys/nginx_signing.key">этот
+ключ</a> с нашего веб-сайта и добавьте его в связку ключей программы
+<code>apt</code>, выполнив команду:
+</p> <blockquote class="example"><pre>
+sudo apt-key add nginx_signing.key
+</pre></blockquote><p> 
+</p><p>
+Для Debian замените <i>codename</i> на
+<a href="#distributions">кодовое имя</a> дистрибутива,
+и добавьте в конец файла <code>/etc/apt/sources.list</code>
+следующее:
+
+</p> <blockquote class="example"><pre>
+deb http://nginx.org/packages/debian/ <i>codename</i> nginx
+deb-src http://nginx.org/packages/debian/ <i>codename</i> nginx
+</pre></blockquote><p> 
+</p><p>
+Для Ubuntu замените <i>codename</i> на
+<a href="#distributions">кодовое имя</a> дистрибутива,
+и добавьте в конец файла <code>/etc/apt/sources.list</code>
+следующее:
+
+</p> <blockquote class="example"><pre>
+deb http://nginx.org/packages/ubuntu/ <i>codename</i> nginx
+deb-src http://nginx.org/packages/ubuntu/ <i>codename</i> nginx
+</pre></blockquote><p> 
+</p><p>
+Для Debian/Ubuntu затем выполните команды:
+</p> <blockquote class="example"><pre>
+apt-get update
+apt-get install nginx
+</pre></blockquote><p> 
+</p><p>
+Для SLES выполните команду:
+</p> <blockquote class="example"><pre>
+zypper addrepo -G -t yum -c 'http://nginx.org/packages/sles/12' nginx
+</pre></blockquote><p> 
+</p><a name="mainline"></a><center><h4>Готовые пакеты mainline-версии</h4></center><p>
+Для настройки репозитория yum для RHEL/CentOS необходимо
+создать файл с именем <code>/etc/yum.repos.d/nginx.repo</code>
+и таким содержимым:
+
+</p> <blockquote class="example"><pre>
+[nginx]
+name=nginx repo
+baseurl=http://nginx.org/packages/mainline/OS/OSRELEASE/$basearch/
+gpgcheck=0
+enabled=1
+</pre></blockquote><p> 
+
+Замените “<code>OS</code>” на “<code>rhel</code>” или
+“<code>centos</code>”,
+в зависимости от используемого дистрибутива, а “<code>OSRELEASE</code>”
+на “<code>5</code>”, “<code>6</code>” или “<code>7</code>”,
+для, соответственно, 5.x, 6.x или 7.x версий.
+</p><p>
+Для Debian/Ubuntu, для проверки подлинности подписи репозитория nginx,
+и чтобы избавиться от предупреждений об отсутствующем PGP-ключе во время
+установки пакета nginx, необходимо добавить ключ, которым были подписаны
+пакеты и репозиторий nginx, в связку ключей программы <code>apt</code>.
+Загрузите <a href="/keys/nginx_signing.key">этот
+ключ</a> с нашего веб-сайта и добавьте его в связку ключей программы
+<code>apt</code>, выполнив команду:
+</p> <blockquote class="example"><pre>
+sudo apt-key add nginx_signing.key
+</pre></blockquote><p> 
+</p><p>
+Для Debian замените <i>codename</i> на
+<a href="#distributions">кодовое имя</a> дистрибутива,
+и добавьте в конец файла <code>/etc/apt/sources.list</code>
+следующее:
+
+</p> <blockquote class="example"><pre>
+deb http://nginx.org/packages/mainline/debian/ <i>codename</i> nginx
+deb-src http://nginx.org/packages/mainline/debian/ <i>codename</i> nginx
+</pre></blockquote><p> 
+</p><p>
+Для Ubuntu замените <i>codename</i> на
+<a href="#distributions">кодовое имя</a> дистрибутива,
+и добавьте в конец файла <code>/etc/apt/sources.list</code>
+следующее:
+
+</p> <blockquote class="example"><pre>
+deb http://nginx.org/packages/mainline/ubuntu/ <i>codename</i> nginx
+deb-src http://nginx.org/packages/mainline/ubuntu/ <i>codename</i> nginx
+</pre></blockquote><p> 
+</p><p>
+Для Debian/Ubuntu затем выполните команды:
+</p> <blockquote class="example"><pre>
+apt-get update
+apt-get install nginx
+</pre></blockquote><p> 
+</p><p>
+Для SLES выполните команду:
+</p> <blockquote class="example"><pre>
+zypper addrepo -G -t yum -c 'http://nginx.org/packages/mainline/sles/12' nginx
+</pre></blockquote><p> 
+</p><a name="arguments"></a><center><h4>Аргументы configure</h4></center><p>
+Общие аргументы configure для nginx из пакетов стабильной версии:
+</p> <blockquote class="example"><pre>
+--prefix=/etc/nginx
+--sbin-path=/usr/sbin/nginx
+--conf-path=/etc/nginx/nginx.conf
+--error-log-path=/var/log/nginx/error.log
+--http-log-path=/var/log/nginx/access.log
+--pid-path=/var/run/nginx.pid
+--lock-path=/var/run/nginx.lock
+--http-client-body-temp-path=/var/cache/nginx/client_temp
+--http-proxy-temp-path=/var/cache/nginx/proxy_temp
+--http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp
+--http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp
+--http-scgi-temp-path=/var/cache/nginx/scgi_temp
+--user=nginx
+--group=nginx
+--with-http_ssl_module
+--with-http_realip_module
+--with-http_addition_module
+--with-http_sub_module
+--with-http_dav_module
+--with-http_flv_module
+--with-http_mp4_module
+--with-http_gunzip_module
+--with-http_gzip_static_module
+--with-http_random_index_module
+--with-http_secure_link_module
+--with-http_stub_status_module
+--with-http_auth_request_module
+--with-threads
+--with-stream
+--with-stream_ssl_module
+--with-http_slice_module
+--with-mail
+--with-mail_ssl_module
+--with-file-aio
+--with-http_v2_module
+--with-ipv6
+</pre></blockquote><p> 
+</p><p>
+Пакеты для mainline-версии добавляют к списку:
+</p> <blockquote class="example"><pre>
+--with-stream_realip_module
+</pre></blockquote><p> 
+</p><p>
+Для того чтобы избежать увеличения числа зависимостей, основной пакет nginx не
+включает модули, которым требуются дополнительные библиотеки.
+</p><a name="dynmodules"></a><center><h4>Динамические модули</h4></center><p>
+Начиная с версии 1.9.11 nginx поддерживает
+<a href="docs/ngx_core_module.html#load_module">динамические модули</a>.
+В настоящее время следующие модули собираются как динамические
+и поставляются в виде отдельных пакетов:
+</p> <blockquote class="example"><pre>
+nginx-module-geoip
+nginx-module-image-filter
+nginx-module-njs
+nginx-module-perl
+nginx-module-xslt
+</pre></blockquote><p> 
+</p><a name="signatures"></a><center><h4>Подписи</h4></center><p>
+Для проверки целостности и происхождения загруженного пакета
+и в случае RPM, и в случае репозиториев Debian/Ubuntu используется
+цифровая подпись.
+Для проверки подписи необходимо загрузить
+<a href="/keys/nginx_signing.key">этот ключ</a>
+и импортировать его в связку ключей программы <code>rpm</code>
+или <code>apt</code>:
+
+</p> <ul class="compact">
+
+<li>
+Для Debian/Ubuntu:
+<blockquote class="example"><pre>sudo apt-key add nginx_signing.key</pre></blockquote>
+</li>
+
+<li>
+Для RHEL/CentOS:
+<blockquote class="example"><pre>sudo rpm --import nginx_signing.key</pre></blockquote>
+</li>
+
+<li>
+Для SLES:
+<blockquote class="example"><pre>sudo rpm --import nginx_signing.key</pre></blockquote>
+</li>
+
+</ul><p> 
+</p><p>
+В Debian/Ubuntu/SLES подпись проверяется по умолчанию, однако
+в RHEL/CentOS необходимо добавить
+</p> <blockquote class="example"><pre>gpgcheck=1</pre></blockquote><p>  в файл
+<code>/etc/yum.repos.d/nginx.repo</code>.
+</p><p>
+Поскольку наши <a href="../en/pgp_keys.html">PGP-ключи</a>
+находятся на том же сервере, что и пакеты,
+им следует доверять в равной степени.
+Поэтому мы настоятельно рекомендуем дополнительно проверить
+подлинность загруженных PGP-ключей.
+В PGP есть понятие “сети доверия”,
+когда ключ подписывается чьим-либо другим ключом,
+тот в свою очередь третьим, и т.д.
+Это зачастую позволяет построить цепочку от произвольного ключа
+до ключа человека, которого вы знаете и кому доверяете лично,
+и таким образом удостовериться в подлинности первого ключа в цепочке.
+Подробно эта концепция описана в
+<a href="http://www.dewinter.com/gnupg_howto/english/GPGMiniHowto-1.html">
+GPG Mini Howto</a>.
+У наших ключей есть достаточное количество подписей,
+поэтому проверить их подлинность относительно несложно.
+</p></div></div></body></html>

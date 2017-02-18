@@ -19,6 +19,22 @@ const char *status_code_out_str[] = {
         "501 Not Implemented",
 };
 
+const char *content_type_out_str[] = {
+        "text/html",
+        "text/plain",
+        "text/xml",
+        "text/asp",
+        "text/css",
+        "image/gif",
+        "image/x-icon",
+        "image/png",
+        "image/jpeg",
+};
+
+const char *file_suffix_str[] = {
+        "html", "txt", "xml", "asp", "css",
+        "gif", "ico", "png", "jpg", NULL,
+};
 
 static void print_str(const char *start, const char *end)
 {
@@ -114,6 +130,12 @@ void request_print(request *r)
     if (line->uri_static) {
         printf("\tstatic service: ");
         print_str(line->uri_static, line->uri_end);
+        printf("\n");
+    }
+
+    if (line->uri_suffix_start) {
+        printf("\tsuffix: ");
+        print_str(line->uri_suffix_start, line->uri_suffix_end);
         printf("\n");
     }
 

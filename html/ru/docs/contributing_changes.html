@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Внесение изменений</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../en/docs/contributing_changes.html">english</a><br>русский<br><br><a href="../../">новости</a> [en]<br><a href="../../ru/">об nginx</a><br><a href="../../ru/download.html">скачать</a><br><a href="../../en/security_advisories.html">безопасность</a> [en]<br><a href="./">документация</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">книги</a> [en]<br><a href="../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Внесение изменений</h2><table width="100%"><tr><td align="left"><a href="#getting_sources">Получение исходного кода</a><br><a href="#formatting_changes">Оформление изменений</a><br><a href="#before_submitting">Перед отправкой</a><br><a href="#submitting_changes">Отправка изменений</a><br><a href="#license">Лицензия</a><br></td></tr></table><a name="getting_sources"></a><center><h4>Получение исходного кода</h4></center><p>
+Для хранения исходного кода используется
+<a href="https://www.mercurial-scm.org">Mercurial</a>.
+<a href="http://hg.nginx.org/nginx">Репозиторий</a> можно клонировать
+следующей командой:
+</p> <blockquote class="example"><pre>
+hg clone http://hg.nginx.org/nginx
+</pre></blockquote><p> 
+</p><a name="formatting_changes"></a><center><h4>Оформление изменений</h4></center><p>
+Изменения должны быть оформлены согласно принятому в nginx стилю.
+Оформление не должно зависеть от таких возможностей редактора как подсветка
+синтаксиса или автоматический перенос строк.
+Ниже приведены несколько основных правил:
+</p> <ul class="compact">
+
+<li>
+максимальная ширина текста — 80 символов
+</li>
+
+<li>
+отступ — 4 пробела
+</li>
+
+<li>
+табуляция не используется
+</li>
+
+<li>
+логические блоки кода в файле разделяются двумя пустыми строками
+</li>
+
+</ul><p> 
+Изучите, как оформлен исходный код nginx, и следуйте этому стилю в своём коде.
+Изменения скорее будут приняты, если их стиль соответствует окружающему коду.
+</p><p>
+Зафиксируйте изменения, чтобы создать
+<a href="https://www.mercurial-scm.org/wiki/ChangeSet">набор изменений</a>
+в Mercurial.
+Пожалуйста, убедитесь, что адрес
+<a href="https://www.mercurial-scm.org/wiki/QuickStart#Setting_a_username">электронной
+почты</a> и настоящее имя автора изменения указаны правильно.
+</p><p>
+Сообщение фиксации должно содержать однострочное резюме и подробное описание
+после пустой строки.
+Желательно, чтобы первая строка была не длиннее 67 символов.
+Итоговый набор изменений в виде патча может быть получен с помощью команды
+<code>hg export</code>:
+</p> <blockquote class="example"><pre>
+# HG changeset patch
+# User Filipe Da Silva &lt;username@example.com&gt;
+# Date 1368089668 -7200
+#      Thu May 09 10:54:28 2013 +0200
+# Node ID 2220de0521ca2c0b664a8ea1e201ce1cb90fd7a2
+# Parent  822b82191940ef309cd1e6502f94d50d811252a1
+Mail: removed surplus ngx_close_connection() call.
+
+It is already called for a peer connection a few lines above.
+
+diff -r 822b82191940 -r 2220de0521ca src/mail/ngx_mail_auth_http_module.c
+--- a/src/mail/ngx_mail_auth_http_module.c      Wed May 15 15:04:49 2013 +0400
++++ b/src/mail/ngx_mail_auth_http_module.c      Thu May 09 10:54:28 2013 +0200
+@@ -699,7 +699,6 @@ ngx_mail_auth_http_process_headers(ngx_m
+
+                     p = ngx_pnalloc(s-&gt;connection-&gt;pool, ctx-&gt;err.len);
+                     if (p == NULL) {
+-                        ngx_close_connection(ctx-&gt;peer.connection);
+                         ngx_destroy_pool(ctx-&gt;pool);
+                         ngx_mail_session_internal_server_error(s);
+                         return;
+</pre></blockquote><p> 
+</p><a name="before_submitting"></a><center><h4>Перед отправкой</h4></center><p>
+Несколько моментов, на которые следует обратить внимание перед
+отправкой изменения:
+</p> <ul class="compact">
+
+<li>
+Предлагаемые изменения должны корректно работать на всех
+<a href="../index.html#tested_os_and_platforms">поддерживаемых
+платформах</a>.
+</li>
+
+<li>
+Постарайтесь разъяснить, почему предлагаемое изменение нужно, и, если возможно,
+опишите вариант использования.
+</li>
+
+<li>
+Проверка изменений при помощи специального набора тестов позволит убедиться,
+что они не вызывают регрессию.
+<a href="http://hg.nginx.org/nginx-tests">Репозиторий</a> с тестами
+можно клонировать следующей командой:
+<blockquote class="example"><pre>
+hg clone http://hg.nginx.org/nginx-tests
+</pre></blockquote>
+</li>
+
+</ul><p> 
+</p><a name="submitting_changes"></a><center><h4>Отправка изменений</h4></center><p>
+Предлагаемые изменения следует отправить в список рассылки для
+<a href="../support.html#nginx_devel">разработчиков nginx</a>.
+Предпочитаемый и удобный метод отправки наборов изменений —
+при помощи расширения
+<a href="https://www.mercurial-scm.org/wiki/PatchbombExtension">patchbomb</a>.
+</p><a name="license"></a><center><h4>Лицензия</h4></center><p>
+Отправка изменений подразумевает предоставление проекту права на их
+использование под соответствующей <a href="../../LICENSE">лицензией</a>.
+</p></div></div></body></html>

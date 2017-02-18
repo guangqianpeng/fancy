@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_secure_link_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_secure_link_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_secure_link_module</h2><table width="100%"><tr><td align="left"><a href="#directives">Directives</a><br>     <a href="#secure_link">secure_link</a><br>     <a href="#secure_link_md5">secure_link_md5</a><br>     <a href="#secure_link_secret">secure_link_secret</a><br><a href="#variables">Embedded Variables</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_secure_link_module</code> module (0.7.18)
+is used to check authenticity of requested links,
+protect resources from unauthorized access,
+and limit link lifetime.
+</p><p>
+The authenticity of a requested link is verified by comparing the
+checksum value passed in a request with the value computed
+for the request.
+If a link has a limited lifetime and the time has expired,
+the link is considered outdated.
+The status of these checks is made available in the
+<code>$secure_link</code> variable.
+</p><p>
+The module provides two alternative operation modes.
+The first mode is enabled by the <a href="#secure_link_secret">secure_link_secret</a>
+directive and is used to check authenticity of requested links
+as well as protect resources from unauthorized access.
+The second mode (0.8.50) is enabled by the
+<a href="#secure_link">secure_link</a> and <a href="#secure_link_md5">secure_link_md5</a>
+directives and is also used to limit lifetime of links.
+</p><p>
+This module is not built by default, it should be enabled with the
+<code>--with-http_secure_link_module</code>
+configuration parameter.
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="secure_link"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>secure_link</strong> <code><i>expression</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a string with variables from which the
+checksum value and lifetime of a link will be extracted.
+</p><p>
+Variables used in an <code><i>expression</i></code> are usually associated
+with a request; see <a href="#secure_link_md5">example</a> below.
+</p><p>
+The checksum value extracted from the string is compared with
+the MD5 hash value of the expression defined by the
+<a href="#secure_link_md5">secure_link_md5</a> directive.
+If the checksums are different, the <code>$secure_link</code> variable
+is set to an empty string.
+If the checksums are the same, the link lifetime is checked.
+If the link has a limited lifetime and the time has expired,
+the <code>$secure_link</code> variable is set to “<code>0</code>”.
+Otherwise, it is set to “<code>1</code>”.
+The MD5 hash value passed in a request is encoded in
+<a href="http://tools.ietf.org/html/rfc4648#section-5">base64url</a>.
+</p><p>
+If a link has a limited lifetime, the expiration time
+is set in seconds since Epoch (Thu, 01 Jan 1970 00:00:00 GMT).
+The value is specified in the expression after the MD5 hash,
+and is separated by a comma.
+The expiration time passed in a request is available through
+the <code>$secure_link_expires</code> variable for a use in
+the <a href="#secure_link_md5">secure_link_md5</a> directive.
+If the expiration time is not specified, a link has the unlimited
+lifetime.
+</p><a name="secure_link_md5"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>secure_link_md5</strong> <code><i>expression</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines an expression for which the MD5 hash value will
+be computed and compared with the value passed in a request.
+</p><p>
+The expression should contain the secured part of a link (resource)
+and a secret ingredient.
+If the link has a limited lifetime,
+the expression should also contain <code>$secure_link_expires</code>.
+</p><p>
+To prevent unauthorized access, the expression may contain some
+information about the client, such as its address and browser version.
+</p><p>
+Example:
+</p> <blockquote class="example"><pre>
+location /s/ {
+    secure_link $arg_md5,$arg_expires;
+    secure_link_md5 "$secure_link_expires$uri$remote_addr secret";
+
+    if ($secure_link = "") {
+        return 403;
+    }
+
+    if ($secure_link = "0") {
+        return 410;
+    }
+
+    ...
+}
+</pre></blockquote><p> 
+The
+“<code>/s/link?md5=_e4Nc3iduzkWRm01TBBNYw&amp;expires=2147483647</code>”
+link
+restricts access to “<code>/s/link</code>” for the client with the
+IP address 127.0.0.1.
+The link also has the limited lifetime until January 19, 2038 (GMT).
+</p><p>
+On UNIX, the <code><i>md5</i></code> request argument value can be obtained as:
+</p> <blockquote class="example"><pre>
+echo -n '2147483647/s/link127.0.0.1 secret' | \
+    openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
+</pre></blockquote><p> 
+</p><a name="secure_link_secret"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>secure_link_secret</strong> <code><i>word</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a secret <code><i>word</i></code> used to check authenticity
+of requested links.
+</p><p>
+The full URI of a requested link looks as follows:
+</p> <blockquote class="example"><pre>
+/<code><i>prefix</i></code>/<code><i>hash</i></code>/<code><i>link</i></code>
+</pre></blockquote><p> 
+where <code><i>hash</i></code> is a hexadecimal representation of the
+MD5 hash computed for the concatenation of the link and secret word,
+and <code><i>prefix</i></code> is an arbitrary string without slashes.
+</p><p>
+If the requested link passes the authenticity check,
+the <code>$secure_link</code> variable is set to the link
+extracted from the request URI.
+Otherwise, the <code>$secure_link</code> variable
+is set to an empty string.
+</p><p>
+Example:
+</p> <blockquote class="example"><pre>
+location /p/ {
+    secure_link_secret secret;
+
+    if ($secure_link = "") {
+        return 403;
+    }
+
+    rewrite ^ /secure/$secure_link;
+}
+
+location /secure/ {
+    internal;
+}
+</pre></blockquote><p> 
+A request of “<code>/p/5e814704a28d9bc1914ff19fa0c4a00a/link</code>”
+will be internally redirected to
+“<code>/secure/link</code>”.
+</p><p>
+On UNIX, the hash value for this example can be obtained as:
+</p> <blockquote class="example"><pre>
+echo -n 'linksecret' | openssl md5 -hex
+</pre></blockquote><p> 
+</p>
+
+
+<a name="variables"></a><center><h4>Embedded Variables</h4></center><p>
+</p> <dl>
+
+<dt id="var_secure_link"><code>$secure_link</code></dt>
+<dd>
+The status of a link check.
+The specific value depends on the selected operation mode.
+</dd>
+
+<dt id="var_secure_link_expires"><code>$secure_link_expires</code>
+</dt>
+<dd>
+The lifetime of a link passed in a request;
+intended to be used only in the
+<a href="#secure_link_md5">secure_link_md5</a> directive.
+</dd>
+
+</dl><p> 
+</p>
+
+</div></div></body></html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_memcached_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_memcached_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_memcached_module</h2><table width="100%"><tr><td align="left"><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#memcached_bind">memcached_bind</a><br>     <a href="#memcached_buffer_size">memcached_buffer_size</a><br>     <a href="#memcached_connect_timeout">memcached_connect_timeout</a><br>     <a href="#memcached_force_ranges">memcached_force_ranges</a><br>     <a href="#memcached_gzip_flag">memcached_gzip_flag</a><br>     <a href="#memcached_next_upstream">memcached_next_upstream</a><br>     <a href="#memcached_next_upstream_timeout">memcached_next_upstream_timeout</a><br>     <a href="#memcached_next_upstream_tries">memcached_next_upstream_tries</a><br>     <a href="#memcached_pass">memcached_pass</a><br>     <a href="#memcached_read_timeout">memcached_read_timeout</a><br>     <a href="#memcached_send_timeout">memcached_send_timeout</a><br><a href="#variables">Embedded Variables</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_memcached_module</code> module is used to obtain
+responses from a memcached server.
+The key is set in the <code>$memcached_key</code> variable.
+A response should be put in memcached in advance by means
+external to nginx.
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+server {
+    location / {
+        set            $memcached_key "$uri?$args";
+        memcached_pass host:11211;
+        error_page     404 502 504 = @fallback;
+    }
+
+    location @fallback {
+        proxy_pass     http://backend;
+    }
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="memcached_bind"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_bind</strong> 
+    <code><i>address</i></code>
+    [ <code>transparent </code>] |
+    <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 0.8.22.
+            </p></div><p>
+Makes outgoing connections to a memcached server originate
+from the specified local IP address with an optional port (1.11.2).
+Parameter value can contain variables (1.3.12).
+The special value <code>off</code> (1.3.12) cancels the effect
+of the <code>memcached_bind</code> directive
+inherited from the previous configuration level, which allows the
+system to auto-assign the local IP address and port.
+</p><a name="memcached_bind_transparent"></a><p>
+The <code>transparent</code> parameter (1.11.0) allows
+outgoing connections to a memcached server originate
+from a non-local IP address,
+for example, from a real IP address of a client:
+</p> <blockquote class="example"><pre>
+memcached_bind $remote_addr transparent;
+</pre></blockquote><p> 
+In order for this parameter to work,
+it is necessary to run nginx worker processes with the
+<a href="../ngx_core_module.html#user">superuser</a> privileges
+and configure kernel routing table
+to intercept network traffic from the memcached server.
+</p><a name="memcached_buffer_size"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_buffer_size</strong> <code><i>size</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_buffer_size 4k|8k;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the <code><i>size</i></code> of the buffer used for reading the response
+received from the memcached server.
+The response is passed to the client synchronously, as soon as it is received.
+</p><a name="memcached_connect_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_connect_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_connect_timeout 60s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a timeout for establishing a connection with a memcached server.
+It should be noted that this timeout cannot usually exceed 75 seconds.
+</p><a name="memcached_force_ranges"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_force_ranges</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_force_ranges off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.7.7.
+            </p></div><p>
+Enables byte-range support
+for both cached and uncached responses from the memcached server
+regardless of the “Accept-Ranges” field in these responses.
+</p><a name="memcached_gzip_flag"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_gzip_flag</strong> <code><i>flag</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.3.6.
+            </p></div><p>
+Enables the test for the <code><i>flag</i></code> presence in the memcached
+server response and sets the “<code>Content-Encoding</code>”
+response header field to “<code>gzip</code>”
+if the flag is set.
+</p><a name="memcached_next_upstream"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_next_upstream</strong> 
+    <code>error</code> |
+    <code>timeout</code> |
+    <code>invalid_response</code> |
+    <code>not_found</code> |
+    <code>off</code>
+    ...;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_next_upstream error timeout;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies in which cases a request should be passed to the next server:
+</p> <dl class="compact">
+
+<dt><code>error</code></dt>
+<dd>an error occurred while establishing a connection with the
+server, passing a request to it, or reading the response header;</dd>
+
+<dt><code>timeout</code></dt>
+<dd>a timeout has occurred while establishing a connection with the
+server, passing a request to it, or reading the response header;</dd>
+
+<dt><code>invalid_response</code></dt>
+<dd>a server returned an empty or invalid response;</dd>
+
+<dt><code>not_found</code></dt>
+<dd>a response was not found on the server;</dd>
+
+<dt><code>off</code></dt>
+<dd>disables passing a request to the next server.</dd>
+
+</dl><p> 
+</p><p>
+One should bear in mind that passing a request to the next server is
+only possible if nothing has been sent to a client yet.
+That is, if an error or timeout occurs in the middle of the
+transferring of a response, fixing this is impossible.
+</p><p>
+The directive also defines what is considered an
+<a href="ngx_http_upstream_module.html#max_fails">unsuccessful
+attempt</a> of communication with a server.
+The cases of <code>error</code>, <code>timeout</code> and
+<code>invalid_header</code> are always considered unsuccessful attempts,
+even if they are not specified in the directive.
+The case of <code>not_found</code>
+is never considered an unsuccessful attempt.
+</p><p>
+Passing a request to the next server can be limited by
+<a href="#memcached_next_upstream_tries">the number of tries</a>
+and by <a href="#memcached_next_upstream_timeout">time</a>.
+</p><a name="memcached_next_upstream_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_next_upstream_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_next_upstream_timeout 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.7.5.
+            </p></div><p>
+Limits the time during which a request can be passed to the
+<a href="#memcached_next_upstream">next server</a>.
+The <code>0</code> value turns off this limitation.
+</p><a name="memcached_next_upstream_tries"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_next_upstream_tries</strong> <code><i>number</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_next_upstream_tries 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.7.5.
+            </p></div><p>
+Limits the number of possible tries for passing a request to the
+<a href="#memcached_next_upstream">next server</a>.
+The <code>0</code> value turns off this limitation.
+</p><a name="memcached_pass"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_pass</strong> <code><i>address</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>location</code>, <code>if in location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the memcached server address.
+The address can be specified as a domain name or IP address,
+and a port:
+</p> <blockquote class="example"><pre>
+memcached_pass localhost:11211;
+</pre></blockquote><p> 
+or as a UNIX-domain socket path:
+</p> <blockquote class="example"><pre>
+memcached_pass unix:/tmp/memcached.socket;
+</pre></blockquote><p> 
+</p><p>
+If a domain name resolves to several addresses, all of them will be
+used in a round-robin fashion.
+In addition, an address can be specified as a
+<a href="ngx_http_upstream_module.html">server group</a>.
+</p><a name="memcached_read_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_read_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_read_timeout 60s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a timeout for reading a response from the memcached server.
+The timeout is set only between two successive read operations,
+not for the transmission of the whole response.
+If the memcached server does not transmit anything within this time,
+the connection is closed.
+</p><a name="memcached_send_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>memcached_send_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>memcached_send_timeout 60s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets a timeout for transmitting a request to the memcached server.
+The timeout is set only between two successive write operations,
+not for the transmission of the whole request.
+If the memcached server does not receive anything within this time,
+the connection is closed.
+</p>
+
+
+<a name="variables"></a><center><h4>Embedded Variables</h4></center><p>
+</p> <dl class="compact">
+
+<dt id="var_memcached_key"><code>$memcached_key</code></dt>
+<dd>
+Defines a key for obtaining response from a memcached server.
+</dd>
+
+</dl><p> 
+</p>
+
+</div></div></body></html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Руководство для начинающих</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../en/docs/beginners_guide.html">english</a><br>русский<br><br><a href="../../">новости</a> [en]<br><a href="../../ru/">об nginx</a><br><a href="../../ru/download.html">скачать</a><br><a href="../../en/security_advisories.html">безопасность</a> [en]<br><a href="./">документация</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">книги</a> [en]<br><a href="../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Руководство для начинающих</h2><table width="100%"><tr><td align="left"><a href="#control">Запуск, остановка, перезагрузка конфигурации</a><br><a href="#conf_structure">Структура конфигурационного файла</a><br><a href="#static">Раздача статического содержимого</a><br><a href="#proxy">Настройка простого прокси-сервера</a><br><a href="#fastcgi">Настройка проксирования FastCGI</a><br></td></tr></table><p>
+В этом руководстве даётся начальное введение в nginx и описываются
+некоторые простые задачи, которые могут быть решены с его помощью.
+Предполагается, что nginx уже установлен на компьютере читателя.
+Если нет, см. <a href="install.html">Установка nginx</a>.
+В этом руководстве описывается, как запустить и остановить nginx
+и перезагрузить его конфигурацию,
+объясняется, как устроен конфигурационный файл, и описывается,
+как настроить nginx для раздачи статического содержимого, как
+настроить прокси-сервер на nginx, и как связать nginx с приложением
+FastCGI.
+</p><p>
+У nginx есть один главный и несколько рабочих процессов.
+Основная задача главного процесса — чтение и проверка конфигурации
+и управление рабочими процессами.
+Рабочие процессы выполняют фактическую обработку запросов.
+nginx использует
+модель, основанную на событиях, и зависящие от операционной системы
+механизмы для эффективного распределения запросов между рабочими процессами.
+Количество рабочих процессов задаётся в конфигурационном файле и
+может быть фиксированным для данной конфигурации или автоматически
+устанавливаться равным числу доступных процессорных ядер (см.
+<a href="ngx_core_module.html#worker_processes">worker_processes</a>).
+</p><p>
+Как работают nginx и его модули, определяется в конфигурационном файле.
+По умолчанию, конфигурационный файл называется <code>nginx.conf</code>
+и расположен в каталоге
+<code>/usr/local/nginx/conf</code>,
+<code>/etc/nginx</code> или
+<code>/usr/local/etc/nginx</code>.
+</p><a name="control"></a><center><h4>Запуск, остановка, перезагрузка конфигурации</h4></center><p>
+Чтобы запустить nginx, нужно выполнить исполняемый файл.
+Когда nginx запущен, им можно управлять, вызывая исполняемый файл с
+параметром <code>-s</code>.
+Используйте следующий синтаксис:
+</p> <blockquote class="example"><pre>
+nginx -s <i>сигнал</i>
+</pre></blockquote><p> 
+Где <i>сигнал</i> может быть одним из нижеследующих:
+</p> <ul class="compact">
+<li>
+<code>stop</code> — быстрое завершение
+</li>
+<li>
+<code>quit</code> — плавное завершение
+</li>
+<li>
+<code>reload</code> — перезагрузка конфигурационного файла
+</li>
+<li>
+<code>reopen</code> — переоткрытие лог-файлов
+</li>
+</ul><p> 
+Например, чтобы остановить процессы nginx с ожиданием окончания
+обслуживания текущих запросов рабочими процессами, можно выполнить
+следующую команду:
+</p> <blockquote class="example"><pre>
+nginx -s quit
+</pre></blockquote><p> 
+</p> <blockquote class="note">Команда должна быть выполнена под тем же
+пользователем, под которым был запущен nginx.</blockquote><p> 
+</p><p>
+Изменения, сделанные в конфигурационном файле,
+не будут применены, пока команда перезагрузить конфигурацию не будет
+вручную отправлена nginx’у или он не будет перезапущен.
+Для перезагрузки конфигурации выполните:
+</p> <blockquote class="example"><pre>
+nginx -s reload
+</pre></blockquote><p> 
+</p><p>
+Получив сигнал, главный процесс проверяет правильность синтаксиса нового
+конфигурационного файла и пытается применить конфигурацию, содержащуюся
+в нём.
+Если это ему удаётся, главный процесс запускает новые рабочие процессы
+и отправляет сообщения старым рабочим процессам с требованием завершиться.
+В противном случае, главный процесс откатывает изменения и продолжает
+работать со старой конфигурацией.
+Старые рабочие процессы, получив команду завершиться,
+прекращают принимать новые запросы и продолжают обслуживать текущие запросы
+до тех пор, пока все такие запросы не будут обслужены.
+После этого старые рабочие процессы завершаются.
+</p><p>
+Посылать сигналы процессам nginx можно также средствами Unix,
+такими как утилита <code>kill</code>.
+В этом случае сигнал отправляется напрямую процессу с данным ID.
+ID главного процесса nginx записывается по умолчанию в файл
+<code>nginx.pid</code> в каталоге
+<code>/usr/local/nginx/logs</code> или
+<code>/var/run</code>.
+Например, если ID главного процесса равен 1628, для отправки сигнала QUIT,
+который приведёт к плавному завершению nginx, нужно выполнить:
+</p> <blockquote class="example"><pre>
+kill -s QUIT 1628
+</pre></blockquote><p> 
+Для просмотра списка всех запущенных процессов nginx может быть использована
+утилита <code>ps</code>, например, следующим образом:
+</p> <blockquote class="example"><pre>
+ps -ax | grep nginx
+</pre></blockquote><p> 
+Дополнительную информацию об отправке сигналов процессам nginx
+можно найти в <a href="control.html">Управление nginx</a>.
+</p><a name="conf_structure"></a><center><h4>Структура конфигурационного файла</h4></center><p>
+nginx состоит из модулей, которые настраиваются директивами, указанными
+в конфигурационном файле.
+Директивы делятся на простые и блочные.
+Простая директива состоит из имени и параметров, разделённых пробелами,
+и оканчивается точкой с запятой (<code>;</code>).
+Блочная директива устроена так же, как и простая директива, но
+вместо точки с запятой после имени и параметров следует набор дополнительных
+инструкций, помещённых внутри фигурных скобок
+(<code>{</code> и <code>}</code>).
+Если у блочной директивы внутри фигурных скобок можно задавать другие
+директивы, то она называется контекстом (примеры:
+<a href="ngx_core_module.html#events">events</a>,
+<a href="http/ngx_http_core_module.html#http">http</a>,
+<a href="http/ngx_http_core_module.html#server">server</a>
+и
+<a href="http/ngx_http_core_module.html#location">location</a>).
+</p><p>
+Директивы, помещённые в конфигурационном файле вне любого контекста,
+считаются находящимися в контексте
+<a href="ngx_core_module.html">main</a>.
+Директивы <code>events</code> и <code>http</code>
+располагаются в контексте <code>main</code>, <code>server</code> —
+в <code>http</code>, а <code>location</code> — в
+<code>server</code>.
+</p><p>
+Часть строки после символа <code>#</code> считается комментарием.
+</p><a name="static"></a><center><h4>Раздача статического содержимого</h4></center><p>
+Одна из важных задач конфигурации nginx — раздача
+файлов, таких как изображения или статические HTML-страницы.
+Рассмотрим пример, в котором в зависимости от запроса файлы будут
+раздаваться из разных локальных каталогов: <code>/data/www</code>,
+который содержит HTML-файлы, и <code>/data/images</code>,
+содержащий файлы с изображениями.
+Для этого потребуется отредактировать конфигурационный файл и настроить
+блок
+<a href="http/ngx_http_core_module.html#server">server</a>
+внутри блока <a href="http/ngx_http_core_module.html#http">http</a>
+с двумя блоками <a href="http/ngx_http_core_module.html#location">location</a>.
+</p><p>
+Во-первых, создайте каталог <code>/data/www</code> и положите в него файл
+<code>index.html</code> с любым текстовым содержанием, а также
+создайте каталог <code>/data/images</code> и положите в него несколько
+файлов с изображениями.
+</p><p>
+Далее, откройте конфигурационный файл.
+Конфигурационный файл по умолчанию уже включает в себя несколько
+примеров блока <code>server</code>, большей частью закомментированных.
+Для нашей текущей задачи лучше закомментировать все такие блоки и
+добавить новый блок <code>server</code>:
+</p> <blockquote class="example"><pre>
+http {
+    server {
+    }
+}
+</pre></blockquote><p> 
+В общем случае конфигурационный файл может содержать несколько блоков
+<code>server</code>,
+<a href="http/request_processing.html">различаемых</a> по портам, на
+которых они
+<a href="http/ngx_http_core_module.html#listen">слушают</a>,
+и по
+<a href="http/server_names.html">имени сервера</a>.
+Определив, какой <code>server</code> будет обрабатывать запрос,
+nginx сравнивает URI, указанный в заголовке запроса, с параметрами директив
+<code>location</code>, определённых внутри блока
+<code>server</code>.
+</p><p>
+В блок <code>server</code> добавьте блок <code>location</code>
+следующего вида:
+</p> <blockquote class="example"><pre>
+location / {
+    root /data/www;
+}
+</pre></blockquote><p> 
+Этот блок <code>location</code> задаёт “<code>/</code>”
+в качестве префикса, который сравнивается с URI из запроса.
+Для подходящих запросов добавлением URI к пути, указанному в директиве
+<a href="http/ngx_http_core_module.html#root">root</a>,
+то есть, в данном случае, к <code>/data/www</code>, получается
+путь к запрашиваемому файлу в локальной файловой системе.
+Если есть совпадение с несколькими блоками <code>location</code>,
+nginx выбирает блок с самым длинным префиксом.
+В блоке <code>location</code> выше указан самый короткий префикс,
+длины один,
+и поэтому этот блок будет использован, только если не будет совпадения
+ни с одним из остальных блоков <code>location</code>.
+</p><p>
+Далее, добавьте второй блок <code>location</code>:
+</p> <blockquote class="example"><pre>
+location /images/ {
+    root /data;
+}
+</pre></blockquote><p> 
+Он будет давать совпадение с запросами, начинающимися с
+<code>/images/</code>
+(<code>location /</code> для них тоже подходит, но указанный там префикс
+короче).
+</p><p>
+Итоговая конфигурация блока <code>server</code> должна выглядеть
+следующим образом:
+</p> <blockquote class="example"><pre>
+server {
+    location / {
+        root /data/www;
+    }
+
+    location /images/ {
+        root /data;
+    }
+}
+</pre></blockquote><p> 
+Это уже работающая конфигурация сервера, слушающего на стандартном порту 80
+и доступного на локальном компьютере по адресу
+<code>http://localhost/</code>.
+В ответ на запросы, URI которых начинаются с <code>/images/</code>,
+сервер будет отправлять файлы из каталога <code>/data/images</code>.
+Например, на запрос
+<code>http://localhost/images/example.png</code> nginx отправит
+в ответ файл <code>/data/images/example.png</code>.
+Если же этот файл не существует, nginx отправит ответ, указывающий на
+ошибку 404.
+Запросы, URI которых не начинаются на <code>/images/</code>, будут
+отображены на каталог <code>/data/www</code>.
+Например, в результате запроса
+<code>http://localhost/some/example.html</code> в ответ будет
+отправлен файл <code>/data/www/some/example.html</code>.
+</p><p>
+Чтобы применить новую конфигурацию, запустите nginx, если он ещё не запущен,
+или отправьте сигнал <code>reload</code> главному процессу nginx,
+выполнив:
+</p> <blockquote class="example"><pre>
+nginx -s reload
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+В случае если что-то работает не как ожидалось, можно попытаться выяснить
+причину с помощью файлов <code>access.log</code> и <code>error.log</code>
+из каталога
+<code>/usr/local/nginx/logs</code> или
+<code>/var/log/nginx</code>.
+</blockquote><p> 
+</p><a name="proxy"></a><center><h4>Настройка простого прокси-сервера</h4></center><p>
+Одним из частых применений nginx является использование его в качестве
+прокси-сервера, то есть сервера, который принимает запросы, перенаправляет их
+на проксируемые сервера, получает ответы от них и отправляет их клиенту.
+</p><p>
+Мы настроим базовый прокси-сервер, который будет обслуживать запросы
+изображений из локального каталога и отправлять все остальные запросы на
+проксируемый сервер.
+В этом примере оба сервера будут работать в рамках одного
+экземпляра nginx.
+</p><p>
+Во-первых, создайте проксируемый сервер, добавив ещё один блок
+<code>server</code> в конфигурационный файл nginx со следующим
+содержимым:
+</p> <blockquote class="example"><pre>
+server {
+    listen 8080;
+    root /data/up1;
+
+    location / {
+    }
+}
+</pre></blockquote><p> 
+Это будет простой сервер, слушающий на порту 8080
+(ранее директива <code>listen</code> не указывалась, потому что
+использовался стандартный порт 80) и отображающий все
+запросы на каталог <code>/data/up1</code> в локальной файловой
+системе.
+Создайте этот каталог и положите в него файл <code>index.html</code>.
+Обратите внимание, что директива <code>root</code> помещена в контекст
+<code>server</code>.
+Такая директива <code>root</code> будет использована, когда директива
+<code>location</code>, выбранная для выполнения запроса, не содержит
+собственной директивы <code>root</code>.
+</p><p>
+Далее, используйте конфигурацию сервера из предыдущего раздела
+и видоизмените её, превратив в конфигурацию прокси-сервера.
+В первый блок <code>location</code> добавьте директиву
+<a href="http/ngx_http_proxy_module.html#proxy_pass">proxy_pass</a>,
+указав протокол, имя и порт проксируемого сервера в качестве параметра
+(в нашем случае это <code>http://localhost:8080</code>):
+</p> <blockquote class="example"><pre>
+server {
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+
+    location /images/ {
+        root /data;
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+Мы изменим второй блок
+<code>location</code>, который на данный момент отображает запросы
+с префиксом <code>/images/</code> на файлы из каталога
+<code>/data/images</code> так, чтобы он подходил для запросов изображений
+с типичными расширениями файлов.
+Изменённый блок <code>location</code> выглядит следующим образом:
+</p> <blockquote class="example"><pre>
+location ~ \.(gif|jpg|png)$ {
+    root /data/images;
+}
+</pre></blockquote><p> 
+Параметром является регулярное выражение, дающее совпадение со всеми
+URI, оканчивающимися на <code>.gif</code>, <code>.jpg</code> или
+<code>.png</code>.
+Регулярному выражению должен предшествовать символ <code>~</code>.
+Соответствующие запросы будут отображены на каталог <code>/data/images</code>.
+</p><p>
+Когда nginx выбирает блок <code>location</code>,
+который будет обслуживать запрос, то вначале он проверяет
+директивы <a href="http/ngx_http_core_module.html#location">location</a>,
+задающие префиксы, запоминая <code>location</code> с самым
+длинным подходящим префиксом, а затем проверяет регулярные выражения.
+Если есть совпадение с регулярным выражением, nginx выбирает соответствующий
+<code>location</code>, в противном случае берётся запомненный ранее
+<code>location</code>.
+</p><p>
+Итоговая конфигурация прокси-сервера выглядит следующим образом:
+</p> <blockquote class="example"><pre>
+server {
+    location / {
+        proxy_pass http://localhost:8080/;
+    }
+
+    location ~ \.(gif|jpg|png)$ {
+        root /data/images;
+    }
+}
+</pre></blockquote><p> 
+Этот сервер будет фильтровать запросы, оканчивающиеся на
+<code>.gif</code>, <code>.jpg</code> или <code>.png</code>,
+и отображать их на каталог <code>/data/images</code> (добавлением URI к
+параметру директивы <code>root</code>) и перенаправлять все остальные
+запросы на проксируемый сервер, сконфигурированный выше.
+</p><p>
+Чтобы применить новую конфигурацию, отправьте сигнал <code>reload</code>
+nginx’у, как описывалось в предыдущих разделах.
+</p><p>
+Существует <a href="http/ngx_http_proxy_module.html">множество</a>
+других директив для дальнейшей настройки прокси-соединения.
+</p><a name="fastcgi"></a><center><h4>Настройка проксирования FastCGI</h4></center><p>
+nginx можно использовать для перенаправления запросов на FastCGI-серверы.
+На них могут исполняться приложения, созданные с использованием
+разнообразных фреймворков и языков программирования, например, PHP.
+</p><p>
+Базовая конфигурация nginx для работы с проксируемым FastCGI-сервером
+включает в себя использование директивы
+<a href="http/ngx_http_fastcgi_module.html#fastcgi_pass">fastcgi_pass</a>
+вместо директивы <code>proxy_pass</code>,
+и директив <a href="http/ngx_http_fastcgi_module.html#fastcgi_param">fastcgi_param</a>
+для настройки параметров, передаваемых FastCGI-серверу.
+Представьте, что FastCGI-сервер доступен по адресу
+<code>localhost:9000</code>.
+Взяв за основу конфигурацию прокси-сервера из предыдущего раздела,
+замените директиву <code>proxy_pass</code> на директиву
+<code>fastcgi_pass</code> и измените параметр на
+<code>localhost:9000</code>.
+В PHP параметр <code>SCRIPT_FILENAME</code> используется для
+определения имени скрипта, а в параметре <code>QUERY_STRING</code>
+передаются параметры запроса.
+Получится следующая конфигурация:
+</p> <blockquote class="example"><pre>
+server {
+    location / {
+        fastcgi_pass  localhost:9000;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param QUERY_STRING    $query_string;
+    }
+
+    location ~ \.(gif|jpg|png)$ {
+        root /data/images;
+    }
+}
+</pre></blockquote><p> 
+Таким образом будет настроен сервер, который будет перенаправлять
+все запросы, кроме запросов статических изображений, на проксируемый
+сервер, работающий по адресу <code>localhost:9000</code>,
+по протоколу FastCGI.
+</p></div></div></body></html>

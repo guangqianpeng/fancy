@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Controlling nginx</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../ru/docs/control.html">русский</a><br><br><a href="../../">news</a><br><a href="../../en/">about</a><br><a href="../../en/download.html">download</a><br><a href="../../en/security_advisories.html">security</a><br><a href="./">documentation</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">books</a><br><a href="../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Controlling nginx</h2><table width="100%"><tr><td align="left"><a href="#reconfiguration">Changing Configuration</a><br><a href="#logs">Rotating Log-files</a><br><a href="#upgrade">Upgrading Executable on the Fly</a><br></td></tr></table><p>
+nginx can be controlled with signals.
+The process ID of the master process is written to the file
+<code>/usr/local/nginx/logs/nginx.pid</code> by default.
+This name may be changed at configuration time, or in
+<code>nginx.conf</code> using the
+<a href="ngx_core_module.html#pid">pid</a>
+directive.
+The master process supports the following signals:
+</p> <blockquote class="note">
+<table width="100%">
+
+<tr><td width="20%">TERM, INT</td><td>fast shutdown</td></tr>
+<tr><td width="20%">QUIT</td><td>graceful shutdown</td></tr>
+<tr><td width="20%">HUP</td><td>changing configuration,
+keeping up with a changed time zone (only for FreeBSD and Linux),
+starting new worker processes with a new configuration,
+graceful shutdown of old worker processes</td></tr>
+<tr><td width="20%">USR1</td><td>re-opening log files</td></tr>
+<tr><td width="20%">USR2</td><td>upgrading an executable file</td></tr>
+<tr><td width="20%">WINCH</td><td>graceful shutdown of worker processes</td></tr>
+
+</table>
+</blockquote><p> 
+</p><p>
+Individual worker processes can be controlled with signals as well,
+though it is not required.
+The supported signals are:
+</p> <blockquote class="note">
+<table width="100%">
+
+<tr><td width="20%">TERM, INT</td><td>fast shutdown</td></tr>
+<tr><td width="20%">QUIT</td><td>graceful shutdown</td></tr>
+<tr><td width="20%">USR1</td><td>re-opening log files</td></tr>
+<tr><td width="20%">WINCH</td><td>abnormal termination for debugging
+(requires <a href="ngx_core_module.html#debug_points">debug_points</a> to be enabled)
+</td></tr>
+
+</table>
+</blockquote><p> 
+</p><a name="reconfiguration"></a><center><h4>Changing Configuration</h4></center><p>
+In order for nginx to re-read the configuration file, a HUP
+signal should be sent to the master process.
+The master process first checks the syntax validity, then tries
+to apply new configuration, that is, to open log files and new
+listen sockets.
+If this fails, it rolls back changes and continues to work
+with old configuration.
+If this succeeds, it starts new worker processes, and
+sends messages to old worker processes requesting them to
+shut down gracefully.
+Old worker processes close listen sockets and continue to service
+old clients.
+After all clients are serviced, old worker processes are shut down.
+</p><p>
+Let’s illustrate this by example.
+Imagine that nginx is run on FreeBSD 4.x and the command
+</p> <blockquote class="example"><pre>
+ps axw -o pid,ppid,user,%cpu,vsz,wchan,command | egrep '(nginx|PID)'
+</pre></blockquote><p> 
+produces the following output:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1148 pause  nginx: master process /usr/local/nginx/sbin/nginx
+33127 33126 nobody   0.0  1380 kqread nginx: worker process (nginx)
+33128 33126 nobody   0.0  1364 kqread nginx: worker process (nginx)
+33129 33126 nobody   0.0  1364 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><p>
+If HUP is sent to the master process, the output becomes:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1164 pause  nginx: master process /usr/local/nginx/sbin/nginx
+33129 33126 nobody   0.0  1380 kqread nginx: worker process is shutting down (nginx)
+33134 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+33135 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+33136 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><p>
+One of the old worker processes with PID 33129 still continues to work.
+After some time it exits:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1164 pause  nginx: master process /usr/local/nginx/sbin/nginx
+33134 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+33135 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+33136 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><a name="logs"></a><center><h4>Rotating Log-files</h4></center><p>
+In order to rotate log files, they need to be renamed first.
+After that USR1 signal should be sent to the master process.
+The master process will then re-open all currently open log files and
+assign them an unprivileged user under which the worker processes
+are running, as an owner.
+After successful re-opening, the master process closes all open files and
+sends the message to worker process to ask them to re-open files.
+Worker processes also open new files and close old files right away.
+As a result, old files are almost immediately available for post
+processing, such as compression.
+</p><a name="upgrade"></a><center><h4>Upgrading Executable on the Fly</h4></center><p>
+In order to upgrade the server executable, the new executable file
+should be put in place of an old file first.
+After that USR2 signal should be sent to the master process.
+The master process first renames its file with the process ID to a
+new file with the <code>.oldbin</code> suffix, e.g.
+<code>/usr/local/nginx/logs/nginx.pid.oldbin</code>,
+then starts a new executable file that in turn starts new
+worker processes:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1164 pause  nginx: master process /usr/local/nginx/sbin/nginx
+33134 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+33135 33126 nobody   0.0  1380 kqread nginx: worker process (nginx)
+33136 33126 nobody   0.0  1368 kqread nginx: worker process (nginx)
+36264 33126 root     0.0  1148 pause  nginx: master process /usr/local/nginx/sbin/nginx
+36265 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36266 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36267 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><p>
+After that all worker processes (old and new ones) continue to accept requests.
+If the WINCH signal is sent to the first master process, it will
+send messages to its worker processes, requesting them to shut
+down gracefully, and they will start to exit:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1164 pause  nginx: master process /usr/local/nginx/sbin/nginx
+33135 33126 nobody   0.0  1380 kqread nginx: worker process is shutting down (nginx)
+36264 33126 root     0.0  1148 pause  nginx: master process /usr/local/nginx/sbin/nginx
+36265 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36266 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36267 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><p>
+After some time, only the new worker processes will process requests:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+33126     1 root     0.0  1164 pause  nginx: master process /usr/local/nginx/sbin/nginx
+36264 33126 root     0.0  1148 pause  nginx: master process /usr/local/nginx/sbin/nginx
+36265 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36266 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36267 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p><p>
+It should be noted that the old master process does not close its listen
+sockets, and it can be managed to start its worker processes again if needed.
+If for some reason the new executable file works unacceptably, one of the
+following can be done:
+</p> <ul class="compact">
+
+<li>
+<p>
+Send the HUP signal to the old master process.
+The old master process will start new worker processes
+without re-reading the configuration.
+After that, all new processes can be shut down gracefully,
+by sending the QUIT signal to the new master process.
+</p>
+</li>
+
+<li>
+<p>
+Send the TERM signal to the new master process.
+It will then send a message to its worker processes requesting them
+to exit immediately, and they will all exit almost immediately.
+(If new processes do not exit for some reason,
+the KILL signal should be sent to them to force them to exit.)
+When the new master process exits, the old master process will start new
+worker processes automatically.
+</p>
+</li>
+
+</ul><p> 
+
+</p><p>
+If the new master process exits then the old master process discards
+the <code>.oldbin</code> suffix from the file name with the process ID.
+</p><p>
+If upgrade was successful, then the old master process should be sent
+the QUIT signal, and only new processes will stay:
+</p> <blockquote class="example"><pre>
+  PID  PPID USER    %CPU   VSZ WCHAN  COMMAND
+36264     1 root     0.0  1148 pause  nginx: master process /usr/local/nginx/sbin/nginx
+36265 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36266 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+36267 36264 nobody   0.0  1364 kqread nginx: worker process (nginx)
+</pre></blockquote><p> 
+</p></div></div></body></html>

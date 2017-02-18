@@ -1,0 +1,392 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_stream_js_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/stream/ngx_stream_js_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_stream_js_module</h2><table width="100%"><tr><td align="left"><a href="#issues">Known Issues</a><br><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#js_access">js_access</a><br>     <a href="#js_filter">js_filter</a><br>     <a href="#js_include">js_include</a><br>     <a href="#js_preread">js_preread</a><br>     <a href="#js_set">js_set</a><br><a href="#properties">Session Object Properties</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_stream_js_module</code> module is used to implement
+handlers in <a href="../njs_about.html">nginScript</a> —
+a subset of the JavaScript language.
+</p><p>
+This module is not built by default, it should be compiled with
+the nginScript module using the
+<code>--add_module</code> configuration parameter:
+</p> <blockquote class="example"><pre>
+./configure --add-module=<code><i>path-to-njs</i></code>/nginx
+</pre></blockquote><p> 
+The <a href="http://hg.nginx.org/njs">repository</a>
+with the nginScript module can be cloned with the following command
+(requires <a href="https://www.mercurial-scm.org">Mercurial</a> client):
+</p> <blockquote class="example"><pre>
+hg clone http://hg.nginx.org/njs
+</pre></blockquote><p> 
+This module can also be built as
+<a href="../ngx_core_module.html#load_module">dynamic</a>:
+</p> <blockquote class="example"><pre>
+./configure --add-dynamic_module=<code><i>path-to-njs</i></code>/nginx
+</pre></blockquote><p> 
+</p>
+
+
+<a name="issues"></a><center><h4>Known Issues</h4></center><p>
+The module is experimental, caveat emptor applies.
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+stream {
+    js_include stream.js;
+
+    js_set $foo foo;
+    js_set $bar bar;
+
+    server {
+        listen 12345;
+
+        js_preread qux;
+        return     $foo;
+    }
+
+    server {
+        listen 12346;
+
+        js_access  xyz;
+        proxy_pass 127.0.0.1:8000;
+        js_filter  baz;
+    }
+}
+
+http {
+    server {
+        listen 8000;
+        location / {
+            return 200 $http_foo\n;
+        }
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+The <code>stream.js</code> file:
+</p> <blockquote class="example"><pre>
+var req = '';
+var matched = 0;
+var line = '';
+
+function qux(s) {
+    var n = s.buffer.indexOf('\n');
+    if (n == -1) {
+        return s.AGAIN;
+    }
+
+    line = s.buffer.substr(0, n);
+}
+
+function foo(s) {
+    return line;
+}
+
+function bar(s) {
+    var v = s.variables;
+    s.log("hello from bar() handler!");
+    return "foo-var" + v.remote_port + "; pid=" + v.pid;
+}
+
+// The filter processes one buffer per call.
+// The buffer is available in s.buffer both for
+// reading and writing.  Called for both directions.
+
+function baz(s) {
+    if (s.fromUpstream || matched) {
+        return;
+    }
+
+    // Disable certain addresses.
+
+    if (s.remoteAddress.match('^192.*')) {
+        return s.ERROR;
+    }
+
+    // Read HTTP request line.
+    // Collect bytes in 'req' until request
+    // line is read.  Clear current buffer to
+    // disable output.
+
+    req = req + s.buffer;
+    s.buffer = '';
+
+    var n = req.search('\n');
+
+    if (n != -1) {
+        // Inject a new HTTP header.
+        var rest = req.substr(n + 1);
+        req = req.substr(0, n + 1);
+
+        var addr = s.remoteAddress;
+
+        s.log('req:' + req);
+        s.log('rest:' + rest);
+
+        // Output the result and skip further
+        // processing.
+
+        s.buffer = req + 'Foo: addr_' + addr + '\r\n' + rest;
+        matched = 1;
+    }
+}
+
+function xyz(s) {
+    if (s.remoteAddress.match('^192.*')) {
+        return s.ABORT;
+    }
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="js_access"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>js_access</strong> <code><i>function</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets an nginScript function which will be called at the
+<a href="stream_processing.html#access_phase">access</a> phase.
+</p><a name="js_filter"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>js_filter</strong> <code><i>function</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets a data filter.
+</p><a name="js_include"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>js_include</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a file that implements server and variable handlers in nginScript.
+</p><a name="js_preread"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>js_preread</strong> <code><i>function</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets an nginScript function which will be called at the
+<a href="stream_processing.html#preread_phase">preread</a> phase.
+</p><a name="js_set"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>js_set</strong> 
+<code><i>$variable</i></code> <code><i>function</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets an nginScript function for the specified variable.
+</p>
+
+
+<a name="properties"></a><center><h4>Session Object Properties</h4></center><p>
+Each stream nginScript handler receives one argument, a stream session object.
+</p><p>
+The session object has the following properties:
+
+</p> <dl class="compact">
+
+<dt><code>remoteAddress</code></dt>
+<dd>
+client address, read-only
+</dd>
+
+<dt><code>eof</code></dt>
+<dd>
+a boolean read-only property, true if the current buffer is the last buffer
+</dd>
+
+<dt><code>fromUpstream</code></dt>
+<dd>
+a boolean read-only property,
+true if the current buffer is from the upstream server to the client
+</dd>
+
+<dt><code>buffer</code></dt>
+<dd>
+the current buffer, writable
+</dd>
+
+<dt><code>variables{}</code></dt>
+<dd>
+nginx variables object, read-only
+</dd>
+
+<dt><code>OK</code></dt>
+<dd>
+the <code>OK</code> return code
+</dd>
+
+<dt><code>DECLINED</code></dt>
+<dd>
+the <code>DECLINED</code> return code
+</dd>
+
+<dt><code>AGAIN</code></dt>
+<dd>
+the <code>AGAIN</code> return code
+</dd>
+
+<dt><code>ERROR</code></dt>
+<dd>
+the <code>ERROR</code> return code
+</dd>
+
+<dt><code>ABORT</code></dt>
+<dd>
+the <code>ABORT</code> return code
+</dd>
+</dl><p> 
+</p><p>
+The session object has the following methods:
+
+</p> <dl class="compact">
+
+<dt><code>log(<code><i>string</i></code>)</code></dt>
+<dd>
+writes a sent <code><i>string</i></code> to the error log
+</dd>
+</dl><p> 
+</p>
+
+</div></div></body></html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Logging to syslog</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../ru/docs/syslog.html">русский</a><br><br><a href="../../">news</a><br><a href="../../en/">about</a><br><a href="../../en/download.html">download</a><br><a href="../../en/security_advisories.html">security</a><br><a href="./">documentation</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">books</a><br><a href="../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Logging to syslog</h2><p>
+The
+<a href="ngx_core_module.html#error_log">error_log</a>
+and
+<a href="http/ngx_http_log_module.html#access_log">access_log</a>
+directives support logging to syslog.
+The following parameters configure logging to syslog:
+</p> <dl class="compact">
+
+<dt><code>server=</code><code><i>address</i></code></dt>
+<dd>
+Defines the address of a syslog server.
+The address can be specified as a domain name or IP address,
+with an optional port, or as a UNIX-domain socket path
+specified after the “<code>unix:</code>” prefix.
+If port is not specified, the UDP port 514 is used.
+If a domain name resolves to several IP addresses, the first resolved
+address is used.
+</dd>
+
+<dt><code>facility=</code><code><i>string</i></code></dt>
+<dd>
+Sets facility of syslog messages, as defined in
+<a href="http://tools.ietf.org/html/rfc3164#section-4.1.1">RFC 3164</a>.
+Facility can be one of “<code>kern</code>”, “<code>user</code>”,
+“<code>mail</code>”, “<code>daemon</code>”,
+“<code>auth</code>”, “<code>intern</code>”,
+“<code>lpr</code>”, “<code>news</code>”, “<code>uucp</code>”,
+“<code>clock</code>”, “<code>authpriv</code>”,
+“<code>ftp</code>”, “<code>ntp</code>”, “<code>audit</code>”,
+“<code>alert</code>”, “<code>cron</code>”,
+“<code>local0</code>”..“<code>local7</code>”.
+Default is “<code>local7</code>”.
+</dd>
+
+<dt><code>severity=</code><code><i>string</i></code></dt>
+<dd>
+Sets severity of syslog messages for
+<a href="http/ngx_http_log_module.html#access_log">access_log</a>,
+as defined in
+<a href="http://tools.ietf.org/html/rfc3164#section-4.1.1">RFC 3164</a>.
+Possible values are the same as for the second parameter (level) of the
+<a href="ngx_core_module.html#error_log">error_log</a> directive.
+Default is “<code>info</code>”.
+<blockquote class="note">
+Severity of error messages is determined by nginx, thus the parameter
+is ignored in the <code>error_log</code> directive.
+</blockquote>
+</dd>
+
+<dt><code>tag=</code><code><i>string</i></code></dt>
+<dd>
+Sets the tag of syslog messages.
+Default is “<code>nginx</code>”.
+</dd>
+
+<dt><code>nohostname</code></dt>
+<dd>
+Disables adding the “hostname” field into the syslog message header (1.9.7).
+</dd>
+
+
+
+</dl><p> 
+Example syslog configuration:
+</p> <blockquote class="example"><pre>
+error_log syslog:server=192.168.1.1 debug;
+
+access_log syslog:server=unix:/var/log/nginx.sock,nohostname;
+access_log syslog:server=[2001:db8::1]:12345,facility=local7,tag=nginx,severity=info combined;
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Logging to syslog is available since version 1.7.1.
+As part of our
+<a href="http://nginx.com/products/">commercial subscription</a>
+logging to syslog is available since version 1.5.3.
+</blockquote><p> 
+</p></div></div></body></html>

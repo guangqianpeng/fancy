@@ -1,0 +1,361 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_hls_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_hls_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_hls_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#hls">hls</a><br>     <a href="#hls_buffers">hls_buffers</a><br>     <a href="#hls_forward_args">hls_forward_args</a><br>     <a href="#hls_fragment">hls_fragment</a><br>     <a href="#hls_mp4_buffer_size">hls_mp4_buffer_size</a><br>     <a href="#hls_mp4_max_buffer_size">hls_mp4_max_buffer_size</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_hls_module</code> обеспечивает серверную поддержку
+протокола HTTP Live Streaming (HLS) для медиафайлов в формате MP4 и MOV.
+Такие файлы обычно имеют расширения <code>.mp4</code>, <code>.m4v</code>,
+<code>.m4a</code>, <code>.mov</code> или <code>.qt</code>.
+Модуль поддерживает видеокодек H.264, а также аудиокодеки AAC и MP3.
+</p><p>
+Для каждого медиафайла поддерживается два URI:
+</p> <ul class="compact">
+
+<li>
+URI плейлиста, имеющий расширение “<code>.m3u8</code>”.
+URI может принимать необязательные аргументы:
+<ul class="compact">
+
+<li>
+“<code>start</code>” и “<code>end</code>”
+задают границы плейлиста в секундах (1.9.0).
+</li>
+
+<li>
+“<code>offset</code>” сдвигает первоначальную позицию воспроизведения
+на указанное время в секундах (1.9.0).
+Положительное значение задаёт временной сдвиг с начала плейлиста.
+Отрицательное значение задаёт временной сдвиг с конца последнего фрагмента
+в плейлисте.
+</li>
+
+<li>
+“<code>len</code>” задаёт длину фрагмента в секундах.
+</li>
+</ul>
+
+</li>
+
+<li>
+URI фрагмента, имеющий расширение “<code>.ts</code>”.
+URI может принимать необязательные аргументы:
+<ul class="compact">
+
+<li>
+“<code>start</code>” и “<code>end</code>”
+задают границы фрагмента в секундах.
+</li>
+
+</ul>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <blockquote class="note">
+Модуль доступен как часть
+<a href="http://nginx.com/products/">коммерческой подписки</a>.
+</blockquote><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+</p> <blockquote class="example"><pre>
+location / {
+    hls;
+    hls_fragment            5s;
+    hls_buffers             10 10m;
+    hls_mp4_buffer_size     1m;
+    hls_mp4_max_buffer_size 5m;
+    root /var/video/;
+}
+</pre></blockquote><p> 
+В такой конфигурации для файла “<code>/var/video/test.mp4</code>”
+будут поддерживаться следующие URI:
+</p> <blockquote class="example"><pre>
+http://hls.example.com/test.mp4.m3u8?offset=1.000&amp;start=1.000&amp;end=2.200
+http://hls.example.com/test.mp4.m3u8?len=8.000
+http://hls.example.com/test.mp4.ts?start=1.000&amp;end=2.200
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="hls"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls</strong>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Включает HLS-поток во вложенном location.
+</p><a name="hls_buffers"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls_buffers</strong> <code><i>число</i></code> <code><i>размер</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>hls_buffers 8 2m;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт максимальное <code><i>число</i></code> и <code><i>размер</i></code> буферов,
+которые используются для чтения и записи блоков данных.
+</p><a name="hls_forward_args"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls_forward_args</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>hls_forward_args off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.5.12.
+            </p></div><p>
+Добавляет аргументы из запроса плейлиста в URI фрагментов.
+Это может быть необходимо для авторизации клиента
+во время запроса фрагментов, а также для защиты HLS-потока с помощью
+модуля
+<a href="ngx_http_secure_link_module.html">ngx_http_secure_link_module</a>.
+</p><p>
+Например, если клиент запрашивает плейлист
+<code>http://example.com/hls/test.mp4.m3u8?a=1&amp;b=2</code>,
+то аргументы <code>a=1</code> и <code>b=2</code>
+будут добавлены в URI фрагментов после аргументов
+<code>start</code> и <code>end</code>:
+</p> <blockquote class="example"><pre>
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:15
+#EXT-X-PLAYLIST-TYPE:VOD
+
+#EXTINF:9.333,
+test.mp4.ts?start=0.000&amp;end=9.333&amp;a=1&amp;b=2
+#EXTINF:7.167,
+test.mp4.ts?start=9.333&amp;end=16.500&amp;a=1&amp;b=2
+#EXTINF:5.416,
+test.mp4.ts?start=16.500&amp;end=21.916&amp;a=1&amp;b=2
+#EXTINF:5.500,
+test.mp4.ts?start=21.916&amp;end=27.416&amp;a=1&amp;b=2
+#EXTINF:15.167,
+test.mp4.ts?start=27.416&amp;end=42.583&amp;a=1&amp;b=2
+#EXTINF:9.626,
+test.mp4.ts?start=42.583&amp;end=52.209&amp;a=1&amp;b=2
+
+#EXT-X-ENDLIST
+</pre></blockquote><p> 
+</p><p>
+Если HLS-поток защищён с помощью модуля
+<a href="ngx_http_secure_link_module.html">ngx_http_secure_link_module</a>,
+переменную <code>$uri</code> не следует использовать в выражении
+<a href="ngx_http_secure_link_module.html#secure_link_md5">secure_link_md5</a>,
+так как это приведёт к ошибкам при запросах к фрагментам.
+Вместо <code>$uri</code> следует использовать
+<a href="ngx_http_map_module.html#map">базовую часть URI</a>
+(<code>$hls_uri</code> в примере):
+</p> <blockquote class="example"><pre>
+http {
+    ...
+
+    map $uri $hls_uri {
+        ~^(?&lt;base_uri&gt;.*).m3u8$ $base_uri;
+        ~^(?&lt;base_uri&gt;.*).ts$   $base_uri;
+        default                 $uri;
+    }
+
+    server {
+        ...
+
+        location /hls {
+            hls;
+            hls_forward_args on;
+
+            alias /var/videos;
+
+            secure_link $arg_md5,$arg_expires;
+            secure_link_md5 "$secure_link_expires$hls_uri$remote_addr secret";
+
+            if ($secure_link = "") {
+                return 403;
+            }
+
+            if ($secure_link = "0") {
+                return 410;
+            }
+        }
+    }
+}
+</pre></blockquote><p> 
+</p><a name="hls_fragment"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls_fragment</strong> <code><i>время</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>hls_fragment 5s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт длину фрагмента по умолчанию для всех URI в плейлисте,
+запрошенных без аргумента “<code>len</code>”.
+</p><a name="hls_mp4_buffer_size"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls_mp4_buffer_size</strong> <code><i>размер</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>hls_mp4_buffer_size 512k;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт начальный <code><i>размер</i></code> буфера, используемого для
+обработки MP4- и MOV-файлов.
+</p><a name="hls_mp4_max_buffer_size"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>hls_mp4_max_buffer_size</strong> <code><i>размер</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>hls_mp4_max_buffer_size 10m;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+В ходе обработки метаданных может понадобиться буфер большего размера.
+Его <code><i>размер</i></code> не может превышать указанного,
+иначе nginx вернёт серверную ошибку
+500 (Internal Server Error)
+и запишет в лог следующее сообщение:
+</p> <blockquote class="example"><pre>
+"/some/movie/file.mp4" mp4 moov atom is too large:
+12583268, you may want to increase hls_mp4_max_buffer_size
+</pre></blockquote><p> 
+</p>
+
+</div></div></body></html>

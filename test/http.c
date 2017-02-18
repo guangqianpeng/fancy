@@ -18,7 +18,7 @@
 
 #define CONN_MAX            128
 #define EVENT_MAX           128
-#define REQUEST_TIMEOUT     5000
+#define REQUEST_TIMEOUT     1000
 #define SERV_PORT           9877
 
 static int init_http();
@@ -49,8 +49,8 @@ int main()
         err_quit("add_accept_event error");
     }
 
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, sig_handler);
+    signal(SIGPIPE, sig_handler);
+    //signal(SIGINT, sig_handler);
 
     printf("port %d\n", SERV_PORT);
 
@@ -145,6 +145,7 @@ static void accept_handler(event *ev)
             case EINTR:
                 goto inter;
             case EAGAIN:
+                err_msg("accept4 EAGAIN");
                 return;
             default:
                 err_sys("accept4 error");
@@ -190,7 +191,7 @@ static void read_handler(event *ev)
 
     /* 处理超时 */
     if (ev->timeout) {
-
+        err_msg("timout");
         if (rqst) {
             request_destroy(rqst);
         }
@@ -244,6 +245,7 @@ static void read_handler(event *ev)
             /* fall through */
         case 0:
             /* 对端在没有发送完整请求的情况下关闭连接 */
+            err_msg("read FIN or RESET");
             request_destroy(rqst);
             close_connection(conn);
             return;
@@ -264,6 +266,7 @@ static void read_handler(event *ev)
             return;
         }
         if (err == FCY_ERROR) {
+            err_msg("parse_request_line error");
             rqst->status_code = HTTP_R_BAD_REQUEST;
             goto error;
         }
@@ -276,6 +279,7 @@ static void read_handler(event *ev)
         return;
     }
     if (err == FCY_ERROR) {
+        err_msg("parse_request_headers error");
         rqst->status_code = HTTP_R_BAD_REQUEST;
         goto error;
     }
@@ -309,7 +313,7 @@ static void process_request_handler(event *ev)
     /* 目前只处理静态内容 */
     assert(rqst->line->uri_static);
 
-    err = process_request_header(rqst);
+    err = check_request_header_filed(rqst);
     if (err == FCY_OK) {
         err = process_request_static(rqst);
     }
@@ -337,15 +341,19 @@ static void write_headers_handler(event *ev)
     header_out = rqst->header_out;
     status_str = status_code_out_str[rqst->status_code];
 
+    /* 写header_out */
     if (buffer_empty(header_out)) {
-        /* 根据status code写header_out */
+        /* response line */
         buffer_write(header_out, "HTTP/1.1 ", 9);
         buffer_write(header_out, status_str, strlen(status_str));
+
         buffer_write(header_out, "\r\n"
                 "Server: Fancy\r\n"
-                "Content-Type: text/html\r\n"
-                "Content-Length: ", 58);
+                "Content-Type: ", 31);
+        buffer_write(header_out, content_type_out_str[rqst->content_type],
+                     strlen(content_type_out_str[rqst->content_type]));
 
+        buffer_write(header_out, "\r\nContent-Length: ", 18);
         n = sprintf((char*)header_out->data_end, "%ld\r\n", rqst->sbuf.st_size);
         buffer_seek_end(header_out, (int)n);
 
@@ -511,5 +519,5 @@ static void close_connection(connection *conn)
 
     conn_pool_free(conn);
 
-    err_msg("close connection(%p) %d\n",conn, fd);
+    err_msg("close connection(%p) %d",conn, fd);
 }

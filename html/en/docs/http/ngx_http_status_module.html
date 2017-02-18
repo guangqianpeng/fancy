@@ -1,0 +1,1065 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_status_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_status_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_status_module</h2><table width="100%"><tr><td align="left"><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#status">status</a><br>     <a href="#status_format">status_format</a><br>     <a href="#status_zone">status_zone</a><br><a href="#data">Data</a><br><a href="#compatibility">Compatibility</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_status_module</code> module provides
+access to various status information.
+</p><p>
+</p> <blockquote class="note">
+This module is available as part of our
+<a href="http://nginx.com/products/">commercial subscription</a>.
+</blockquote><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+http {
+    upstream <strong>backend</strong> {
+        <strong>zone</strong> http_backend 64k;
+
+        server backend1.example.com weight=5;
+        server backend2.example.com;
+    }
+
+    proxy_cache_path /data/nginx/cache_backend keys_zone=<strong>cache_backend</strong>:10m;
+
+    server {
+        server_name backend.example.com;
+
+        location / {
+            proxy_pass  http://backend;
+            proxy_cache cache_backend;
+
+            health_check;
+        }
+
+        <strong>status_zone server_backend;</strong>
+    }
+
+    server {
+        listen 127.0.0.1;
+
+        location /upstream_conf {
+            upstream_conf;
+        }
+
+        location /status {
+            status;
+        }
+
+        location = /status.html {
+        }
+    }
+}
+
+stream {
+    upstream <strong>backend</strong> {
+        <strong>zone</strong> stream_backend 64k;
+
+        server backend1.example.com:12345 weight=5;
+        server backend2.example.com:12345;
+    }
+
+    server {
+        listen      127.0.0.1:12345;
+        proxy_pass  backend;
+        <strong>status_zone server_backend;</strong>
+        health_check;
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+Examples of status requests with this configuration:
+</p> <blockquote class="example"><pre>
+http://127.0.0.1/status
+http://127.0.0.1/status/nginx_version
+http://127.0.0.1/status/caches/cache_backend
+http://127.0.0.1/status/upstreams
+http://127.0.0.1/status/upstreams/backend
+http://127.0.0.1/status/upstreams/backend/peers/1
+http://127.0.0.1/status/upstreams/backend/peers/1/weight
+http://127.0.0.1/status/stream
+http://127.0.0.1/status/stream/upstreams
+http://127.0.0.1/status/stream/upstreams/backend
+http://127.0.0.1/status/stream/upstreams/backend/peers/1
+http://127.0.0.1/status/stream/upstreams/backend/peers/1/weight
+</pre></blockquote><p> 
+</p><p>
+The simple monitoring page is shipped with this distribution,
+accessible as “<code>/status.html</code>” in the default configuration.
+It requires the locations “<code>/status</code>” and
+“<code>/status.html</code>” to be configured as shown above.
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="status"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>status</strong>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+The status information will be accessible from the surrounding location.
+Access to this location should be
+<a href="ngx_http_core_module.html#satisfy">limited</a>.
+</p><a name="status_format"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>status_format</strong> <code>json</code>;</code><br><code><strong>status_format</strong> <code>jsonp</code> [<code><i>callback</i></code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>status_format json;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+By default, status information is output in the JSON format.
+</p><p>
+Alternatively, data may be output as JSONP.
+The <code><i>callback</i></code> parameter specifies the name of a callback function.
+The value can contain variables.
+If parameter is omitted, or the computed value is an empty string,
+then “<code>ngx_status_jsonp_callback</code>” is used.
+</p><a name="status_zone"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>status_zone</strong> <code><i>zone</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Enables collection of virtual
+<a href="ngx_http_core_module.html#server">http</a>
+or
+<a href="../stream/ngx_stream_core_module.html#server">stream</a>
+(1.7.11) server status information in the specified <code><i>zone</i></code>.
+Several servers may share the same zone.
+</p>
+
+
+<a name="data"></a><center><h4>Data</h4></center><p>
+The following status information is provided:
+</p> <dl class="compact">
+
+<dt id="version"><code>version</code></dt>
+<dd>
+Version of the provided data set.
+The current version is 7.
+</dd>
+
+<dt><code>nginx_version</code></dt>
+<dd>
+Version of nginx.
+</dd>
+
+<dt><code>address</code></dt>
+<dd>
+The address of the server that accepted status request.
+</dd>
+
+<dt id="generation"><code>generation</code></dt>
+<dd>
+The total number of configuration
+<a href="../control.html#reconfiguration">reloads</a>.
+</dd>
+
+<dt id="load_timestamp"><code>load_timestamp</code></dt>
+<dd>
+Time of the last reload of configuration, in milliseconds since Epoch.
+</dd>
+
+<dt><code>timestamp</code></dt>
+<dd>
+Current time in milliseconds since Epoch.
+</dd>
+
+<dt id="pid"><code>pid</code></dt>
+<dd>
+The ID of the worker process that handled status request.
+</dd>
+
+<dt id="processes"><code>processes</code></dt>
+<dd>
+<dl class="compact">
+
+<dt id="respawned"><code>respawned</code></dt>
+<dd>
+The total number of abnormally terminated and respawned
+child processes.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>connections</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>accepted</code></dt>
+<dd>
+The total number of accepted client connections.
+</dd>
+
+<dt><code>dropped</code></dt>
+<dd>
+The total number of dropped client connections.
+</dd>
+
+<dt><code>active</code></dt>
+<dd>
+The current number of active client connections.
+</dd>
+
+<dt><code>idle</code></dt>
+<dd>
+The current number of idle client connections.
+</dd>
+
+</dl>
+</dd>
+
+<dt id="ssl"><code>ssl</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>handshakes</code></dt>
+<dd>
+The total number of successful SSL handshakes.
+</dd>
+
+<dt><code>handshakes_failed</code></dt>
+<dd>
+The total number of failed SSL handshakes.
+</dd>
+
+<dt><code>session_reuses</code></dt>
+<dd>
+The total number of session reuses during SSL handshake.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>requests</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>total</code></dt>
+<dd>
+The total number of client requests.
+</dd>
+
+<dt><code>current</code></dt>
+<dd>
+The current number of client requests.
+</dd>
+
+</dl>
+</dd>
+
+<dt id="server_zones"><code>server_zones</code></dt>
+<dd>
+For each <a href="#status_zone">status_zone</a>:
+<dl class="compact">
+
+<dt><code>processing</code></dt>
+<dd>
+The number of
+client requests that are currently being processed.
+</dd>
+
+<dt><code>requests</code></dt>
+<dd>
+The total number of
+client requests received from clients.
+</dd>
+
+<dt><code>responses</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>total</code></dt>
+<dd>
+The total number of
+responses sent to clients.
+</dd>
+
+<dt>
+<code>1xx</code>,
+<code>2xx</code>,
+<code>3xx</code>,
+<code>4xx</code>,
+<code>5xx</code>
+</dt>
+<dd>
+The number of responses with status codes 1xx, 2xx, 3xx, 4xx, and 5xx.
+</dd>
+
+</dl>
+</dd>
+
+<dt id="discarded"><code>discarded</code></dt>
+<dd>
+The total number of requests completed without sending a response.
+</dd>
+
+<dt><code>received</code></dt>
+<dd>
+The total number of bytes received from clients.
+</dd>
+
+<dt><code>sent</code></dt>
+<dd>
+The total number of bytes sent to clients.
+</dd>
+
+</dl>
+</dd>
+
+<dt id="upstreams"><code>upstreams</code></dt>
+<dd>
+For each
+<a href="ngx_http_upstream_module.html#zone">dynamically
+configurable</a>
+<a href="ngx_http_upstream_module.html#upstream">group</a>,
+the following data are provided:
+<dl class="compact">
+
+<dt id="peers"><code>peers</code></dt>
+<dd>
+For each
+<a href="ngx_http_upstream_module.html#server">server</a>,
+the following data are provided:
+<dl class="compact">
+
+<dt id="id"><code>id</code></dt>
+<dd>
+The ID of the server.
+</dd>
+
+<dt><code>server</code></dt>
+<dd>
+An
+<a href="ngx_http_upstream_module.html#server">address</a>
+of the server.
+</dd>
+
+<dt><code>backup</code></dt>
+<dd>
+A boolean value indicating whether the server is a
+<a href="ngx_http_upstream_module.html#backup">backup</a>
+server.
+</dd>
+
+<dt><code>weight</code></dt>
+<dd>
+<a href="ngx_http_upstream_module.html#weight">Weight</a>
+of the server.
+</dd>
+
+<dt id="state"><code>state</code></dt>
+<dd>
+Current state, which may be one of
+“<code>up</code>”,
+“<code>draining</code>”,
+“<code>down</code>”,
+“<code>unavail</code>”,
+or
+“<code>unhealthy</code>”.
+</dd>
+
+<dt><code>active</code></dt>
+<dd>
+The current number of active connections.
+</dd>
+
+<dt id="max_conns"><code>max_conns</code></dt>
+<dd>
+The <a href="ngx_http_upstream_module.html#max_conns">max_conns</a> limit
+for the server.
+</dd>
+
+<dt><code>requests</code></dt>
+<dd>
+The total number of
+client requests forwarded to this server.
+</dd>
+
+<dt><code>responses</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>total</code></dt>
+<dd>
+The total number of
+responses obtained from this server.
+</dd>
+
+<dt>
+<code>1xx</code>,
+<code>2xx</code>,
+<code>3xx</code>,
+<code>4xx</code>,
+<code>5xx</code>
+</dt>
+<dd>
+The number of responses with status codes 1xx, 2xx, 3xx, 4xx, and 5xx.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>sent</code></dt>
+<dd>
+The total number of bytes sent to this server.
+</dd>
+
+<dt><code>received</code></dt>
+<dd>
+The total number of bytes received from this server.
+</dd>
+
+<dt><code>fails</code></dt>
+<dd>
+The total number of
+unsuccessful attempts to communicate with the server.
+</dd>
+
+<dt><code>unavail</code></dt>
+<dd>
+How many times
+the server became unavailable for client requests
+(state “<code>unavail</code>”)
+due to the number of unsuccessful attempts reaching the
+<a href="ngx_http_upstream_module.html#max_fails">max_fails</a>
+threshold.
+</dd>
+
+<dt><code>health_checks</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>checks</code></dt>
+<dd>
+The total number of
+<a href="ngx_http_upstream_module.html#health_check">health check</a>
+requests made.
+</dd>
+
+<dt><code>fails</code></dt>
+<dd>
+The number of failed health checks.
+</dd>
+
+<dt><code>unhealthy</code></dt>
+<dd>
+How many times
+the server became unhealthy (state “<code>unhealthy</code>”).
+</dd>
+
+<dt><code>last_passed</code></dt>
+<dd>
+Boolean indicating
+if the last health check request was successful and passed
+<a href="ngx_http_upstream_module.html#match">tests</a>.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>downtime</code></dt>
+<dd>
+Total time
+the server was in the “<code>unavail</code>”
+and “<code>unhealthy</code>” states.
+</dd>
+
+<dt><code>downstart</code></dt>
+<dd>
+The time (in milliseconds since Epoch)
+when the server became
+“<code>unavail</code>”
+or “<code>unhealthy</code>”.
+</dd>
+
+<dt id="selected"><code>selected</code></dt>
+<dd>
+The time (in milliseconds since Epoch)
+when the server was last selected to process a request (1.7.5).
+</dd>
+
+<dt id="header_time"><code>header_time</code></dt>
+<dd>
+The average time to get the
+<a href="ngx_http_upstream_module.html#var_upstream_header_time">response
+header</a> from the server (1.7.10).
+The field is available when using the
+<a href="ngx_http_upstream_module.html#least_time">least_time</a>
+load balancing method.
+</dd>
+
+<dt id="response_time"><code>response_time</code></dt>
+<dd>
+The average time to get the
+<a href="ngx_http_upstream_module.html#var_upstream_response_time">full
+response</a> from the server (1.7.10).
+The field is available when using the
+<a href="ngx_http_upstream_module.html#least_time">least_time</a>
+load balancing method.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>keepalive</code></dt>
+<dd>
+The current number of
+idle <a href="ngx_http_upstream_module.html#keepalive">keepalive</a> connections.
+</dd>
+
+<dt id="zombies"><code>zombies</code></dt>
+<dd>
+The current number of servers removed
+from the group but still processing active client requests.
+</dd>
+
+<dt id="queue"><code>queue</code></dt>
+<dd>
+For the requests <a href="ngx_http_upstream_module.html#queue">queue</a>,
+the following data are provided:
+<dl class="compact">
+
+<dt><code>size</code></dt>
+<dd>
+The current number of requests in the queue.
+</dd>
+
+<dt id="max_size"><code>max_size</code></dt>
+<dd>
+The maximum number of requests that can be in the queue at the same time.
+</dd>
+
+<dt><code>overflows</code></dt>
+<dd>
+The total number of requests rejected due to the queue overflow.
+</dd>
+
+</dl>
+</dd>
+
+</dl>
+</dd>
+
+<dt id="caches"><code>caches</code></dt>
+<dd>
+For each cache (configured by
+<a href="ngx_http_proxy_module.html#proxy_cache_path">proxy_cache_path</a> and the likes):
+<dl class="compact">
+
+<dt><code>size</code></dt>
+<dd>
+The current size of the cache.
+</dd>
+
+<dt><code>max_size</code></dt>
+<dd>
+The limit on the maximum size of the cache specified in the configuration.
+</dd>
+
+<dt><code>cold</code></dt>
+<dd>
+A boolean value indicating whether the “cache loader” process is still loading
+data from disk into the cache.
+</dd>
+
+<dt>
+    <code>hit</code>,
+    <code>stale</code>,
+    <code>updating</code>,
+    <code>revalidated</code>
+</dt>
+<dd>
+<dl class="compact">
+
+<dt><code>responses</code></dt>
+<dd>
+The total number of responses read from the cache (hits, or stale responses
+due to <a href="ngx_http_proxy_module.html#proxy_cache_use_stale">proxy_cache_use_stale</a>
+and the likes).
+</dd>
+
+<dt><code>bytes</code></dt>
+<dd>
+The total number of bytes read from the cache.
+</dd>
+
+</dl>
+</dd>
+
+<dt>
+    <code>miss</code>,
+    <code>expired</code>,
+    <code>bypass</code>
+</dt>
+<dd>
+<dl class="compact">
+
+<dt><code>responses</code></dt>
+<dd>
+The total number of responses not taken from the cache (misses, expires, or
+bypasses due to
+<a href="ngx_http_proxy_module.html#proxy_cache_bypass">proxy_cache_bypass</a>
+and the likes).
+</dd>
+
+<dt><code>bytes</code></dt>
+<dd>
+The total number of bytes read from the proxied server.
+</dd>
+
+<dt><code>responses_written</code></dt>
+<dd>
+The total number of responses written to the cache.
+</dd>
+
+<dt><code>bytes_written</code></dt>
+<dd>
+The total number of bytes written to the cache.
+</dd>
+
+</dl>
+</dd>
+
+</dl>
+</dd>
+
+<dt id="stream"><code>stream</code></dt>
+<dd>
+
+<dl class="compact">
+<dt id="stream_server_zones"><code>server_zones</code></dt>
+<dd>
+For each <a href="#status_zone">status_zone</a>:
+<dl class="compact">
+
+<dt><code>processing</code></dt>
+<dd>
+The number of
+client connections that are currently being processed.
+</dd>
+
+<dt><code>connections</code></dt>
+<dd>
+The total number of
+connections accepted from clients.
+</dd>
+
+<dt id="sessions"><code>sessions</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>total</code></dt>
+<dd>
+The total number of completed client sessions.
+</dd>
+
+<dt>
+<code>2xx</code>,
+<code>4xx</code>,
+<code>5xx</code>
+</dt>
+<dd>
+The number of sessions completed with
+<a href="../stream/ngx_stream_core_module.html#var_status">status codes</a>
+2xx, 4xx, or 5xx.
+</dd>
+
+</dl>
+</dd>
+
+<dt id="stream_discarded"><code>discarded</code></dt>
+<dd>
+The total number of connections completed without creating a session.
+</dd>
+
+<dt><code>received</code></dt>
+<dd>
+The total number of bytes received from clients.
+</dd>
+
+<dt><code>sent</code></dt>
+<dd>
+The total number of bytes sent to clients.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>upstreams</code></dt>
+<dd>
+For each
+<a href="../stream/ngx_stream_upstream_module.html#zone">dynamically
+configurable</a>
+<a href="../stream/ngx_stream_upstream_module.html#upstream">group</a>,
+the following data are provided:
+<dl class="compact">
+
+<dt><code>peers</code></dt>
+<dd>
+For each
+<a href="../stream/ngx_stream_upstream_module.html#server">server</a>
+the following data are provided:
+<dl class="compact">
+
+<dt><code>id</code></dt>
+<dd>
+The ID of the server.
+</dd>
+
+<dt><code>server</code></dt>
+<dd>
+An
+<a href="../stream/ngx_stream_upstream_module.html#server">address</a>
+of the server.
+</dd>
+
+<dt><code>backup</code></dt>
+<dd>
+A boolean value indicating whether the server is a
+<a href="../stream/ngx_stream_upstream_module.html#backup">backup</a>
+server.
+</dd>
+
+<dt><code>weight</code></dt>
+<dd>
+<a href="../stream/ngx_stream_upstream_module.html#weight">Weight</a>
+of the server.
+</dd>
+
+<dt><code>state</code></dt>
+<dd>
+Current state, which may be one of
+“<code>up</code>”,
+“<code>down</code>”,
+“<code>unavail</code>”,
+or
+“<code>unhealthy</code>”.
+</dd>
+
+<dt><code>active</code></dt>
+<dd>
+The current number of connections.
+</dd>
+
+<dt><code>connections</code></dt>
+<dd>
+The total number of
+client connections forwarded to this server.
+</dd>
+
+<dt><code>connect_time</code></dt>
+<dd>
+The average time to connect to the upstream server.
+The field is available when using the
+<a href="../stream/ngx_stream_upstream_module.html#least_time">least_time</a>
+load balancing method.
+</dd>
+
+<dt><code>first_byte_time</code></dt>
+<dd>
+The average time to receive the first byte of data.
+The field is available when using the
+<a href="../stream/ngx_stream_upstream_module.html#least_time">least_time</a>
+load balancing method.
+</dd>
+
+<dt><code>response_time</code></dt>
+<dd>
+The average time to receive the last byte of data.
+The field is available when using the
+<a href="../stream/ngx_stream_upstream_module.html#least_time">least_time</a>
+load balancing method.
+</dd>
+
+<dt><code>sent</code></dt>
+<dd>
+The total number of bytes sent to this server.
+</dd>
+
+<dt><code>received</code></dt>
+<dd>
+The total number of bytes received from this server.
+</dd>
+
+<dt><code>fails</code></dt>
+<dd>
+The total number of
+unsuccessful attempts to communicate with the server.
+</dd>
+
+<dt><code>unavail</code></dt>
+<dd>
+How many times
+the server became unavailable for client connections
+(state “<code>unavail</code>”)
+due to the number of unsuccessful attempts reaching the
+<a href="../stream/ngx_stream_upstream_module.html#max_fails">max_fails</a>
+threshold.
+</dd>
+
+<dt><code>health_checks</code></dt>
+<dd>
+<dl class="compact">
+
+<dt><code>checks</code></dt>
+<dd>
+The total number of
+<a href="../stream/ngx_stream_upstream_module.html#health_check">health check</a>
+requests made.
+</dd>
+
+<dt><code>fails</code></dt>
+<dd>
+The number of failed health checks.
+</dd>
+
+<dt><code>unhealthy</code></dt>
+<dd>
+How many times
+the server became unhealthy (state “<code>unhealthy</code>”).
+</dd>
+
+<dt><code>last_passed</code></dt>
+<dd>
+Boolean indicating
+if the last health check request was successful and passed
+<a href="../stream/ngx_stream_upstream_module.html#match">tests</a>.
+</dd>
+
+</dl>
+</dd>
+
+<dt><code>downtime</code></dt>
+<dd>
+Total time
+the server was in the “<code>unavail</code>”
+and “<code>unhealthy</code>” states.
+</dd>
+
+<dt><code>downstart</code></dt>
+<dd>
+The time (in milliseconds since Epoch)
+when the server became
+“<code>unavail</code>”
+or “<code>unhealthy</code>”.
+</dd>
+
+<dt><code>selected</code></dt>
+<dd>
+The time (in milliseconds since Epoch)
+when the server was last selected to process a connection.
+</dd>
+
+</dl>
+</dd>
+
+</dl>
+</dd>
+
+</dl>
+</dd>
+
+</dl><p> 
+</p>
+
+<a name="compatibility"></a><center><h4>Compatibility</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+The
+<a href="#sessions">sessions</a> status data
+and the <a href="#stream_discarded">discarded</a> field in
+stream <a href="#stream_server_zones">server_zones</a>
+were added in <a href="#version">version</a> 7.
+</li>
+
+<li>
+The <a href="#zombies">zombies</a> field
+was moved from nginx <a href="../debugging_log.html">debug</a> version
+in <a href="#version">version</a> 6.
+</li>
+
+<li>
+The <a href="#ssl">ssl</a> status data
+were added in <a href="#version">version</a> 6.
+</li>
+
+<li>
+The
+<a href="#discarded">discarded</a> field in
+<a href="#server_zones">server_zones</a>
+was added in <a href="#version">version</a> 6.
+</li>
+
+<li>
+The <a href="#queue">queue</a> status data
+were added in <a href="#version">version</a> 6.
+</li>
+
+<li>
+The
+<a href="#pid">pid</a> field
+was added in <a href="#version">version</a> 6.
+</li>
+
+<li>
+The list of servers in <a href="#upstreams">upstreams</a>
+was moved into <a href="#peers">peers</a> in
+<a href="#version">version</a> 6.
+</li>
+
+<li>
+The <code>keepalive</code> field of an upstream server
+was removed in <a href="#version">version</a> 5.
+</li>
+
+<li>
+The <a href="#stream">stream</a> status data
+were added in <a href="#version">version</a> 5.
+</li>
+
+<li>
+The
+<a href="#generation">generation</a> field
+was added in <a href="#version">version</a> 5.
+</li>
+
+<li>
+The
+<a href="#respawned">respawned</a> field in
+<a href="#processes">processes</a>
+was added in <a href="#version">version</a> 5.
+</li>
+
+<li>
+The
+<a href="#header_time">header_time</a> and <a href="#response_time">response_time</a> fields in
+<a href="#upstreams">upstreams</a>
+were added in <a href="#version">version</a> 5.
+</li>
+
+<li>
+The
+<a href="#selected">selected</a> field in
+<a href="#upstreams">upstreams</a>
+was added in <a href="#version">version</a> 4.
+</li>
+
+<li>
+The <a href="#state">draining</a> state in
+<a href="#upstreams">upstreams</a>
+was added in <a href="#version">version</a> 4.
+</li>
+
+<li>
+The
+<a href="#id">id</a> and <a href="#max_conns">max_conns</a> fields in
+<a href="#upstreams">upstreams</a>
+were added in <a href="#version">version</a> 3.
+</li>
+
+<li>
+The <code>revalidated</code> field in
+<a href="#caches">caches</a>
+was added in <a href="#version">version</a> 3.
+</li>
+
+<li>
+The <a href="#server_zones">server_zones</a>, <a href="#caches">caches</a>,
+and <a href="#load_timestamp">load_timestamp</a> status data
+were added in <a href="#version">version</a> 2.
+</li>
+
+</ul><p> 
+</p>
+
+</div></div></body></html>

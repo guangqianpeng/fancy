@@ -141,11 +141,12 @@ int event_process(timer_msec timeout)
     connection  *conn;
     struct epoll_event *e_event;
 
+    inter:
     n_ev = epoll_wait(epollfd, event_list, n_events, timeout);
 
     if (n_ev == -1) {
         if (errno == EINTR) {
-            return FCY_ERROR;
+            goto inter;
         }
         err_sys("epoll_wait error");
     }

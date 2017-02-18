@@ -1,0 +1,571 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>nginx: документация</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../en/docs/">english</a><br>русский<br><br><a href="../../">новости</a> [en]<br><a href="../../ru/">об nginx</a><br><a href="../../ru/download.html">скачать</a><br><a href="../../en/security_advisories.html">безопасность</a> [en]<br>документация<br><a href="faq.html">faq</a><br><a href="../../en/books.html">книги</a> [en]<br><a href="../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>nginx: документация</h2><a name="introduction"></a><center><h4>Введение</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+<a href="install.html">Установка nginx</a>
+</li>
+
+<li>
+<a href="beginners_guide.html">Руководство для начинающих</a>
+</li>
+
+<li>
+<a href="https://www.nginx.com/resources/admin-guide/">Руководство администратора</a> [en]
+</li>
+
+<li>
+<a href="control.html">Управление nginx</a>
+</li>
+
+<li>
+<a href="events.html">Методы обработки соединений</a>
+</li>
+
+<li>
+<a href="hash.html">Настройка хэшей</a>
+</li>
+
+<li>
+<a href="debugging_log.html">Отладочный лог</a>
+</li>
+
+<li>
+<a href="syslog.html">Запись в syslog</a>
+</li>
+
+<li>
+<a href="syntax.html">Единицы измерения в конфигурационном файле</a>
+</li>
+
+<li>
+<a href="switches.html">Параметры командной строки nginx</a>
+</li>
+
+<li>
+<a href="windows.html">nginx под Windows</a>
+</li>
+
+</ul><p> 
+
+</p> <ul class="compact">
+
+<li>
+<a href="http/request_processing.html">Как nginx обрабатывает запросы</a>
+</li>
+
+<li>
+<a href="http/server_names.html">Имена сервера</a>
+</li>
+
+<li>
+<a href="../../en/docs/http/load_balancing.html">Балансировка HTTP
+с помощью nginx</a> [en]
+</li>
+
+<li>
+<a href="http/configuring_https_servers.html">Настройка HTTPS-серверов</a>
+</li>
+
+</ul><p> 
+
+</p> <ul class="compact">
+
+<li>
+<a href="stream/stream_processing.html">Как nginx обрабатывает TCP/UDP-сессии</a>
+</li>
+
+</ul><p> 
+
+</p> <ul class="compact">
+
+<li>
+<a href="njs_about.html">Информация о nginScript</a>
+</li>
+
+</ul><p> 
+
+</p> <ul class="compact">
+
+<li>
+<a href="http://www.aosabook.org/en/nginx.html">Глава “nginx” из книги
+“The Architecture of Open Source Applications”</a> [en]
+</li>
+
+</ul><p> 
+</p><a name="howto"></a><center><h4>How-To</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+<a href="configure.html">Сборка nginx из исходных файлов</a>
+</li>
+
+<li>
+<a href="../../en/docs/howto_build_on_win32.html">Сборка nginx
+на платформе Win32 компилятором Visual C</a> [en]
+</li>
+
+<li>
+<a href="https://www.nginx.com/resources/admin-guide/setting-nginx-plus-environment-amazon-ec2/">Настройка окружения NGINX Plus на Amazon EC2</a> [en]
+</li>
+
+<li>
+<a href="../../en/docs/nginx_dtrace_pid_provider.html">Отладка
+nginx с помощью DTrace pid provider</a> [en]
+</li>
+
+</ul><p> 
+
+</p> <ul class="compact">
+
+<li>
+<a href="../../en/docs/http/converting_rewrite_rules.html">Преобразование
+rewrite-правил</a> [en]
+</li>
+
+<li>
+<a href="http/websocket.html">Проксирование WebSocket</a>
+</li>
+
+</ul><p> 
+</p><a name="development"></a><center><h4>Разработка</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+<a href="contributing_changes.html">Внесение изменений</a>
+</li>
+
+</ul><p> 
+</p><center><h4>Справочник по модулям</h4></center><p>
+</p> <ul class="compact">
+
+<li>
+<a href="dirindex.html">Алфавитный указатель директив</a>
+</li>
+
+<li>
+<a href="varindex.html">Алфавитный указатель переменных</a>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <ul class="compact">
+
+<li>
+<a href="ngx_core_module.html">Основная функциональность</a>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <ul class="compact">
+
+<li>
+<a href="http/ngx_http_core_module.html">
+ngx_http_core_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_access_module.html">
+ngx_http_access_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_addition_module.html">
+ngx_http_addition_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_auth_basic_module.html">
+ngx_http_auth_basic_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_auth_jwt_module.html">
+ngx_http_auth_jwt_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_auth_request_module.html">
+ngx_http_auth_request_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_autoindex_module.html">
+ngx_http_autoindex_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_browser_module.html">
+ngx_http_browser_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_charset_module.html">
+ngx_http_charset_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_dav_module.html">
+ngx_http_dav_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_empty_gif_module.html">
+ngx_http_empty_gif_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_f4f_module.html">
+ngx_http_f4f_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_fastcgi_module.html">
+ngx_http_fastcgi_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_flv_module.html">
+ngx_http_flv_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_geo_module.html">
+ngx_http_geo_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_geoip_module.html">
+ngx_http_geoip_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_gunzip_module.html">
+ngx_http_gunzip_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_gzip_module.html">
+ngx_http_gzip_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_gzip_static_module.html">
+ngx_http_gzip_static_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_headers_module.html">
+ngx_http_headers_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_hls_module.html">
+ngx_http_hls_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_image_filter_module.html">
+ngx_http_image_filter_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_index_module.html">
+ngx_http_index_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_js_module.html">
+ngx_http_js_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_limit_conn_module.html">
+ngx_http_limit_conn_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_limit_req_module.html">
+ngx_http_limit_req_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_log_module.html">
+ngx_http_log_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_map_module.html">
+ngx_http_map_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_memcached_module.html">
+ngx_http_memcached_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_mp4_module.html">
+ngx_http_mp4_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_perl_module.html">
+ngx_http_perl_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_proxy_module.html">
+ngx_http_proxy_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_random_index_module.html">
+ngx_http_random_index_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_realip_module.html">
+ngx_http_realip_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_referer_module.html">
+ngx_http_referer_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_rewrite_module.html">
+ngx_http_rewrite_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_scgi_module.html">
+ngx_http_scgi_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_secure_link_module.html">
+ngx_http_secure_link_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_session_log_module.html">
+ngx_http_session_log_module</a> [en]
+</li>
+
+<li>
+<a href="http/ngx_http_slice_module.html">
+ngx_http_slice_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_spdy_module.html">
+ngx_http_spdy_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_split_clients_module.html">
+ngx_http_split_clients_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_ssi_module.html">
+ngx_http_ssi_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_ssl_module.html">
+ngx_http_ssl_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_status_module.html">
+ngx_http_status_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_stub_status_module.html">
+ngx_http_stub_status_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_sub_module.html">
+ngx_http_sub_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_upstream_module.html">
+ngx_http_upstream_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_upstream_conf_module.html">
+ngx_http_upstream_conf_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_userid_module.html">
+ngx_http_userid_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_uwsgi_module.html">
+ngx_http_uwsgi_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_v2_module.html">
+ngx_http_v2_module</a>
+</li>
+
+<li>
+<a href="http/ngx_http_xslt_module.html">
+ngx_http_xslt_module</a>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <ul class="compact">
+
+<li>
+<a href="mail/ngx_mail_core_module.html">
+ngx_mail_core_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_auth_http_module.html">
+ngx_mail_auth_http_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_proxy_module.html">
+ngx_mail_proxy_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_ssl_module.html">
+ngx_mail_ssl_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_imap_module.html">
+ngx_mail_imap_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_pop3_module.html">
+ngx_mail_pop3_module</a>
+</li>
+
+<li>
+<a href="mail/ngx_mail_smtp_module.html">
+ngx_mail_smtp_module</a>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <ul class="compact">
+
+<li>
+<a href="stream/ngx_stream_core_module.html">
+ngx_stream_core_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_access_module.html">
+ngx_stream_access_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_geo_module.html">
+ngx_stream_geo_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_geoip_module.html">
+ngx_stream_geoip_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_js_module.html">
+ngx_stream_js_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_limit_conn_module.html">
+ngx_stream_limit_conn_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_log_module.html">
+ngx_stream_log_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_map_module.html">
+ngx_stream_map_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_proxy_module.html">
+ngx_stream_proxy_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_realip_module.html">
+ngx_stream_realip_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_return_module.html">
+ngx_stream_return_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_split_clients_module.html">
+ngx_stream_split_clients_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_ssl_module.html">
+ngx_stream_ssl_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_ssl_preread_module.html">
+ngx_stream_ssl_preread_module</a>
+</li>
+
+<li>
+<a href="stream/ngx_stream_upstream_module.html">
+ngx_stream_upstream_module</a>
+</li>
+
+</ul><p> 
+</p><p>
+</p> <ul class="compact">
+
+<li>
+<a href="ngx_google_perftools_module.html">
+ngx_google_perftools_module</a>
+</li>
+
+</ul><p> 
+</p></div></div></body></html>

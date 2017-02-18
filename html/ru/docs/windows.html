@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>nginx под Windows</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../en/docs/windows.html">english</a><br>русский<br><br><a href="../../">новости</a> [en]<br><a href="../../ru/">об nginx</a><br><a href="../../ru/download.html">скачать</a><br><a href="../../en/security_advisories.html">безопасность</a> [en]<br><a href="./">документация</a><br><a href="faq.html">faq</a><br><a href="../../en/books.html">книги</a> [en]<br><a href="../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>nginx под Windows</h2><table width="100%"><tr><td align="left"><a href="#known_issues">Известные проблемы</a><br><a href="#possible_future_enhancements">Возможные усовершенствования в будущем</a><br></td></tr></table><p>
+Версия nginx под Windows использует “родной” Win32 API (не эмуляцию Cygwin).
+В настоящий момент в качестве метода обработки соединений используется
+только <code>select()</code>,
+поэтому не стоит ожидать высокой производительности и масштабируемости.
+В силу этого и ряда других известных проблем версия nginx под Windows
+рассматривается пока как <i>бета</i>-версия.
+На данный момент в ней доступна практически вся функциональность, что и
+в версии nginx под UNIX, за исключением
+XSLT-фильтра, фильтра изображений, модуля GeoIP и встроенного языка Perl.
+</p><p>
+Чтобы установить nginx/Windows, <a href="../download.html">скачайте</a>
+дистрибутив последней основной версии (1.11.10),
+поскольку основная ветвь nginx содержит все известные исправления.
+Затем распакуйте дистрибутив, перейдите в каталог
+nginx-1.11.10
+и запустите <code>nginx</code>.
+Вот пример для корневого каталога на диске C:
+
+</p> <blockquote class="example"><pre>
+cd c:\
+unzip nginx-1.11.10.zip
+cd nginx-1.11.10
+start nginx
+</pre></blockquote><p> 
+
+Чтобы увидеть процессы nginx, запустите утилиту командной строки
+<code>tasklist</code>:
+
+</p> <blockquote class="example"><pre>
+C:\nginx-1.11.10&gt;tasklist /fi "imagename eq nginx.exe"
+
+Image Name           PID Session Name     Session#    Mem Usage
+=============== ======== ============== ========== ============
+nginx.exe            652 Console                 0      2 780 K
+nginx.exe           1332 Console                 0      3 112 K
+</pre></blockquote><p> 
+
+Один из процессов главный, другой — рабочий.
+Если nginx не запускается, нужно искать причину в
+в файле лога ошибок <code>logs\error.log</code>.
+Если же лог-файл не создался, то причину этого следует искать
+в Windows Event Log.
+Если вместо ожидаемой страницы выводится страница с ошибкой, нужно также
+искать причины ошибки в файле <code>logs\error.log</code>.
+</p><p>
+nginx/Windows использует каталог, в котором он был запущен, в качестве
+префикса для относительных путей в конфигурации.
+В вышеприведённом примере префиксом является
+<code>C:\nginx-1.11.10\</code>.
+Пути в конфигурационном файле должны задаваться в UNIX-стиле с использованием
+прямых слэшей:
+
+</p> <blockquote class="example"><pre>
+access_log   logs/site.log;
+root         C:/web/html;
+</pre></blockquote><p> 
+</p><p>
+nginx/Windows работает как стандартное консольное приложение (не сервис)
+и управляется при помощи следующих команд:
+
+<blockquote><table width="100%">
+
+<tr>
+<td width="20%">nginx -s stop</td>
+<td>быстрое завершение</td>
+</tr>
+
+<tr>
+<td>nginx -s quit</td>
+<td>плавное завершение</td>
+</tr>
+
+<tr>
+<td>nginx -s reload</td>
+<td>
+изменение конфигурации,
+запуск новых рабочих процессов с новой конфигурацией,
+плавное завершение старых рабочих процессов
+</td>
+</tr>
+
+<tr>
+<td>nginx -s reopen</td>
+<td>переоткрытие лог-файлов</td>
+</tr>
+
+</table></blockquote>
+</p><a name="known_issues"></a><center><h4>Известные проблемы</h4></center><ul class="compact">
+
+<li>
+Хоть и возможен запуск нескольких рабочих процессов, только один из них
+реально работает.
+</li>
+
+<li>
+Рабочий процесс может обслуживать не более 1024 одновременных соединений.
+</li>
+
+<li>
+Проксирование по UDP не поддерживается.
+</li>
+
+</ul><a name="possible_future_enhancements"></a><center><h4>Возможные усовершенствования в будущем</h4></center><ul class="compact">
+
+<li>
+Запуск в виде сервиса.
+</li>
+
+<li>
+Использование портов завершения ввода-вывода (I/O completion ports)
+в качестве метода обработки соединений.
+</li>
+
+<li>
+Использование нескольких рабочих нитей внутри одного рабочего процесса.
+</li>
+
+</ul></div></div></body></html>

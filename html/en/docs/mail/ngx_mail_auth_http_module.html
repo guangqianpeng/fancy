@@ -1,0 +1,295 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_mail_auth_http_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/mail/ngx_mail_auth_http_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_mail_auth_http_module</h2><table width="100%"><tr><td align="left"><a href="#directives">Directives</a><br>     <a href="#auth_http">auth_http</a><br>     <a href="#auth_http_header">auth_http_header</a><br>     <a href="#auth_http_pass_client_cert">auth_http_pass_client_cert</a><br>     <a href="#auth_http_timeout">auth_http_timeout</a><br><a href="#protocol">Protocol</a><br></td></tr></table>
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="auth_http"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>auth_http</strong> <code><i>URL</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>mail</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the URL of the HTTP authentication server.
+The protocol is described <a href="#protocol">below</a>.
+</p><a name="auth_http_header"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>auth_http_header</strong> <code><i>header</i></code> <code><i>value</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>mail</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Appends the specified header to requests sent to the authentication server.
+This header can be used as the shared secret to verify
+that the request comes from nginx.
+For example:
+</p> <blockquote class="example"><pre>
+auth_http_header X-Auth-Key "secret_string";
+</pre></blockquote><p> 
+</p><a name="auth_http_pass_client_cert"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>auth_http_pass_client_cert</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>auth_http_pass_client_cert off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>mail</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.7.11.
+            </p></div><p>
+Appends the “Auth-SSL-Cert” header with the
+<a href="ngx_mail_ssl_module.html#ssl_verify_client">client</a>
+certificate in the PEM format (urlencoded)
+to requests sent to the authentication server.
+</p><a name="auth_http_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>auth_http_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>auth_http_timeout 60s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>mail</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the timeout for communication with the authentication server.
+</p>
+
+
+<a name="protocol"></a><center><h4>Protocol</h4></center><p>
+The HTTP protocol is used to communicate with the authentication server.
+The data in the response body is ignored, the information is passed only in
+the headers.
+</p><p>
+Examples of requests and responses:
+</p><p>
+Request:
+</p> <blockquote class="example"><pre>
+GET /auth HTTP/1.0
+Host: localhost
+Auth-Method: plain # plain/apop/cram-md5/external
+Auth-User: user
+Auth-Pass: password
+Auth-Protocol: imap # imap/pop3/smtp
+Auth-Login-Attempt: 1
+Client-IP: 192.0.2.42
+Client-Host: client.example.org
+</pre></blockquote><p> 
+Good response:
+</p> <blockquote class="example"><pre>
+HTTP/1.0 200 OK
+Auth-Status: OK
+Auth-Server: 198.51.100.1
+Auth-Port: 143
+</pre></blockquote><p> 
+Bad response:
+</p> <blockquote class="example"><pre>
+HTTP/1.0 200 OK
+Auth-Status: Invalid login or password
+Auth-Wait: 3
+</pre></blockquote><p> 
+</p><p>
+If there is no “Auth-Wait” header,
+an error will be returned and the connection will be closed.
+The current implementation allocates memory for each authentication attempt.
+The memory is freed only at the end of a session.
+Therefore, the number of invalid authentication attempts in a single session
+must be limited — the server must respond without
+the “Auth-Wait” header after 10-20 attempts
+(the attempt number is passed in the “Auth-Login-Attempt”
+header).
+</p><p>
+When the APOP or CRAM-MD5 are used, request-response will look as follows:
+</p> <blockquote class="example"><pre>
+GET /auth HTTP/1.0
+Host: localhost
+Auth-Method: apop
+Auth-User: user
+Auth-Salt: &lt;238188073.1163692009@mail.example.com&gt;
+Auth-Pass: auth_response
+Auth-Protocol: imap
+Auth-Login-Attempt: 1
+Client-IP: 192.0.2.42
+Client-Host: client.example.org
+</pre></blockquote><p> 
+Good response:
+</p> <blockquote class="example"><pre>
+HTTP/1.0 200 OK
+Auth-Status: OK
+Auth-Server: 198.51.100.1
+Auth-Port: 143
+Auth-Pass: plain-text-pass
+</pre></blockquote><p> 
+</p><p>
+If the “Auth-User” header exists in the response,
+it overrides the username used to authenticate with the backend.
+</p><p>
+For the SMTP, the response additionally takes into account
+the “Auth-Error-Code” header — if exists, it is used
+as a response code in case of an error.
+Otherwise, the 535 5.7.0 code will be added to
+the “Auth-Status” header.
+</p><p>
+For example, if the following response is received
+from the authentication server:
+</p> <blockquote class="example"><pre>
+HTTP/1.0 200 OK
+Auth-Status: Temporary server problem, try again later
+Auth-Error-Code: 451 4.3.0
+Auth-Wait: 3
+</pre></blockquote><p> 
+then the SMTP client will receive an error
+</p> <blockquote class="example"><pre>
+451 4.3.0 Temporary server problem, try again later
+</pre></blockquote><p> 
+</p><p>
+If proxying SMTP does not require authentication,
+the request will look as follows:
+</p> <blockquote class="example"><pre>
+GET /auth HTTP/1.0
+Host: localhost
+Auth-Method: none
+Auth-User:
+Auth-Pass:
+Auth-Protocol: smtp
+Auth-Login-Attempt: 1
+Client-IP: 192.0.2.42
+Client-Host: client.example.org
+Auth-SMTP-Helo: client.example.org
+Auth-SMTP-From: MAIL FROM: &lt;&gt;
+Auth-SMTP-To: RCPT TO: &lt;postmaster@mail.example.com&gt;
+</pre></blockquote><p> 
+</p><p>
+For the SSL/TLS client connection (1.7.11),
+the “Auth-SSL” header is added, and
+“Auth-SSL-Verify” will contain
+the result of client certificate verification, if
+<a href="ngx_mail_ssl_module.html#ssl_verify_client">enabled</a>:
+“<code>SUCCESS</code>”, “<code>FAILED:</code><code><i>reason</i></code>”,
+and “<code>NONE</code>” if a certificate was not present.
+</p> <blockquote class="note">
+Prior to version 1.11.7, the “<code>FAILED</code>” result
+did not contain the <code><i>reason</i></code> string.
+</blockquote><p> 
+When the client certificate was present,
+its details are passed in the following request headers:
+“Auth-SSL-Subject”, “Auth-SSL-Issuer”,
+“Auth-SSL-Serial”, and “Auth-SSL-Fingerprint”.
+If <a href="#auth_http_pass_client_cert">auth_http_pass_client_cert</a> is enabled,
+the certificate itself is passed in the
+“Auth-SSL-Cert” header.
+The request will look as follows:
+</p> <blockquote class="example"><pre>
+GET /auth HTTP/1.0
+Host: localhost
+Auth-Method: plain
+Auth-User: user
+Auth-Pass: password
+Auth-Protocol: imap
+Auth-Login-Attempt: 1
+Client-IP: 192.0.2.42
+Auth-SSL: on
+Auth-SSL-Verify: SUCCESS
+Auth-SSL-Subject: /CN=example.com
+Auth-SSL-Issuer: /CN=example.com
+Auth-SSL-Serial: C07AD56B846B5BFF
+Auth-SSL-Fingerprint: 29d6a80a123d13355ed16b4b04605e29cb55a5ad
+</pre></blockquote><p> 
+</p>
+
+</div></div></body></html>

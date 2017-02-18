@@ -8,6 +8,7 @@
 #include "base.h"
 #include "event.h"
 
+/* request method */
 #define HTTP_M_OPTIONS      0
 #define HTTP_M_GET          1
 #define HTTP_M_HEAD         2
@@ -17,6 +18,7 @@
 #define HTTP_M_TRACE        6
 #define HTTP_M_CONNECT      7
 
+/* status code */
 #define HTTP_R_OK                               0
 #define HTTP_R_BAD_REQUEST                      1
 #define HTTP_R_FORBIDDEN                        2
@@ -28,7 +30,6 @@
 #define HTTP_R_REQUEST_HEADER_FIELD_TOO_LARGE   8
 #define HTTP_R_INTARNAL_SEARVE_ERROR            9
 #define HTTP_R_NOT_IMPLEMENTED                  10
-
 
 #define HTTP_V10            0
 #define HTTP_V11            1
@@ -43,15 +44,18 @@ extern const char *version_in_str[];
 extern const char *field_in_str[];
 
 extern const char *status_code_out_str[];
+extern const char *content_type_out_str[];
+
+extern const char *file_suffix_str[];
 
 typedef struct request          request;
 typedef struct request_line     request_line;
 typedef struct request_headers  request_headers;
+typedef void (*request_handler)(request*);
 
 struct request {
     int             method;
     int             version;
-    int             cnt_len;
 
     request_line    *line;
     request_headers *headers;
@@ -62,10 +66,11 @@ struct request {
     buffer          *header_in;
     buffer          *header_out;
 
-    int             status_code;
+    int             send_fd;
     struct stat     sbuf;
 
-    int             send_fd;
+    int             status_code;
+    int             content_type;
 
     int             parse_state;
     int             parse_header_index;
@@ -91,6 +96,8 @@ struct request_line {
     char        *uri_start;
     char        *uri_dynamic;
     char        *uri_static;
+    char        *uri_suffix_start;
+    char        *uri_suffix_end;
     char        *uri_sharp;
     char        *uri_end;
 
@@ -208,7 +215,7 @@ enum parse_request_state {
 int parse_request_line(request *r);
 int parse_request_headers(request *r);
 
-int process_request_header(request *r);
+int check_request_header_filed(request *r);
 int process_request_static(request *r);
 
 

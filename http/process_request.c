@@ -5,7 +5,7 @@
 #include "assert.h"
 #include "request.h"
 
-int process_request_header(request *r)
+int check_request_header_filed(request *r)
 {
     connection      *conn;
     request_headers *headers;
@@ -25,7 +25,9 @@ int process_request_header(request *r)
         return FCY_ERROR;
     }
 
-    /* POST请求必须有Content-Length字段, 且字段值>=0 */
+    /* POST请求必须有Content-Length字段, 且字段值>=0
+     * 然而post请求尚未实现，这段代码不会执行
+     * */
     if (r->method == HTTP_M_POST) {
         if (headers->content_length_start == NULL) {
             r->status_code = HTTP_R_LENGTH_REQUIRED;
@@ -45,7 +47,7 @@ int process_request_header(request *r)
             return FCY_ERROR;
         }
 
-        r->cnt_len = (int)cnt_len;
+        /* r->cnt_len_in = (int)cnt_len; */
     }
 
     /* 设置keep_alive字段 */
@@ -59,21 +61,24 @@ int process_request_header(request *r)
         }
     }
 
-    r->status_code = HTTP_R_OK;
+    /* status code未知 */
     return FCY_OK;
 }
 
 int process_request_static(request *r)
 {
-    char        *uri_start, *uri_end;
-    char        *relpath;
-    struct stat *sbuf;
-    int         fd;
-    int         err;
+    request_line    *line;
+    char            *uri_start, *uri_end;
+    char            *relpath;
+    struct stat     *sbuf;
+    int             fd;
+    int             err;
+    char            temp;
 
-    uri_start = r->line->uri_start;
-    uri_end = r->line->uri_end;
-    relpath = (r->line->uri_static == uri_end ? "index.html" : uri_start + 1);
+    line = r->line;
+    uri_start = line->uri_start;
+    uri_end = line->uri_end;
+    relpath = (line->uri_static == uri_end ? "index.html" : uri_start + 1);
     sbuf = &r->sbuf;
 
     assert(*uri_end == ' ');
@@ -101,6 +106,20 @@ int process_request_static(request *r)
     if (fd == -1) {
         r->status_code = HTTP_R_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;
+    }
+
+
+    /* 默认content-type为text/html */
+    if (line->uri_suffix_start) {
+        temp = *line->uri_suffix_end;
+        *line->uri_suffix_end = '\0';
+        for (int i = 0; file_suffix_str[i] != NULL; ++i) {
+            if (strcmp(line->uri_suffix_start, file_suffix_str[i]) == 0) {
+                r->content_type = i;
+                break;
+            }
+        }
+        *line->uri_suffix_end = temp;
     }
 
     r->send_fd = fd;

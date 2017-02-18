@@ -1,0 +1,297 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Модуль ngx_http_xslt_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_xslt_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Модуль ngx_http_xslt_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#xml_entities">xml_entities</a><br>     <a href="#xslt_last_modified">xslt_last_modified</a><br>     <a href="#xslt_param">xslt_param</a><br>     <a href="#xslt_string_param">xslt_string_param</a><br>     <a href="#xslt_stylesheet">xslt_stylesheet</a><br>     <a href="#xslt_types">xslt_types</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_xslt_module</code> (0.7.8+) — это фильтр,
+преобразующий XML-ответ с помощью одного или нескольких XSLT-шаблонов.
+</p><p>
+По умолчанию этот модуль не собирается, его сборку необходимо
+разрешить с помощью конфигурационного параметра
+<code>--with-http_xslt_module</code>.
+</p> <blockquote class="note">
+Для сборки и работы этого модуля нужны библиотеки
+<a href="http://xmlsoft.org">libxml2</a> и
+<a href="http://xmlsoft.org/XSLT/">libxslt</a>.
+</blockquote><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+</p> <blockquote class="example"><pre>
+location / {
+    xml_entities    /site/dtd/entities.dtd;
+    xslt_stylesheet /site/xslt/one.xslt param=value;
+    xslt_stylesheet /site/xslt/two.xslt;
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="xml_entities"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xml_entities</strong> <code><i>путь</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт файл DTD, в котором описаны символьные сущности.
+Этот файл компилируется на стадии конфигурации.
+По техническим причинам модуль не имеет возможности
+использовать внешнее подмножество, заданное в обрабатываемом XML,
+поэтому оно игнорируется, а вместо него используется специально заданный файл.
+В этом файле не нужно описывать структуру XML, достаточно только объявления
+необходимых символьных сущностей, например:
+</p> <blockquote class="example"><pre>
+&lt;!ENTITY nbsp "&amp;#xa0;"&gt;
+</pre></blockquote><p> 
+</p><a name="xslt_last_modified"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xslt_last_modified</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>xslt_last_modified off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.5.1.
+            </p></div><p>
+Позволяет сохранить поле заголовка “Last-Modified”
+исходного ответа во время XSLT-преобразований
+для лучшего кэширования ответов.
+</p><p>
+По умолчанию поле заголовка удаляется, так как содержимое ответа
+изменяется во время преобразования и может содержать динамически созданные
+элементы или части, которые изменились независимо от исходного ответа.
+</p><a name="xslt_param"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xslt_param</strong> <code><i>параметр</i></code> <code><i>значение</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.1.18.
+            </p></div><p>
+Задаёт параметры для XSLT-шаблонов.
+Значение рассматривается как выражение XPath.
+В значении можно использовать переменные.
+Если нужно передать в шаблон строковое значение,
+можно воспользоваться директивой <a href="#xslt_string_param">xslt_string_param</a>.
+</p><p>
+Директив <code>xslt_param</code> может быть несколько.
+Директивы наследуются с предыдущего уровня при условии, что на данном
+уровне не описаны свои директивы <code>xslt_param</code> и
+<a href="#xslt_string_param">xslt_string_param</a>.
+</p><a name="xslt_string_param"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xslt_string_param</strong> <code><i>параметр</i></code> <code><i>значение</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.1.18.
+            </p></div><p>
+Задаёт строковые параметры для XSLT-шаблонов.
+Выражения XPath в значении параметра не интерпретируются.
+В значении можно использовать переменные.
+</p><p>
+Директив <code>xslt_string_param</code> может быть несколько.
+Директивы наследуются с предыдущего уровня при условии, что на данном
+уровне не описаны свои директивы <a href="#xslt_param">xslt_param</a> и
+<code>xslt_string_param</code>.
+</p><a name="xslt_stylesheet"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xslt_stylesheet</strong> 
+    <code><i>шаблон</i></code>
+    [<code><i>параметр</i></code>=<code><i>значение</i></code> ...];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт XSLT-шаблон и необязательные параметры для этого шаблона.
+Шаблон компилируется на стадии конфигурации.
+</p><p>
+Параметры можно задавать как по отдельности, так и группировать
+в одной строке, разделяя символом “<code>:</code>”.
+Если же в самих параметрах встречается символ “<code>:</code>”,
+то его нужно экранировать в виде “<code>%3A</code>”.
+Кроме того, <code>libxslt</code> требует,
+чтобы параметры, содержащие не только алфавитно-цифровые символы,
+были заключены в одинарные или двойные кавычки, например:
+</p> <blockquote class="example"><pre>
+param1='http%3A//www.example.com':param2=value2
+</pre></blockquote><p> 
+</p><p>
+В описании параметров можно использовать переменные, например,
+целая строка параметров может быть взята из одной переменной:
+</p> <blockquote class="example"><pre>
+location / {
+    xslt_stylesheet /site/xslt/one.xslt
+                    $arg_xslt_params
+                    param1='$value1':param2=value2
+                    param3=value3;
+}
+</pre></blockquote><p> 
+</p><p>
+Можно указать несколько шаблонов — в этом случае они
+будут применяться последовательно в порядке их описания.
+</p><a name="xslt_types"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>xslt_types</strong> <code><i>mime-тип</i></code> ...;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>xslt_types text/xml;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Разрешает преобразования в ответах с указанными MIME-типами
+в дополнение к “<code>text/xml</code>”.
+Специальное значение “<code>*</code>” соответствует любому MIME-типу
+(0.8.29).
+Если в результате преобразования выдаётся HTML-ответ, то его MIME-тип
+меняется на “<code>text/html</code>”.
+</p>
+
+</div></div></body></html>

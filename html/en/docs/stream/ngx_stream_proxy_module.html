@@ -1,0 +1,913 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_stream_proxy_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/stream/ngx_stream_proxy_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_stream_proxy_module</h2><table width="100%"><tr><td align="left"><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#proxy_bind">proxy_bind</a><br>     <a href="#proxy_buffer_size">proxy_buffer_size</a><br>     <a href="#proxy_connect_timeout">proxy_connect_timeout</a><br>     <a href="#proxy_download_rate">proxy_download_rate</a><br>     <a href="#proxy_next_upstream">proxy_next_upstream</a><br>     <a href="#proxy_next_upstream_timeout">proxy_next_upstream_timeout</a><br>     <a href="#proxy_next_upstream_tries">proxy_next_upstream_tries</a><br>     <a href="#proxy_pass">proxy_pass</a><br>     <a href="#proxy_protocol">proxy_protocol</a><br>     <a href="#proxy_responses">proxy_responses</a><br>     <a href="#proxy_ssl">proxy_ssl</a><br>     <a href="#proxy_ssl_certificate">proxy_ssl_certificate</a><br>     <a href="#proxy_ssl_certificate_key">proxy_ssl_certificate_key</a><br>     <a href="#proxy_ssl_ciphers">proxy_ssl_ciphers</a><br>     <a href="#proxy_ssl_crl">proxy_ssl_crl</a><br>     <a href="#proxy_ssl_name">proxy_ssl_name</a><br>     <a href="#proxy_ssl_password_file">proxy_ssl_password_file</a><br>     <a href="#proxy_ssl_server_name">proxy_ssl_server_name</a><br>     <a href="#proxy_ssl_session_reuse">proxy_ssl_session_reuse</a><br>     <a href="#proxy_ssl_protocols">proxy_ssl_protocols</a><br>     <a href="#proxy_ssl_trusted_certificate">proxy_ssl_trusted_certificate</a><br>     <a href="#proxy_ssl_verify">proxy_ssl_verify</a><br>     <a href="#proxy_ssl_verify_depth">proxy_ssl_verify_depth</a><br>     <a href="#proxy_timeout">proxy_timeout</a><br>     <a href="#proxy_upload_rate">proxy_upload_rate</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_stream_proxy_module</code> module (1.9.0) allows proxying
+data streams over TCP, UDP (1.9.13), and UNIX-domain sockets.
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+server {
+    listen 127.0.0.1:12345;
+    proxy_pass 127.0.0.1:8080;
+}
+
+server {
+    listen 12345;
+    proxy_connect_timeout 1s;
+    proxy_timeout 1m;
+    proxy_pass example.com:12345;
+}
+
+server {
+    listen 53 udp;
+    proxy_responses 1;
+    proxy_timeout 20s;
+    proxy_pass dns.example.com:53;
+}
+
+server {
+    listen [::1]:12345;
+    proxy_pass unix:/tmp/stream.socket;
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="proxy_bind"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_bind</strong> 
+    <code><i>address</i></code>
+    [<code>transparent</code>] |
+    <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.2.
+            </p></div><p>
+Makes outgoing connections to a proxied server originate
+from the specified local IP <code><i>address</i></code>.
+Parameter value can contain variables (1.11.2).
+The special value <code>off</code> cancels the effect
+of the <code>proxy_bind</code> directive
+inherited from the previous configuration level, which allows the
+system to auto-assign the local IP address.
+</p><a name="proxy_bind_transparent"></a><p>
+The <code>transparent</code> parameter (1.11.0) allows
+outgoing connections to a proxied server originate
+from a non-local IP address,
+for example, from a real IP address of a client:
+</p> <blockquote class="example"><pre>
+proxy_bind $remote_addr transparent;
+</pre></blockquote><p> 
+In order for this parameter to work,
+it is necessary to run nginx worker processes with the
+<a href="../ngx_core_module.html#user">superuser</a> privileges
+and configure kernel routing table
+to intercept network traffic from the proxied server.
+</p><a name="proxy_buffer_size"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_buffer_size</strong> <code><i>size</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_buffer_size 16k;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.4.
+            </p></div><p>
+Sets the <code><i>size</i></code> of the buffer used for reading data
+from the proxied server.
+Also sets the <code><i>size</i></code> of the buffer used for reading data
+from the client.
+</p><a name="proxy_connect_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_connect_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_connect_timeout 60s;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines a timeout for establishing a connection with a proxied server.
+</p><a name="proxy_download_rate"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_download_rate</strong> <code><i>rate</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_download_rate 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.3.
+            </p></div><p>
+Limits the speed of reading the data from the proxied server.
+The <code><i>rate</i></code> is specified in bytes per second.
+The zero value disables rate limiting.
+The limit is set per a connection, so if nginx simultaneously opens
+two connections to the proxied server,
+the overall rate will be twice as much as the specified limit.
+</p><a name="proxy_next_upstream"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_next_upstream</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_next_upstream on;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+When a connection to the proxied server cannot be established, determines
+whether a client connection will be passed to the next server.
+</p><p>
+Passing a connection to the next server can be limited by
+<a href="#proxy_next_upstream_tries">the number of tries</a>
+and by <a href="#proxy_next_upstream_timeout">time</a>.
+</p><a name="proxy_next_upstream_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_next_upstream_timeout</strong> <code><i>time</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_next_upstream_timeout 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Limits the time allowed to pass a connection to the
+<a href="#proxy_next_upstream">next server</a>.
+The <code>0</code> value turns off this limitation.
+</p><a name="proxy_next_upstream_tries"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_next_upstream_tries</strong> <code><i>number</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_next_upstream_tries 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Limits the number of possible tries for passing a connection to the
+<a href="#proxy_next_upstream">next server</a>.
+The <code>0</code> value turns off this limitation.
+</p><a name="proxy_pass"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_pass</strong> <code><i>address</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the address of a proxied server.
+The address can be specified as a domain name or IP address,
+and a port:
+</p> <blockquote class="example"><pre>
+proxy_pass localhost:12345;
+</pre></blockquote><p> 
+or as a UNIX-domain socket path:
+</p> <blockquote class="example"><pre>
+proxy_pass unix:/tmp/stream.socket;
+</pre></blockquote><p> 
+</p><p>
+If a domain name resolves to several addresses, all of them will be
+used in a round-robin fashion.
+In addition, an address can be specified as a
+<a href="ngx_stream_upstream_module.html">server group</a>.
+</p><p>
+The address can also be specified using variables (1.11.3):
+</p> <blockquote class="example"><pre>
+proxy_pass $upstream;
+</pre></blockquote><p> 
+In this case, the server name is searched among the described
+<a href="ngx_stream_upstream_module.html">server groups</a>,
+and, if not found, is determined using a
+<a href="ngx_stream_core_module.html#resolver">resolver</a>.
+</p><a name="proxy_protocol"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_protocol</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_protocol off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.2.
+            </p></div><p>
+Enables the
+<a href="http://www.haproxy.org/download/1.5/doc/proxy-protocol.txt">PROXY
+protocol</a> for connections to a proxied server.
+</p><a name="proxy_responses"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_responses</strong> <code><i>number</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.13.
+            </p></div><p>
+Sets the number of datagrams expected from the proxied server
+in response to the client request
+if the <a href="ngx_stream_core_module.html#udp">UDP</a>
+protocol is used.
+By default, the number of datagrams is not limited:
+the response datagrams will be sent
+until the <a href="#proxy_timeout">proxy_timeout</a> value expires.
+</p><a name="proxy_ssl"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Enables the SSL/TLS protocol for connections to a proxied server.
+</p><a name="proxy_ssl_certificate"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_certificate</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a <code><i>file</i></code> with the certificate in the PEM format
+used for authentication to a proxied server.
+</p><a name="proxy_ssl_certificate_key"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_certificate_key</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a <code><i>file</i></code> with the secret key in the PEM format
+used for authentication to a proxied server.
+</p><a name="proxy_ssl_ciphers"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_ciphers</strong> <code><i>ciphers</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_ciphers DEFAULT;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies the enabled ciphers for connections to a proxied server.
+The ciphers are specified in the format understood by the OpenSSL library.
+</p><p>
+The full list can be viewed using the
+“<code>openssl ciphers</code>” command.
+</p><a name="proxy_ssl_crl"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_crl</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a <code><i>file</i></code> with revoked certificates (CRL)
+in the PEM format used to <a href="#proxy_ssl_verify">verify</a>
+the certificate of the proxied server.
+</p><a name="proxy_ssl_name"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_name</strong> <code><i>name</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_name host from proxy_pass;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Allows overriding the server name used to
+<a href="#proxy_ssl_verify">verify</a>
+the certificate of the proxied server and to be
+<a href="#proxy_ssl_server_name">passed through SNI</a>
+when establishing a connection with the proxied server.
+The server name can also be specified using variables (1.11.3).
+</p><p>
+By default, the host part of the <a href="#proxy_pass">proxy_pass</a> address is used.
+</p><a name="proxy_ssl_password_file"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_password_file</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a <code><i>file</i></code> with passphrases for
+<a href="#proxy_ssl_certificate_key">secret keys</a>
+where each passphrase is specified on a separate line.
+Passphrases are tried in turn when loading the key.
+</p><a name="proxy_ssl_server_name"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_server_name</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_server_name off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Enables or disables passing of the server name through
+<a href="http://en.wikipedia.org/wiki/Server_Name_Indication">TLS
+Server Name Indication extension</a> (SNI, RFC 6066)
+when establishing a connection with the proxied server.
+</p><a name="proxy_ssl_session_reuse"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_session_reuse</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_session_reuse on;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Determines whether SSL sessions can be reused when working with
+the proxied server.
+If the errors
+“<code>SSL3_GET_FINISHED:digest check failed</code>”
+appear in the logs, try disabling session reuse.
+</p><a name="proxy_ssl_protocols"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_protocols</strong> 
+    [<code>SSLv2</code>]
+    [<code>SSLv3</code>]
+    [<code>TLSv1</code>]
+    [<code>TLSv1.1</code>]
+    [<code>TLSv1.2</code>];</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_protocols TLSv1 TLSv1.1 TLSv1.2;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Enables the specified protocols for connections to a proxied server.
+</p><a name="proxy_ssl_trusted_certificate"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_trusted_certificate</strong> <code><i>file</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Specifies a <code><i>file</i></code> with trusted CA certificates in the PEM format
+used to <a href="#proxy_ssl_verify">verify</a>
+the certificate of the proxied server.
+</p><a name="proxy_ssl_verify"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_verify</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_verify off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Enables or disables verification of the proxied server certificate.
+</p><a name="proxy_ssl_verify_depth"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_ssl_verify_depth</strong> <code><i>number</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_ssl_verify_depth 1;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the verification depth in the proxied server certificates chain.
+</p><a name="proxy_timeout"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_timeout</strong> <code><i>timeout</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_timeout 10m;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets the <code><i>timeout</i></code> between two successive
+read or write operations on client or proxied server connections.
+If no data is transmitted within this time, the connection is closed.
+</p><a name="proxy_upload_rate"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>proxy_upload_rate</strong> <code><i>rate</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            <pre>proxy_upload_rate 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>stream</code>, <code>server</code><br>
+                </td>
+                </tr>
+            </table><p>This directive appeared in version 1.9.3.
+            </p></div><p>
+Limits the speed of reading the data from the client.
+The <code><i>rate</i></code> is specified in bytes per second.
+The zero value disables rate limiting.
+The limit is set per a connection, so if the client simultaneously opens
+two connections,
+the overall rate will be twice as much as the specified limit.
+</p>
+
+</div></div></body></html>

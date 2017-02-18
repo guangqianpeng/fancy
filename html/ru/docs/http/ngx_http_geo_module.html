@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Модуль ngx_http_geo_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_geo_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Модуль ngx_http_geo_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#geo">geo</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_geo_module</code> создаёт переменные,
+значения которых зависят от IP-адреса клиента.
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+</p> <blockquote class="example"><pre>
+geo $geo {
+    default        0;
+
+    127.0.0.1      2;
+    192.168.1.0/24 1;
+    10.1.0.0/16    1;
+
+    ::1            2;
+    2001:0db8::/32 1;
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="geo"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>geo</strong> [<code><i>$адрес</i></code>] <code><i>$переменная</i></code> { ... }</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Описывает для указанной переменной зависимость значения от
+IP-адреса клиента.
+По умолчанию адрес берётся из переменной <code>$remote_addr</code>,
+но его также можно получить из другой переменной (0.7.27), например:
+</p> <blockquote class="example"><pre>
+geo $arg_remote_addr $geo {
+    ...;
+}
+</pre></blockquote><p> 
+</p><p>
+</p> <blockquote class="note">
+Поскольку переменные вычисляются только в момент использования,
+само по себе наличие даже большого числа объявлений переменных
+“<code>geo</code>” не влечёт за собой никаких дополнительных
+расходов на обработку запросов.
+</blockquote><p> 
+</p><p>
+Если значение переменной не представляет из себя правильный IP-адрес,
+то используется адрес “<code>255.255.255.255</code>”.
+</p><p>
+Адреса задаются либо префиксами в формате CIDR
+(включая одиночные адреса), либо в виде диапазонов (0.7.23).
+</p> <blockquote class="note">
+IPv6-префиксы поддерживаются начиная с версий 1.3.10 и 1.2.7.
+</blockquote><p> 
+</p><p>
+Также поддерживаются следующие специальные параметры:
+</p> <dl class="compact">
+
+<dt><code>delete</code></dt>
+<dd>
+удаляет описанную сеть (0.7.23).
+</dd>
+
+<dt><code>default</code></dt>
+<dd>
+значение переменной, если адрес клиента не соответствует
+ни одному из заданных адресов.
+При задании адресов в формате CIDR
+вместо <code>default</code> можно использовать
+“<code>0.0.0.0/0</code>” и “<code>::/0</code>”.
+Если параметр <code>default</code> не указан, значением
+по умолчанию будет пустая строка.
+</dd>
+
+<dt><code>include</code></dt>
+<dd>
+включает файл с адресами и значениями.
+Включений может быть несколько.
+</dd>
+
+<dt><code>proxy</code></dt>
+<dd>
+задаёт доверенные адреса (0.8.7, 0.7.63),
+при запросе с которых будет использоваться адрес в переданном
+поле заголовка запроса “X-Forwarded-For”.
+В отличие от обычных адресов, доверенные адреса проверяются
+последовательно.
+<blockquote class="note">
+Доверенные IPv6-адреса поддерживаются начиная с версий 1.3.0 и 1.2.1.
+</blockquote>
+</dd>
+
+<dt><code>proxy_recursive</code></dt>
+<dd>
+включает рекурсивный поиск адреса (1.3.0, 1.2.1).
+При выключенном рекурсивном поиске вместо исходного адреса клиента,
+совпадающего с одним из доверенных адресов, будет использоваться последний
+адрес, переданный в “X-Forwarded-For”.
+При включённом рекурсивном поиске вместо исходного адреса клиента,
+совпадающего с одним из доверенных адресов, будет использоваться последний
+не доверенный адрес, переданный в “X-Forwarded-For”.
+</dd>
+
+<dt><code>ranges</code></dt>
+<dd>
+указывает, что адреса задаются в виде диапазонов (0.7.23).
+Этот параметр должен быть первым.
+Для ускорения загрузки гео-базы нужно располагать адреса в порядке возрастания.
+</dd>
+
+</dl><p> 
+</p><p>
+Пример:
+</p> <blockquote class="example"><pre>
+geo $country {
+    default        ZZ;
+    include        conf/geo.conf;
+    delete         127.0.0.0/16;
+    proxy          192.168.100.0/24;
+    proxy          2001:0db8::/32;
+
+    127.0.0.0/24   US;
+    127.0.0.1/32   RU;
+    10.1.0.0/16    RU;
+    192.168.1.0/24 UK;
+}
+</pre></blockquote><p> 
+</p><p>
+В файле <code>conf/geo.conf</code> могут быть такие строки:
+</p> <blockquote class="example"><pre>
+10.2.0.0/16    RU;
+192.168.2.0/24 RU;
+</pre></blockquote><p> 
+</p><p>
+В качестве значения выбирается максимальное совпадение, например,
+для адреса 127.0.0.1 будет выбрано значение “<code>RU</code>”,
+а не “<code>US</code>”.
+</p><p>
+Пример описания диапазонов:
+</p> <blockquote class="example"><pre>
+geo $country {
+    ranges;
+    default                   ZZ;
+    127.0.0.0-127.0.0.0       US;
+    127.0.0.1-127.0.0.1       RU;
+    127.0.0.2-127.0.0.255     US;
+    10.1.0.0-10.1.255.255     RU;
+    192.168.1.0-192.168.1.255 UK;
+}
+</pre></blockquote><p> 
+</p>
+
+</div></div></body></html>

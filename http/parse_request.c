@@ -219,6 +219,7 @@ int parse_request_line(request *r)
                 else if (*ch == '.') {
                     r->parse_state = uri_static_;
                     line->uri_static = strrch(ch, '/') + 1;
+                    line->uri_suffix_start = ch + 1;
 
                     ch = buffer_seek_start(buf, 1);
                 }
@@ -289,6 +290,9 @@ int parse_request_line(request *r)
             case uri_static_:
                 if (*ch == ' ') {
                     r->parse_state = version_;
+                    if (line->uri_suffix_end == NULL) {
+                        line->uri_suffix_end = ch;
+                    }
                     line->uri_end = ch;
                     line->version_start = ch + 1;
 
@@ -314,6 +318,7 @@ int parse_request_line(request *r)
                 }
                 else if (*ch == '#') {
                     r->parse_state = uri_sharp_;
+                    line->uri_suffix_end = ch - 1;
                     line->uri_sharp = ch + 1;
 
                     ch = buffer_seek_start(buf, 1);

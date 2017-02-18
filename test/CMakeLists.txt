@@ -37,5 +37,4 @@ add_executable(test_parse_request test_parse_request.c ${PARSE})
 
 add_executable(test_process_request test_process_request.c ${PROCESS})
 
-add_executable(test_http http.c ${REQUEST})
-
+add_executable(http http.c ${REQUEST})

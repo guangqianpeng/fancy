@@ -1,0 +1,363 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Модуль ngx_http_image_filter_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_image_filter_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Модуль ngx_http_image_filter_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#image_filter">image_filter</a><br>     <a href="#image_filter_buffer">image_filter_buffer</a><br>     <a href="#image_filter_interlace">image_filter_interlace</a><br>     <a href="#image_filter_jpeg_quality">image_filter_jpeg_quality</a><br>     <a href="#image_filter_sharpen">image_filter_sharpen</a><br>     <a href="#image_filter_transparency">image_filter_transparency</a><br>     <a href="#image_filter_webp_quality">image_filter_webp_quality</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_image_filter_module</code> (0.7.54+) — это фильтр
+для преобразования изображений в форматах JPEG, GIF, PNG и WebP.
+</p><p>
+По умолчанию этот модуль не собирается, его сборку необходимо
+разрешить с помощью конфигурационного параметра
+<code>--with-http_image_filter_module</code>.
+</p> <blockquote class="note">
+Для сборки и работы этого модуля необходима библиотека
+<a href="http://libgd.org">libgd</a>.
+Рекомендуется использовать самую последнюю версию библиотеки.
+</blockquote><p> 
+</p> <blockquote class="note">
+Поддержка формата WebP появилась в версии 1.11.6.
+Для преобразования изображений в данном формате
+библиотека <code>libgd</code> должна быть собрана с поддержкой WebP.
+</blockquote><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+</p> <blockquote class="example"><pre>
+location /img/ {
+    proxy_pass   http://backend;
+    image_filter resize 150 100;
+    image_filter rotate 90;
+    error_page   415 = /empty;
+}
+
+location = /empty {
+    empty_gif;
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="image_filter"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter</strong> <code>off</code>;</code><br><code><strong>image_filter</strong> <code>test</code>;</code><br><code><strong>image_filter</strong> <code>size</code>;</code><br><code><strong>image_filter</strong> 
+    <code>rotate</code>
+    <code>90</code> | <code>180</code> |
+    <code>270</code>;</code><br><code><strong>image_filter</strong> 
+    <code>resize</code>
+    <code><i>ширина</i></code>
+    <code><i>высота</i></code>;</code><br><code><strong>image_filter</strong> 
+    <code>crop</code>
+    <code><i>ширина</i></code>
+    <code><i>высота</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт тип преобразования изображения:
+</p> <dl class="compact">
+
+<dt><code>off</code></dt>
+<dd>
+отключает обработку данным модулем во вложенном location.
+</dd>
+
+<dt><code>test</code></dt>
+<dd>
+проверяет, что ответ действительно является изображением
+в формате JPEG, GIF, PNG или WebP.
+В противном случае возвращается ошибка
+415 (Unsupported Media Type).
+</dd>
+
+<dt><code>size</code></dt>
+<dd>
+выдаёт информацию об изображении в формате JSON, например:
+<blockquote class="example"><pre>
+{ "img" : { "width": 100, "height": 100, "type": "gif" } }
+</pre></blockquote>
+В случае ошибки выдаётся
+<blockquote class="example"><pre>
+{}
+</pre></blockquote>
+</dd>
+
+<dt><code>rotate</code>
+<code>90</code>|<code>180</code>|<code>270</code>
+</dt>
+<dd>
+поворачивает изображение против часовой стрелки на указанное число градусов.
+В значении параметра допустимо использование переменных.
+Можно использовать как отдельно, так и совместно с преобразованиями
+<code>resize</code> и <code>crop</code>.
+</dd>
+
+<dt><code>resize</code>
+<code><i>ширина</i></code>
+<code><i>высота</i></code>
+</dt>
+<dd>
+пропорционально уменьшает изображение до указанных размеров.
+Если требуется уменьшить только по одному измерению, то в качестве второго
+можно указать “<code>-</code>”.
+В случае ошибки сервер возвращает код
+415 (Unsupported Media Type).
+В значениях параметров допустимо использование переменных.
+При использовании совместно с <code>rotate</code>,
+поворот изображения происходит <strong>после</strong>
+уменьшения размеров изображения.
+</dd>
+
+<dt><code>crop</code>
+<code><i>ширина</i></code>
+<code><i>высота</i></code>
+</dt>
+<dd>
+пропорционально уменьшает изображение до размера большей стороны
+и обрезает лишние края по другой стороне.
+Если требуется уменьшить только по одному измерению, то в качестве второго
+можно указать “<code>-</code>”.
+В случае ошибки сервер возвращает код
+415 (Unsupported Media Type).
+В значениях параметров допустимо использование переменных.
+При использовании совместно с <code>rotate</code>,
+поворот изображения происходит <strong>до</strong>
+уменьшения размеров изображения.
+</dd>
+
+</dl><p> 
+</p><a name="image_filter_buffer"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_buffer</strong> <code><i>размер</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_buffer 1M;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт максимальный размер буфера для чтения изображения.
+При превышении размера сервер вернёт ошибку
+415 (Unsupported Media Type).
+</p><a name="image_filter_interlace"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_interlace</strong> <code>on</code> | <code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_interlace off;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.3.15.
+            </p></div><p>
+Если включено, то итоговые изображения будут с чересстрочностью.
+В случае JPEG итоговые изображения будут в формате “progressive JPEG”.
+</p><a name="image_filter_jpeg_quality"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_jpeg_quality</strong> <code><i>качество</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_jpeg_quality 75;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт желаемое <code><i>качество</i></code> преобразованного изображения
+в формате JPEG.
+Допустимые значения находятся в диапазоне от 1 до 100.
+Меньшим значениям обычно соответствует худшее качество изображения
+и меньший объём передаваемых данных.
+Максимальное рекомендуемое значение — 95.
+В значении параметра допустимо использование переменных.
+</p><a name="image_filter_sharpen"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_sharpen</strong> <code><i>процент</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_sharpen 0;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Повышает резкость итогового изображения.
+Процент резкости может быть больше 100.
+Значение 0 отключает повышение резкости.
+В значении параметра допустимо использование переменных.
+</p><a name="image_filter_transparency"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_transparency</strong> <code>on</code>|<code>off</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_transparency on;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Определяет, сохранять ли прозрачность при обработке изображений
+в формате GIF и в формате PNG с цветами, заданными палитрой.
+Потеря прозрачности позволяет получить более качественное изображение.
+Прозрачность альфа-канала в формате PNG сохраняется всегда.
+</p><a name="image_filter_webp_quality"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>image_filter_webp_quality</strong> <code><i>качество</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>image_filter_webp_quality 80;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table><p>Эта директива появилась в версии 1.11.6.
+            </p></div><p>
+Задаёт желаемое <code><i>качество</i></code> преобразованного изображения
+в формате WebP.
+Допустимые значения находятся в диапазоне от 1 до 100.
+Меньшим значениям обычно соответствует худшее качество изображения
+и меньший объём передаваемых данных.
+В значении параметра допустимо использование переменных.
+</p>
+
+</div></div></body></html>

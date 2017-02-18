@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Модуль ngx_http_browser_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div><a href="../../../en/docs/http/ngx_http_browser_module.html">english</a><br>русский<br><br><a href="../../../">новости</a> [en]<br><a href="../../../ru/">об nginx</a><br><a href="../../../ru/download.html">скачать</a><br><a href="../../../en/security_advisories.html">безопасность</a> [en]<br><a href="../../../ru/docs/">документация</a><br><a href="../../../ru/docs/faq.html">faq</a><br><a href="../../../en/books.html">книги</a> [en]<br><a href="../../../ru/support.html">поддержка</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Модуль ngx_http_browser_module</h2><table width="100%"><tr><td align="left"><a href="#example">Пример конфигурации</a><br><a href="#directives">Директивы</a><br>     <a href="#ancient_browser">ancient_browser</a><br>     <a href="#ancient_browser_value">ancient_browser_value</a><br>     <a href="#modern_browser">modern_browser</a><br>     <a href="#modern_browser_value">modern_browser_value</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+Модуль <code>ngx_http_browser_module</code> создаёт переменные,
+значения которых зависят от значения поля “User-Agent”
+в заголовке запроса:
+</p> <dl class="compact">
+
+<dt id="var_modern_browser"><code>$modern_browser</code></dt>
+<dd>
+равна значению, заданному директивой <a href="#modern_browser_value">modern_browser_value</a>,
+если браузер опознан как современный;
+</dd>
+
+<dt id="var_ancient_browser"><code>$ancient_browser</code></dt>
+<dd>
+равна значению, заданному директивой <a href="#ancient_browser_value">ancient_browser_value</a>,
+если браузер опознан как устаревший;
+</dd>
+
+<dt id="var_msie"><code>$msie</code></dt>
+<dd>
+равна “1”, если браузер опознан как MSIE любой версии.
+</dd>
+
+</dl><p> 
+</p>
+
+
+<a name="example"></a><center><h4>Пример конфигурации</h4></center><p>
+Выбор индексного файла:
+</p> <blockquote class="example"><pre>
+modern_browser_value "modern.";
+
+modern_browser msie      5.5;
+modern_browser gecko     1.0.0;
+modern_browser opera     9.0;
+modern_browser safari    413;
+modern_browser konqueror 3.0;
+
+index index.${modern_browser}html index.html;
+</pre></blockquote><p> 
+</p><p>
+Перенаправление для старых браузеров:
+</p> <blockquote class="example"><pre>
+modern_browser msie      5.0;
+modern_browser gecko     0.9.1;
+modern_browser opera     8.0;
+modern_browser safari    413;
+modern_browser konqueror 3.0;
+
+modern_browser unlisted;
+
+ancient_browser Links Lynx netscape4;
+
+if ($ancient_browser) {
+    rewrite ^ /ancient.html;
+}
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Директивы</h4></center><a name="ancient_browser"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>ancient_browser</strong> <code><i>строка</i></code> ...;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт подстроки, при нахождении которых в поле “User-Agent”
+заголовка запроса браузер считается устаревшим.
+Специальная строка “<code>netscape4</code>” соответствует
+регулярному выражению “<code>^Mozilla/[1-4]</code>”.
+</p><a name="ancient_browser_value"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>ancient_browser_value</strong> <code><i>строка</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>ancient_browser_value 1;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт значение для переменных <code>$ancient_browser</code>.
+</p><a name="modern_browser"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>modern_browser</strong> <code><i>браузер</i></code> <code><i>версия</i></code>;</code><br><code><strong>modern_browser</strong> <code>unlisted</code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт версию браузера, начиная с которой он считается современным.
+В качестве браузера можно задать <code>msie</code>,
+<code>gecko</code> (браузеры, созданные на основе Mozilla),
+<code>opera</code>, <code>safari</code>
+или <code>konqueror</code>.
+</p><p>
+Версии можно задать в форматах X, X.X, X.X.X или X.X.X.X.
+Максимальные значения для каждого из форматов соответственно —
+4000, 4000.99, 4000.99.99 и 4000.99.99.99.
+</p><p>
+Специальное значение <code>unlisted</code> указывает считать
+современным браузер, не описанный директивами <code>modern_browser</code>
+и <a href="#ancient_browser">ancient_browser</a>.
+В противном случае неперечисленный браузер будет считаться устаревшим.
+Если в заголовке запроса нет поля “User-Agent”, то браузер
+считается неперечисленным.
+</p><a name="modern_browser_value"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Синтаксис:
+                </th>
+                <td>
+            <code><strong>modern_browser_value</strong> <code><i>строка</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Умолчание:
+                </th>
+                <td>
+            <pre>modern_browser_value 1;</pre>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Контекст:
+                </th>
+                <td>
+            <code>http</code>, <code>server</code>, <code>location</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Задаёт значение для переменных <code>$modern_browser</code>.
+</p>
+
+</div></div></body></html>

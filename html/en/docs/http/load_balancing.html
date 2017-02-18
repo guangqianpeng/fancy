@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Using nginx as HTTP load balancer</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a class="notrans">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Using nginx as HTTP load balancer</h2><table width="100%"><tr><td align="left"><a href="#nginx_load_balancing_methods">Load balancing methods</a><br><a href="#nginx_load_balancing_configuration">Default load balancing configuration</a><br><a href="#nginx_load_balancing_with_least_connected">Least connected load balancing</a><br><a href="#nginx_load_balancing_with_ip_hash">Session persistence</a><br><a href="#nginx_weighted_load_balancing">Weighted load balancing</a><br><a href="#nginx_load_balancing_health_checks">Health checks</a><br><a href="#nginx_load_balancing_additional_information">Further reading</a><br></td></tr></table><center><h4>Introduction</h4></center><p>
+Load balancing across multiple application instances is a commonly used
+technique for optimizing resource utilization, maximizing throughput,
+reducing latency, and ensuring fault-tolerant configurations.
+</p><p>
+It is possible to use nginx as a very efficient HTTP load balancer to
+distribute traffic to several application servers and to improve
+performance, scalability and reliability of web applications with nginx.
+</p><a name="nginx_load_balancing_methods"></a><center><h4>Load balancing methods</h4></center><p>
+The following load balancing mechanisms (or methods) are supported in
+nginx:
+</p> <ul>
+
+<li>
+round-robin — requests to the application servers are distributed
+in a round-robin fashion,
+</li>
+
+<li>
+least-connected — next request is assigned to the server with the
+least number of active connections,
+</li>
+
+<li>
+ip-hash — a hash-function is used to determine what server should
+be selected for the next request (based on the client’s IP address).
+</li>
+
+</ul><p> 
+</p><a name="nginx_load_balancing_configuration"></a><center><h4>Default load balancing configuration</h4></center><p>
+The simplest configuration for load balancing with nginx may look
+like the following:
+</p> <blockquote class="example"><pre>
+http {
+    upstream myapp1 {
+        server srv1.example.com;
+        server srv2.example.com;
+        server srv3.example.com;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://myapp1;
+        }
+    }
+}
+</pre></blockquote><p> 
+</p><p>
+In the example above, there are 3 instances of the same application
+running on srv1-srv3.
+When the load balancing method is not specifically configured,
+it defaults to round-robin.
+All requests are
+<a href="ngx_http_proxy_module.html#proxy_pass">
+proxied</a> to the server group myapp1, and nginx applies HTTP load
+balancing to distribute the requests.
+</p><p>
+Reverse proxy implementation in nginx includes load balancing for HTTP,
+HTTPS, FastCGI, uwsgi, SCGI, and memcached.
+</p><p>
+To configure load balancing for HTTPS instead of HTTP, just use “https”
+as the protocol.
+</p><p>
+When setting up load balancing for FastCGI, uwsgi, SCGI, or memcached, use
+<a href="ngx_http_fastcgi_module.html#fastcgi_pass">fastcgi_pass</a>,
+<a href="ngx_http_uwsgi_module.html#uwsgi_pass">uwsgi_pass</a>,
+<a href="ngx_http_scgi_module.html#scgi_pass">scgi_pass</a>, and
+<a href="ngx_http_memcached_module.html#memcached_pass">memcached_pass</a>
+directives respectively.
+</p><a name="nginx_load_balancing_with_least_connected"></a><center><h4>Least connected load balancing</h4></center><p>
+Another load balancing discipline is least-connected.
+Least-connected allows controlling the load on application
+instances more fairly in a situation when some of the requests
+take longer to complete.
+</p><p>
+With the least-connected load balancing, nginx will try not to overload a
+busy application server with excessive requests, distributing the new
+requests to a less busy server instead.
+</p><p>
+Least-connected load balancing in nginx is activated when the
+<a href="ngx_http_upstream_module.html#least_conn">
+least_conn</a> directive is used as part of the server group configuration:
+</p> <blockquote class="example"><pre>
+    upstream myapp1 {
+        least_conn;
+        server srv1.example.com;
+        server srv2.example.com;
+        server srv3.example.com;
+    }
+</pre></blockquote><p> 
+</p><a name="nginx_load_balancing_with_ip_hash"></a><center><h4>Session persistence</h4></center><p>
+Please note that with round-robin or least-connected load
+balancing, each subsequent client’s request can be potentially
+distributed to a different server.
+There is no guarantee that the same client will be always
+directed to the same server.
+</p><p>
+If there is the need to tie a client to a particular application server —
+in other words, make the client’s session “sticky” or “persistent” in
+terms of always trying to select a particular server — the ip-hash load
+balancing mechanism can be used.
+</p><p>
+With ip-hash, the client’s IP address is used as a hashing key to
+determine what server in a server group should be selected for the
+client’s requests.
+This method ensures that the requests from the same client
+will always be directed to the same server
+except when this server is unavailable.
+</p><p>
+To configure ip-hash load balancing, just add the
+<a href="ngx_http_upstream_module.html#ip_hash">ip_hash</a>
+directive to the server (upstream) group configuration:
+</p> <blockquote class="example"><pre>
+upstream myapp1 {
+    ip_hash;
+    server srv1.example.com;
+    server srv2.example.com;
+    server srv3.example.com;
+}
+</pre></blockquote><p> 
+</p><a name="nginx_weighted_load_balancing"></a><center><h4>Weighted load balancing</h4></center><p>
+It is also possible to influence nginx load balancing algorithms even
+further by using server weights.
+</p><p>
+In the examples above, the server weights are not configured which means
+that all specified servers are treated as equally qualified for a
+particular load balancing method.
+</p><p>
+With the round-robin in particular it also means a more or less equal
+distribution of requests across the servers — provided there are enough
+requests, and when the requests are processed in a uniform manner and
+completed fast enough.
+</p><p>
+When the
+<a href="ngx_http_upstream_module.html#server">weight</a>
+parameter is specified for a server, the weight is accounted as part
+of the load balancing decision.
+</p> <blockquote class="example"><pre>
+    upstream myapp1 {
+        server srv1.example.com weight=3;
+        server srv2.example.com;
+        server srv3.example.com;
+    }
+</pre></blockquote><p> 
+</p><p>
+With this configuration, every 5 new requests will be distributed across
+the application instances as the following: 3 requests will be directed
+to srv1, one request will go to srv2, and another one — to srv3.
+</p><p>
+It is similarly possible to use weights with the least-connected and
+ip-hash load balancing in the recent versions of nginx.
+</p><a name="nginx_load_balancing_health_checks"></a><center><h4>Health checks</h4></center><p>
+Reverse proxy implementation in nginx includes in-band (or passive)
+server health checks.
+If the response from a particular server fails with an error,
+nginx will mark this server as failed, and will try to
+avoid selecting this server for subsequent inbound requests for a while.
+</p><p>
+The
+<a href="ngx_http_upstream_module.html#server">max_fails</a>
+directive sets the number of consecutive unsuccessful attempts to
+communicate with the server that should happen during
+<a href="ngx_http_upstream_module.html#server">fail_timeout</a>.
+By default,
+<a href="ngx_http_upstream_module.html#server">max_fails</a>
+is set to 1.
+When it is set to 0, health checks are disabled for this server.
+The
+<a href="ngx_http_upstream_module.html#server">fail_timeout</a>
+parameter also defines how long the server will be marked as failed.
+After
+<a href="ngx_http_upstream_module.html#server">fail_timeout</a>
+interval following the server failure, nginx will start to gracefully
+probe the server with the live client’s requests.
+If the probes have been successful, the server is marked as a live one.
+</p><a name="nginx_load_balancing_additional_information"></a><center><h4>Further reading</h4></center><p>
+In addition, there are more directives and parameters that control server
+load balancing in nginx, e.g.
+<a href="ngx_http_proxy_module.html#proxy_next_upstream">proxy_next_upstream</a>,
+<a href="ngx_http_upstream_module.html#server">backup</a>,
+<a href="ngx_http_upstream_module.html#server">down</a>, and
+<a href="ngx_http_upstream_module.html#keepalive">keepalive</a>.
+For more information please check our
+<a href="..">reference documentation</a>.
+</p><p>
+Last but not least,
+<a href="https://www.nginx.com/products/application-load-balancing/">
+application load balancing</a>,
+<a href="https://www.nginx.com/products/application-health-checks/">
+application health checks</a>,
+<a href="https://www.nginx.com/products/live-activity-monitoring/">
+activity monitoring</a> and
+<a href="https://www.nginx.com/products/on-the-fly-reconfiguration/">
+on-the-fly reconfiguration</a> of server groups are available
+as part of our paid NGINX Plus subscriptions.
+</p><p>
+The following articles describe load balancing with NGINX Plus
+in more detail:
+</p> <ul>
+
+<li>
+<a href="https://www.nginx.com/blog/load-balancing-with-nginx-plus/">
+Load Balancing with NGINX and NGINX Plus</a>
+</li>
+
+<li>
+<a href="https://www.nginx.com/blog/load-balancing-with-nginx-plus-part2/">
+Load Balancing with NGINX and NGINX Plus part 2</a>
+</li>
+
+</ul><p> 
+</p></div></div></body></html>

@@ -1,0 +1,510 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Module ngx_http_perl_module</title><style type="text/css">body { background: white; color: black; font-family: sans-serif; line-height: 1.4em; text-align: center; margin: 0; padding: 0; } #banner { background: black; color: #F2F2F2; line-height: 1.2em; padding: .3em 0; box-shadow: 0 5px 10px black; } #banner a { color: #00B140; } #main { text-align: left; margin: 0 auto; min-width: 32em; max-width: 64em; } #menu { float: right; width: 11em; padding: 0 .5em 1em .5em; border-left: 2px solid #DDD; } #content { margin-right: 13.5em; padding: 0 .2em 0 1.5em; } h1 { display: block; font-size: 3em; text-align: left; height: .7em; margin: 0; margin-bottom: .5em; } h1 img { width: 100%; } h2 { text-align: center; } p { text-align: justify; } table.news p { margin-top: 0; } table.news td { vertical-align: baseline; } table.news .date { text-align: right; padding-right: 0.5em; white-space: nowrap; } table.donors td { vertical-align: baseline; } table.donors li { text-align: left; } div.directive { background: #F2F2F2; line-height: 1em; margin: 1em 0 1em -1em; padding: .7em .7em .7em 1em; border-top: 2px solid #DDD; } div.directive th { padding-left: 0; padding-right: .5em; vertical-align: baseline; text-align: left; font-weight: normal; } div.directive td { vertical-align: baseline; } div.directive pre { padding: 0; margin: 0; } div.directive p { margin: .5em 0 0 .1em; font-size: .8em; } a.notrans { color: gray; text-decoration:none; } span.initial { font-size: 200%; float: left; padding-right: 10pt;} ul, ol { margin: .5em 0 1em 1em; padding: 0 .5em; } ol { list-style-position: inside; } li { text-align: justify; padding: .5em 0 0 1px; } .compact li { padding-top: 0; } dl { margin: .5em 0 1em 0; } dt { margin: .5em 0; } .compact dt { margin-bottom: .2em; } dd { margin-left: 1.5em; padding-left: 1px; text-align: justify; } td.list { background: #F2F2F2; } blockquote { margin: 1em 0 1em 1em; padding: .5em; } li blockquote, dd blockquote { margin: .7em 0; } blockquote.note { border: 1px dotted #999; line-height: 1.2em; text-align: justify; } blockquote.example { line-height: 1em; border-left: 1px solid #BBB; } blockquote.example pre { padding: 0; margin: 0; } sup { font-size: 50%; }</style><script>
+        (function(w, d, s, l, i) {
+            w[l] = w[l] || [];
+            w[l].push({
+                'gtm.start': new Date().getTime(),
+                event: 'gtm.js'
+            });
+            var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s),
+                dl = l != 'dataLayer' ? '&l=' + l : '';
+            j.async = true;
+            j.src = '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+            f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-TPSP33');
+    </script></head><body><div id="banner"><strong>Announcing NGINX Plus R11</strong><br>
+        Check out our latest release with easier dynamic module integration, additional TCP/UDP<br> load-balancing features, enhancements to nginScript, support for GeoIP2, and more.
+        <a href="https://www.nginx.com/blog/nginx-plus-r11-released/?utm_source=nginxorg&amp;utm_medium=header&amp;utm_campaign=product&amp;utm_content=r11"><em>Explore R11</em></a><br></div><div id="main"><div id="menu"><h1><a href="/"><img src="/nginx.png" alt="nginx"></a></h1><div>english<br><a href="../../../ru/docs/http/ngx_http_perl_module.html">русский</a><br><br><a href="../../../">news</a><br><a href="../../../en/">about</a><br><a href="../../../en/download.html">download</a><br><a href="../../../en/security_advisories.html">security</a><br><a href="../../../en/docs/">documentation</a><br><a href="../../../en/docs/faq.html">faq</a><br><a href="../../../en/books.html">books</a><br><a href="../../../en/support.html">support</a><br><br><a href="http://trac.nginx.org/nginx">trac</a><br><a href="http://wiki.nginx.org/">wiki</a><br><a href="http://twitter.com/nginxorg">twitter</a><br><a href="https://www.nginx.com/blog/">blog</a><br></div></div><div id="content"><h2>Module ngx_http_perl_module</h2><table width="100%"><tr><td align="left"><a href="#issues">Known Issues</a><br><a href="#example">Example Configuration</a><br><a href="#directives">Directives</a><br>     <a href="#perl">perl</a><br>     <a href="#perl_modules">perl_modules</a><br>     <a href="#perl_require">perl_require</a><br>     <a href="#perl_set">perl_set</a><br><a href="#ssi">Calling Perl from SSI</a><br><a href="#methods">The $r Request Object Methods</a><br></td></tr></table>
+
+<a name="summary"></a><p>
+The <code>ngx_http_perl_module</code> module is used to implement
+location and variable handlers in Perl and insert Perl calls into SSI.
+</p><p>
+This module is not built by default, it should be enabled with the
+<code>--with-http_perl_module</code>
+configuration parameter.
+</p> <blockquote class="note">
+This module requires
+<a href="https://www.perl.org/get.html">Perl</a> version 5.6.1 or higher.
+The C compiler should be compatible with the one used to build Perl.
+</blockquote><p> 
+</p>
+
+
+<a name="issues"></a><center><h4>Known Issues</h4></center><p>
+The module is experimental, caveat emptor applies.
+</p><p>
+In order for Perl to recompile the modified modules during
+reconfiguration, it should be built with the
+<code>-Dusemultiplicity=yes</code> or
+<code>-Dusethreads=yes</code> parameters.
+Also, to make Perl leak less memory at run time,
+it should be built with the
+<code>-Dusemymalloc=no</code> parameter.
+To check the values of these parameters in an already built
+Perl (preferred values are specified in the example), run:
+</p> <blockquote class="example"><pre>
+$ perl -V:usemultiplicity -V:usemymalloc
+usemultiplicity='define';
+usemymalloc='n';
+</pre></blockquote><p> 
+</p><p>
+Note that after rebuilding Perl with the new
+<code>-Dusemultiplicity=yes</code> or
+<code>-Dusethreads=yes</code> parameters,
+all binary Perl modules will have to be rebuilt as well —
+they will just stop working with the new Perl.
+</p><p>
+There is a possibility that the main process and then worker processes will
+grow in size after every reconfiguration.
+If the main process grows to an unacceptable size, the
+<a href="../control.html#upgrade">live upgrade</a>
+procedure can be applied without changing the executable file.
+</p><p>
+While the Perl module is performing a long-running operation, such as
+resolving a domain name, connecting to another server, or querying a database,
+other requests assigned to the current worker process will not be processed.
+It is thus recommended to perform only such operations
+that have predictable and short execution time, such as
+accessing the local file system.
+</p>
+
+
+<a name="example"></a><center><h4>Example Configuration</h4></center><p>
+</p> <blockquote class="example"><pre>
+http {
+
+    perl_modules perl/lib;
+    perl_require hello.pm;
+
+    perl_set $msie6 '
+
+        sub {
+            my $r = shift;
+            my $ua = $r-&gt;header_in("User-Agent");
+
+            return "" if $ua =~ /Opera/;
+            return "1" if $ua =~ / MSIE [6-9]\.\d+/;
+            return "";
+        }
+
+    ';
+
+    server {
+        location / {
+            perl hello::handler;
+        }
+    }
+</pre></blockquote><p> 
+</p><p>
+The <code>perl/lib/hello.pm</code> module:
+</p> <blockquote class="example"><pre>
+package hello;
+
+use nginx;
+
+sub handler {
+    my $r = shift;
+
+    $r-&gt;send_http_header("text/html");
+    return OK if $r-&gt;header_only;
+
+    $r-&gt;print("hello!\n&lt;br/&gt;");
+
+    if (-f $r-&gt;filename or -d _) {
+        $r-&gt;print($r-&gt;uri, " exists!\n");
+    }
+
+    return OK;
+}
+
+1;
+__END__
+</pre></blockquote><p> 
+</p>
+
+
+<a name="directives"></a><center><h4>Directives</h4></center><a name="perl"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>perl</strong> <code><i>module</i></code>::<code><i>function</i></code>|'sub { ... }';</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>location</code>, <code>limit_except</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets a Perl handler for the given location.
+</p><a name="perl_modules"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>perl_modules</strong> <code><i>path</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Sets an additional path for Perl modules.
+</p><a name="perl_require"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>perl_require</strong> <code><i>module</i></code>;</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Defines the name of a module that will be loaded during each
+reconfiguration.
+Several <code>perl_require</code> directives can be present.
+</p><a name="perl_set"></a><div class="directive"><table cellspacing="0">
+                <tr>
+                <th>
+            Syntax:
+                </th>
+                <td>
+            <code><strong>perl_set</strong> 
+    <code><i>$variable</i></code>
+    <code><i>module</i></code>::<code><i>function</i></code>|'sub { ... }';</code><br>
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Default:
+                </th>
+                <td>
+            
+            —
+        
+                </td>
+                </tr>
+            
+                <tr>
+                <th>
+            Context:
+                </th>
+                <td>
+            <code>http</code><br>
+                </td>
+                </tr>
+            </table></div><p>
+Installs a Perl handler for the specified variable.
+</p>
+
+
+<a name="ssi"></a><center><h4>Calling Perl from SSI</h4></center><p>
+An SSI command calling Perl has the following format:
+</p> <blockquote class="example"><pre>
+&lt;!--# perl sub="<code><i>module</i></code>::<code><i>function</i></code>" arg="<code><i>parameter1</i></code>" arg="<code><i>parameter2</i></code>" ...
+--&gt;
+</pre></blockquote><p> 
+</p>
+
+
+<a name="methods"></a><center><h4>The $r Request Object Methods</h4></center><p>
+</p> <dl class="compact">
+
+<dt><code>$r-&gt;args</code></dt>
+<dd>
+returns request arguments.
+</dd>
+
+<dt><code>$r-&gt;filename</code></dt>
+<dd>
+returns a filename corresponding to the request URI.
+</dd>
+
+<dt>
+    <code>$r-&gt;has_request_body(<code><i>handler</i></code>)</code>
+</dt>
+<dd>
+returns 0 if there is no body in a request.
+If there is a body, the specified handler is set for the request
+and 1 is returned.
+After reading the request body, nginx will call the specified handler.
+Note that the handler function should be passed by reference.
+Example:
+<blockquote class="example"><pre>
+package hello;
+
+use nginx;
+
+sub handler {
+    my $r = shift;
+
+    if ($r-&gt;request_method ne "POST") {
+        return DECLINED;
+    }
+
+    if ($r-&gt;has_request_body(<strong>\&amp;post</strong>)) {
+        return OK;
+    }
+
+    return HTTP_BAD_REQUEST;
+}
+
+sub <strong>post</strong> {
+    my $r = shift;
+
+    $r-&gt;send_http_header;
+
+    $r-&gt;print("request_body: \"", $r-&gt;request_body, "\"&lt;br/&gt;");
+    $r-&gt;print("request_body_file: \"", $r-&gt;request_body_file, "\"&lt;br/&gt;\n");
+
+    return OK;
+}
+
+1;
+
+__END__
+</pre></blockquote>
+</dd>
+
+<dt><code>$r-&gt;allow_ranges</code></dt>
+<dd>
+enables the use of byte ranges when sending responses.
+</dd>
+
+<dt><code>$r-&gt;discard_request_body</code></dt>
+<dd>
+instructs nginx to discard the request body.
+</dd>
+
+<dt><code>$r-&gt;header_in(<code><i>field</i></code>)</code></dt>
+<dd>
+returns the value of the specified client request header field.
+</dd>
+
+<dt><code>$r-&gt;header_only</code></dt>
+<dd>
+determines whether the whole response or only its header should be sent to
+the client.
+</dd>
+
+<dt>
+    <code>$r-&gt;header_out(<code><i>field</i></code>,
+    <code><i>value</i></code>)</code>
+</dt>
+<dd>
+sets a value for the specified response header field.
+</dd>
+
+<dt>
+    <code>$r-&gt;internal_redirect(<code><i>uri</i></code>)</code>
+</dt>
+<dd>
+does an internal redirect to the specified <code><i>uri</i></code>.
+An actual redirect happens after the Perl handler execution is completed.
+<blockquote class="note">
+Redirections to named locations are currently not supported.
+</blockquote>
+</dd>
+
+<dt><code>$r-&gt;log_error(<code><i>errno</i></code>,
+<code><i>message</i></code>)</code></dt>
+<dd>
+writes the specified <code><i>message</i></code> into the
+<a href="../ngx_core_module.html#error_log">error_log</a>.
+If <code><i>errno</i></code> is non-zero, an error code and its description
+will be appended to the message.
+</dd>
+
+<dt><code>$r-&gt;print(<code><i>text</i></code>, ...)</code></dt>
+<dd>
+passes data to a client.
+</dd>
+
+<dt><code>$r-&gt;request_body</code></dt>
+<dd>
+returns the client request body if it has not been
+written to a temporary file.
+To ensure that the client request body is in memory,
+its size should be limited by
+<a href="ngx_http_core_module.html#client_max_body_size">client_max_body_size</a>,
+and a sufficient buffer size should be set using
+<a href="ngx_http_core_module.html#client_body_buffer_size">client_body_buffer_size</a>.
+</dd>
+
+<dt><code>$r-&gt;request_body_file</code></dt>
+<dd>
+returns the name of the file with the client request body.
+After the processing, the file should be removed.
+To always write a request body to a file,
+<a href="ngx_http_core_module.html#client_body_in_file_only">client_body_in_file_only</a>
+should be enabled.
+</dd>
+
+<dt><code>$r-&gt;request_method</code></dt>
+<dd>
+returns the client request HTTP method.
+</dd>
+
+<dt><code>$r-&gt;remote_addr</code></dt>
+<dd>
+returns the client IP address.
+</dd>
+
+<dt><code>$r-&gt;flush</code></dt>
+<dd>
+immediately sends data to the client.
+</dd>
+
+<dt>
+    <code>$r-&gt;sendfile(<code><i>name</i></code>[,
+    <code><i>offset</i></code>[,
+    <code><i>length</i></code>]])</code>
+</dt>
+<dd>
+sends the specified file content to the client.
+Optional parameters
+specify the initial offset and length of the data to be transmitted.
+The actual data transmission happens after the Perl handler
+has completed.
+</dd>
+
+<dt>
+    <code>$r-&gt;send_http_header([<code><i>type</i></code>])</code>
+</dt>
+<dd>
+sends the response header to the client.
+The optional <code><i>type</i></code> parameter sets the value of
+the “Content-Type” response header field.
+If the value is an empty string, the “Content-Type”
+header field will not be sent.
+</dd>
+
+<dt><code>$r-&gt;status(<code><i>code</i></code>)</code></dt>
+<dd>
+sets a response code.
+</dd>
+
+<dt>
+    <code>$r-&gt;sleep(<code><i>milliseconds</i></code>,
+    <code><i>handler</i></code>)</code>
+</dt>
+<dd>
+sets the specified handler
+and stops request processing for the specified time.
+In the meantime, nginx continues to process other requests.
+After the specified time has elapsed, nginx will call the installed handler.
+Note that the handler function should be passed by reference.
+In order to pass data between handlers,
+<code>$r-&gt;variable()</code> should be used.
+Example:
+<blockquote class="example"><pre>
+package hello;
+
+use nginx;
+
+sub handler {
+    my $r = shift;
+
+    $r-&gt;discard_request_body;
+    $r-&gt;variable("var", "OK");
+    $r-&gt;sleep(1000, <strong>\&amp;next</strong>);
+
+    return OK;
+}
+
+sub <strong>next</strong> {
+    my $r = shift;
+
+    $r-&gt;send_http_header;
+    $r-&gt;print($r-&gt;variable("var"));
+
+    return OK;
+}
+
+1;
+
+__END__
+</pre></blockquote>
+</dd>
+
+<dt><code>$r-&gt;unescape(<code><i>text</i></code>)</code></dt>
+<dd>
+decodes a text encoded in the “%XX” form.
+</dd>
+
+<dt><code>$r-&gt;uri</code></dt>
+<dd>
+returns a request URI.
+</dd>
+
+<dt>
+    <code>$r-&gt;variable(<code><i>name</i></code>[,
+    <code><i>value</i></code>])</code>
+</dt>
+<dd>
+returns or sets the value of the specified variable.
+Variables are local to each request.
+</dd>
+
+</dl><p> 
+</p>
+
+</div></div></body></html>
