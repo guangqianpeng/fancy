@@ -5,6 +5,15 @@
 #ifndef FANCY_BASE_H
 #define FANCY_BASE_H
 
+#define _GNU_SOURCE
+#include <sys/socket.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+#include <signal.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -14,10 +23,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <sys/sendfile.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/time.h>
+#include <netinet/in.h>
 
 #include "error.h"
 

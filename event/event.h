@@ -36,6 +36,7 @@ struct connection {
     event       *write;
 
     void        *app;   // http, echo
+    int         app_count;
     int         keep_alive;
 
     mem_pool    *pool;

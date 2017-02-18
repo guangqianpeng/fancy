@@ -218,5 +218,4 @@ int parse_request_headers(request *r);
 int check_request_header_filed(request *r);
 int process_request_static(request *r);
 
-
 #endif //FANCY_REQUEST_H

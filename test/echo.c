@@ -2,22 +2,13 @@
 // Created by frank on 17-2-12.
 //
 
-#define _GNU_SOURCE
-#include <sys/socket.h>
-
-#include <assert.h>
-#include <strings.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
+#include "base.h"
 #include "timer.h"
 #include "conn_pool.h"
 
-#define CONN_MAX        128
-#define EVENT_MAX       128
-#define REQUEST_TIMEOUT    5000
+#define CONN_MAX            128
+#define EVENT_MAX           128
+#define REQUEST_TIMEOUT     50000
 
 static int init_echo();
 static int add_accept_event();
@@ -28,8 +19,8 @@ static void read_handler(event *ev);
 static void write_handler(event *ev);
 static void accept_handler(event *ev);
 
-static void close_connection(connection *conn);
 static int tcp_listen();
+static void close_connection(connection *conn);
 
 int main()
 {
@@ -243,7 +234,6 @@ static void write_handler(event *ev)
 static void accept_handler(event *ev)
 {
     int             connfd;
-    int             f_flag;
     struct sockaddr addr;
     socklen_t       len;
     connection      *conn;
@@ -264,6 +254,7 @@ static void accept_handler(event *ev)
             case EINTR:
                 goto inter;
             case EAGAIN:
+                conn_pool_free(conn);
                 return;
             default:
                 err_sys("accept4 error");
@@ -271,16 +262,6 @@ static void accept_handler(event *ev)
     }
 
     err_msg("new connection(%p) %d",conn, connfd);
-
-    f_flag = fcntl(connfd, F_GETFL, 0);
-    if (f_flag == -1) {
-        err_sys("fcntl error");
-    }
-
-    err = fcntl(connfd, F_SETFL, f_flag | O_NONBLOCK);
-    if (err == -1) {
-        err_sys("fcntl_error");
-    }
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -299,17 +280,16 @@ static int tcp_listen()
     int                 listenfd;
     struct sockaddr_in  servaddr;
     socklen_t           addrlen;
-    int                 bind_ret, listen_ret;
     const int           sockopt;
-    int                 ret;
+    int                 err;
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (listenfd == -1) {
         err_sys("socket error");
     }
 
-    ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
-    if (ret == -1) {
+    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
+    if (err == -1) {
         err_sys("setsockopt error");
     }
 
@@ -319,13 +299,13 @@ static int tcp_listen()
     servaddr.sin_port           = htons(9877);
 
     addrlen = sizeof(servaddr);
-    bind_ret = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
-    if (bind_ret == -1) {
+    err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
+    if (err == -1) {
         err_sys("bind error");
     }
 
-    listen_ret = listen(listenfd, 1024);
-    if (listen_ret == -1) {
+    err = listen(listenfd, 1024);
+    if (err == -1) {
         err_sys("listen error");
     }
 

@@ -2,24 +2,17 @@
 // Created by frank on 17-2-16.
 //
 
-#define _GNU_SOURCE
-#include <sys/socket.h>
-
-#include <assert.h>
-#include <strings.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
+#include "base.h"
 #include "timer.h"
 #include "conn_pool.h"
 #include "request.h"
 
 #define CONN_MAX            128
 #define EVENT_MAX           128
-#define REQUEST_TIMEOUT     1000
+#define REQUEST_TIMEOUT     30000
 #define SERV_PORT           9877
+
+int total_request = 0;
 
 static int init_http();
 static int add_accept_event();
@@ -49,8 +42,8 @@ int main()
         err_quit("add_accept_event error");
     }
 
-    signal(SIGPIPE, sig_handler);
-    //signal(SIGINT, sig_handler);
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGINT, sig_handler);
 
     printf("port %d\n", SERV_PORT);
 
@@ -68,7 +61,7 @@ int main()
         timer_process();
     }
 
-    err_msg("\nserver quit normally");
+    err_msg("\nserver quit normally %d request", total_request);
 }
 
 static int init_http()
@@ -124,7 +117,6 @@ static void sig_handler(int signo)
 static void accept_handler(event *ev)
 {
     int             connfd;
-    int             f_flag;
     struct sockaddr addr;
     socklen_t       len;
     connection      *conn;
@@ -136,16 +128,16 @@ static void accept_handler(event *ev)
         return;
     }
 
-    len = sizeof(addr);
-
     inter:
+    len = sizeof(addr);
+    /* SOCK_NONBLOCK将connfd设为非阻塞 */
     connfd = accept4(ev->conn->fd, &addr, &len, SOCK_NONBLOCK);
     if (connfd == -1) {
         switch (errno) {
             case EINTR:
                 goto inter;
             case EAGAIN:
-                err_msg("accept4 EAGAIN");
+                conn_pool_free(conn);
                 return;
             default:
                 err_sys("accept4 error");
@@ -153,16 +145,6 @@ static void accept_handler(event *ev)
     }
 
     err_msg("new connection(%p) %d",conn, connfd);
-
-    f_flag = fcntl(connfd, F_GETFL, 0);
-    if (f_flag == -1) {
-        err_sys("fcntl error");
-    }
-
-    err = fcntl(connfd, F_SETFL, f_flag | O_NONBLOCK);
-    if (err == -1) {
-        err_sys("fcntl_error");
-    }
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -174,6 +156,9 @@ static void accept_handler(event *ev)
     }
 
     timer_add(conn->read, REQUEST_TIMEOUT);
+
+    /* 边沿触发必须读到EAGAIN为止 */
+    accept_handler(ev);
 }
 
 static void read_handler(event *ev)
@@ -191,11 +176,11 @@ static void read_handler(event *ev)
 
     /* 处理超时 */
     if (ev->timeout) {
-        err_msg("timout");
         if (rqst) {
             request_destroy(rqst);
         }
 
+        err_msg("timeout");
         close_connection(conn);
         return;
     }
@@ -245,8 +230,9 @@ static void read_handler(event *ev)
             /* fall through */
         case 0:
             /* 对端在没有发送完整请求的情况下关闭连接 */
-            err_msg("read FIN or RESET");
             request_destroy(rqst);
+
+            err_msg("read %s", n == 0 ? "FIN" : "RESET");
             close_connection(conn);
             return;
 
@@ -377,6 +363,7 @@ static void write_headers_handler(event *ev)
                 case EPIPE:
                 case ECONNRESET:
                     request_destroy(rqst);
+                    err_msg("send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
@@ -419,6 +406,8 @@ static void write_body_handler(event *ev)
                 case EPIPE:
                 case ECONNRESET:
                     request_destroy(rqst);
+
+                    err_msg("sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
@@ -448,7 +437,10 @@ static void finalize_request_handler(event *ev)
 
     request_destroy(rqst);
 
+    ++conn->app_count;
+
     if (!conn->keep_alive) {
+        err_msg(status_code_out_str[rqst->status_code]);
         close_connection(conn);
         return;
     }
@@ -468,17 +460,16 @@ static int tcp_listen()
     int                 listenfd;
     struct sockaddr_in  servaddr;
     socklen_t           addrlen;
-    int                 bind_ret, listen_ret;
     const int           sockopt;
-    int                 ret;
+    int                 err;
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (listenfd == -1) {
         err_sys("socket error");
     }
 
-    ret = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
-    if (ret == -1) {
+    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
+    if (err == -1) {
         err_sys("setsockopt error");
     }
 
@@ -488,13 +479,13 @@ static int tcp_listen()
     servaddr.sin_port           = htons(SERV_PORT);
 
     addrlen = sizeof(servaddr);
-    bind_ret = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
-    if (bind_ret == -1) {
+    err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
+    if (err == -1) {
         err_sys("bind error");
     }
 
-    listen_ret = listen(listenfd, 1024);
-    if (listen_ret == -1) {
+    err = listen(listenfd, 1024);
+    if (err == -1) {
         err_sys("listen error");
     }
 
@@ -504,6 +495,8 @@ static int tcp_listen()
 static void close_connection(connection *conn)
 {
     int fd = conn->fd;
+
+    total_request += conn->app_count;
 
     if (event_conn_del(conn) == -1) {
         err_quit("event_conn_del error");
@@ -519,5 +512,5 @@ static void close_connection(connection *conn)
 
     conn_pool_free(conn);
 
-    err_msg("close connection(%p) %d",conn, fd);
+    err_msg("close connection(%d) %d", conn->app_count, fd);
 }
