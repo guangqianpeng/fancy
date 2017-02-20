@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "conn_pool.h"
 #include "request.h"
+#include "app.h"
 
 #define CONN_MAX            128
 #define EVENT_MAX           128
@@ -13,9 +14,6 @@
 #define SERV_PORT           9877
 
 int total_request = 0;
-
-static int init_http();
-static int add_accept_event();
 
 static void sig_handler(int signo);
 static void accept_handler(event *ev);
@@ -26,7 +24,6 @@ static void write_body_handler(event *ev);
 static void finalize_request_handler(event *ev);
 static void empty_handler(event *ev);
 
-static int  tcp_listen();
 static void close_connection(connection *conn);
 
 int main()
@@ -34,11 +31,11 @@ int main()
     timer_msec  timeout;
     int         n_ev;
 
-    if (init_http() == FCY_ERROR) {
-        err_quit("init_http error");
+    if (init_server(CONN_MAX, EVENT_MAX) == FCY_ERROR) {
+        err_quit("init_server error");
     }
 
-    if (add_accept_event() == FCY_ERROR) {
+    if (add_accept_event(SERV_PORT, accept_handler) == FCY_ERROR) {
         err_quit("add_accept_event error");
     }
 
@@ -62,52 +59,6 @@ int main()
     }
 
     err_msg("\nserver quit normally %d request", total_request);
-}
-
-static int init_http()
-{
-    mem_pool    *pool;
-
-    pool = mem_pool_create(MEM_POOL_DEFAULT_SIZE);
-    if (pool == NULL){
-        return FCY_ERROR;
-    }
-
-    if (conn_pool_init(pool, CONN_MAX) == -1) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    if (event_init(pool, EVENT_MAX) == -1) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    timer_init();
-
-    return FCY_OK;
-}
-
-static int add_accept_event()
-{
-    int         listenfd;
-    connection  *conn;
-
-    listenfd = tcp_listen();
-
-    conn = conn_pool_get();
-    if (conn == NULL) {
-        return FCY_ERROR;
-    }
-
-    conn->fd = listenfd;
-    conn->read->handler = accept_handler;
-
-    if (event_add(conn->read) == FCY_ERROR) {
-        return FCY_ERROR;
-    }
-
-    return FCY_OK;
 }
 
 static void sig_handler(int signo)
@@ -352,6 +303,10 @@ static void write_headers_handler(event *ev)
     }
 
     while (!buffer_empty(header_out)) {
+        /* TODO: 按照muduo库作者陈硕的说法:
+         * 第二次write调用几乎肯定会返回EAGAIN, 因此不必写成循环
+         * 此处留作以后优化
+         * */
         inter:
         n = write(conn->fd, header_out->data_start, buffer_size(header_out));
         if (n == -1) {
@@ -453,43 +408,6 @@ static void finalize_request_handler(event *ev)
 
 static void empty_handler(event *ev)
 {
-}
-
-static int tcp_listen()
-{
-    int                 listenfd;
-    struct sockaddr_in  servaddr;
-    socklen_t           addrlen;
-    const int           sockopt;
-    int                 err;
-
-    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-    if (listenfd == -1) {
-        err_sys("socket error");
-    }
-
-    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
-    if (err == -1) {
-        err_sys("setsockopt error");
-    }
-
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family         = AF_INET;
-    servaddr.sin_addr.s_addr    = htonl(INADDR_ANY);
-    servaddr.sin_port           = htons(SERV_PORT);
-
-    addrlen = sizeof(servaddr);
-    err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
-    if (err == -1) {
-        err_sys("bind error");
-    }
-
-    err = listen(listenfd, 1024);
-    if (err == -1) {
-        err_sys("listen error");
-    }
-
-    return listenfd;
 }
 
 static void close_connection(connection *conn)

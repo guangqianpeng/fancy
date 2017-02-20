@@ -3,15 +3,15 @@
 //
 
 #include "base.h"
+#include "app.h"
 #include "timer.h"
 #include "conn_pool.h"
 
 #define CONN_MAX            128
 #define EVENT_MAX           128
 #define REQUEST_TIMEOUT     50000
+#define SERV_PORT           9877
 
-static int init_echo();
-static int add_accept_event();
 
 static void sig_handler(int signo);
 static void empty_handler(event *ev);
@@ -19,7 +19,6 @@ static void read_handler(event *ev);
 static void write_handler(event *ev);
 static void accept_handler(event *ev);
 
-static int tcp_listen();
 static void close_connection(connection *conn);
 
 int main()
@@ -27,12 +26,11 @@ int main()
     timer_msec  timeout;
     int         n_ev;
 
-
-    if (init_echo() == FCY_ERROR) {
-        err_quit("init_echo error");
+    if (init_server(CONN_MAX, EVENT_MAX) == FCY_ERROR) {
+        err_quit("init_server error");
     }
 
-    if (add_accept_event() == FCY_ERROR) {
+    if (add_accept_event(SERV_PORT, accept_handler) == FCY_ERROR) {
         err_quit("add_accept_event error");
     }
 
@@ -54,52 +52,6 @@ int main()
     }
 
     err_msg("echo quit normally");
-}
-
-static int init_echo()
-{
-    mem_pool    *pool;
-
-    pool = mem_pool_create(MEM_POOL_DEFAULT_SIZE);
-    if (pool == NULL){
-        return FCY_ERROR;
-    }
-
-    if (conn_pool_init(pool, CONN_MAX) == -1) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    if (event_init(pool, EVENT_MAX) == -1) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    timer_init();
-
-    return FCY_OK;
-}
-
-static int add_accept_event()
-{
-    int         listenfd;
-    connection  *conn;
-
-    listenfd = tcp_listen();
-
-    conn = conn_pool_get();
-    if (conn == NULL) {
-        return FCY_ERROR;
-    }
-
-    conn->fd = listenfd;
-    conn->read->handler = accept_handler;
-
-    if (event_add(conn->read) == FCY_ERROR) {
-        return FCY_ERROR;
-    }
-
-    return FCY_OK;
 }
 
 static void sig_handler(int signo)
@@ -161,7 +113,7 @@ static void read_handler(event *ev)
      * 若删除err_msg则不会出现
      * */
     err_msg("read from fd %d: %ld bytes", fd, n);
-    buffer_seek_end(buf, n);
+    buffer_seek_end(buf, (int)n);
 
     /* 消除计时器 */
     if (ev->timer_set) {
@@ -210,7 +162,7 @@ static void write_handler(event *ev)
             return;
         }
         else if (errno == EPIPE || errno == ECONNRESET) {   /* 对端reset连接 */
-            err_msg("write_headers_handler keep_alive connection %d, %s\n", fd, errno == EPIPE ? "pip":"reset");
+            err_msg("write_headers_handler close connection %d, %s\n", fd, errno == EPIPE ? "pip":"reset");
             close_connection(conn);
             return;
         }
@@ -273,43 +225,6 @@ static void accept_handler(event *ev)
     }
 
     timer_add(conn->read, REQUEST_TIMEOUT);
-}
-
-static int tcp_listen()
-{
-    int                 listenfd;
-    struct sockaddr_in  servaddr;
-    socklen_t           addrlen;
-    const int           sockopt;
-    int                 err;
-
-    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-    if (listenfd == -1) {
-        err_sys("socket error");
-    }
-
-    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
-    if (err == -1) {
-        err_sys("setsockopt error");
-    }
-
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family         = AF_INET;
-    servaddr.sin_addr.s_addr    = htonl(INADDR_ANY);
-    servaddr.sin_port           = htons(9877);
-
-    addrlen = sizeof(servaddr);
-    err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
-    if (err == -1) {
-        err_sys("bind error");
-    }
-
-    err = listen(listenfd, 1024);
-    if (err == -1) {
-        err_sys("listen error");
-    }
-
-    return listenfd;
 }
 
 static void close_connection(connection *conn)
