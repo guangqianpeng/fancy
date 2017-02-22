@@ -68,8 +68,8 @@ static int parse_request_line(request *r)
         switch (state) {
             case start_:
                 /* method_start_ */
+                r->request_start = p;
                 if (isupper(c)) {
-                    r->request_line_start = p;
                     state = method_;
                     break;
                 }
@@ -80,13 +80,13 @@ static int parse_request_line(request *r)
                     break;
                 }/* method_end */
                 if (c == ' ') {
-                    if (strncmp(r->request_line_start, "GET", 3) == 0) {
+                    if (strncmp(r->request_start, "GET", 3) == 0) {
                         r->method = HTTP_M_GET;
                     }
-                    else if (strncmp(r->request_line_start, "POST", 4) == 0) {
+                    else if (strncmp(r->request_start, "POST", 4) == 0) {
                         r->method = HTTP_M_POST;
                     }
-                    else if (strncmp(r->request_line_start, "HEAD", 4) == 0) {
+                    else if (strncmp(r->request_start, "HEAD", 4) == 0) {
                         r->method = HTTP_M_HEAD;
                     }
                     else {
@@ -455,13 +455,13 @@ static int parse_uri(request *r)
 
         // 访问文件夹, 结尾无'/'
     if (!last_dot && !r->has_args && *(u - 1) != '/') {
-        strcpy(u, "/index.html");
+        strcpy(u, "/home.html");
         u += 11;
         r->suffix = u - 4;
     }
         // 访问的文件夹但结尾没有'/'
     else if (*(u - 1) == '/') {
-        strcpy(u, "index.html");
+        strcpy(u, "home.html");
         u += 10;
         r->suffix = u - 4;
     }

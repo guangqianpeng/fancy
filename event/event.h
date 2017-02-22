@@ -31,17 +31,19 @@ struct event {
 };
 
 struct connection {
-    int         fd;
-    event       *read;
-    event       *write;
+    int                 fd;
+    event               *read;
+    event               *write;
 
-    void        *app;   // http, echo
-    int         app_count;
+    void                *app;   // http, echo
+    int                 app_count;
 
-    mem_pool    *pool;
-    buffer      *buf;
+    struct sockaddr_in  addr;
 
-    list_node   node;
+    mem_pool            *pool;
+    buffer              *buf;
+
+    list_node           node;
 };
 
 int event_init(mem_pool *p, int n_ev);  // n_events是epoll返回的最大事件数目

@@ -8,9 +8,9 @@
 #include "request.h"
 #include "app.h"
 
-#define CONN_MAX            128
+#define CONN_MAX            256
 #define EVENT_MAX           128
-#define REQUEST_TIMEOUT     30000
+#define REQUEST_TIMEOUT     20000
 #define SERV_PORT           9877
 
 int total_request = 0;
@@ -26,23 +26,26 @@ static void empty_handler(event *ev);
 
 static void close_connection(connection *conn);
 
+
 int main()
 {
     timer_msec  timeout;
     int         n_ev;
 
     if (init_server(CONN_MAX, EVENT_MAX) == FCY_ERROR) {
-        err_quit("init_server error");
+        logger("init_server error");
+        exit(1);
     }
 
     if (add_accept_event(SERV_PORT, accept_handler) == FCY_ERROR) {
-        err_quit("add_accept_event error");
+        logger("add_accept_event error");
+        exit(1);
     }
 
     signal(SIGPIPE, SIG_IGN);
     signal(SIGINT, sig_handler);
 
-    printf("port %d\n", SERV_PORT);
+    logger("listening on port %d", SERV_PORT);
 
     /* 事件循环 */
     while (1) {
@@ -58,7 +61,7 @@ int main()
         timer_process();
     }
 
-    err_msg("\nserver quit normally %d request", total_request);
+    logger("server quit normally, total request = %d", total_request);
 }
 
 static void sig_handler(int signo)
@@ -67,22 +70,23 @@ static void sig_handler(int signo)
 
 static void accept_handler(event *ev)
 {
-    int             connfd;
-    struct sockaddr addr;
-    socklen_t       len;
-    connection      *conn;
-    int             err;
+    int                 connfd;
+    struct sockaddr_in  *addr;
+    socklen_t           len;
+    connection          *conn;
+    int                 err;
 
     conn = conn_pool_get();
     if (conn == NULL) {
-        err_msg("%s error at line %d: not enough free connections", __FUNCTION__, __LINE__);
+        logger("not enough free connections");
         return;
     }
 
+    addr = &conn->addr;
+    len = sizeof(*addr);
+
     inter:
-    len = sizeof(addr);
-    /* SOCK_NONBLOCK将connfd设为非阻塞 */
-    connfd = accept4(ev->conn->fd, &addr, &len, SOCK_NONBLOCK);
+    connfd = accept4(ev->conn->fd, addr, &len, SOCK_NONBLOCK);
     if (connfd == -1) {
         switch (errno) {
             case EINTR:
@@ -91,11 +95,12 @@ static void accept_handler(event *ev)
                 conn_pool_free(conn);
                 return;
             default:
-                err_sys("accept4 error");
+                logger("accept4 error: ", strerror(errno));
+                exit(1);
         }
     }
 
-    err_msg("new connection(%p) %d",conn, connfd);
+    logger_client(addr, "new connection");
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -103,7 +108,8 @@ static void accept_handler(event *ev)
 
     err = event_conn_add(conn);
     if (err == -1) {
-        err_quit("event_conn_add error");
+        logger("event_conn_add error");
+        exit(1);
     }
 
     timer_add(conn->read, REQUEST_TIMEOUT);
@@ -131,16 +137,18 @@ static void read_handler(event *ev)
             request_destroy(rqst);
         }
 
-        err_msg("timeout");
+        logger_client(&conn->addr, "timeout");
         close_connection(conn);
         return;
     }
 
     /* 若是第一次调用则需要创建request */
     if (rqst == NULL) {
+
         rqst = conn->app = request_create(conn);
         if (rqst == NULL) {
-            err_quit("request_create error");
+            logger("request_create error");
+            exit(1);
         }
     }
 
@@ -170,13 +178,14 @@ static void read_handler(event *ev)
                 return;
             }
             if (errno != ECONNRESET) {
-                err_sys("read error");
+                logger_client(&conn->addr, "read error");
+                exit(1);
             }
 
             /* fall through */
         case 0:
             /* 对端在没有发送完整请求的情况下关闭连接 */
-            err_msg("read %s", n == 0 ? "FIN" : "RESET");
+            logger_client(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
             request_destroy(rqst);
             close_connection(conn);
             return;
@@ -191,7 +200,8 @@ static void read_handler(event *ev)
     err = parse_request(rqst);
     switch (err) {
         case FCY_ERROR:
-            err_msg("parse_request error");
+            logger_client(&conn->addr, "parse_request error %s", rqst->request_start);
+            rqst->status_code = HTTP_R_BAD_REQUEST;
             goto error;
 
         case FCY_AGAIN:
@@ -210,6 +220,7 @@ static void read_handler(event *ev)
         timer_del(ev);
     }
 
+    logger_client(&conn->addr, "request %s", rqst->uri);
     ev->handler = process_request_handler;
     process_request_handler(ev);
     return;
@@ -314,11 +325,11 @@ static void write_headers_handler(event *ev)
                 case EPIPE:
                 case ECONNRESET:
                     request_destroy(rqst);
-                    err_msg("send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                    logger_client(&conn->addr, "send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
-                    err_sys("write error");
+                    logger_client(&conn->addr,"write error: %s", strerror(errno));
             }
         }
         buffer_seek_start(header_out, (int) n);
@@ -358,11 +369,12 @@ static void write_body_handler(event *ev)
                 case ECONNRESET:
                     request_destroy(rqst);
 
-                    err_msg("sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                    logger_client(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
-                    err_sys("sendfile error");
+                    logger_client(&conn->addr, "sendfile error %s", strerror(errno));
+                    exit(1);
             }
         }
         sbuf->st_size -= n;
@@ -376,9 +388,11 @@ static void finalize_request_handler(event *ev)
 {
     connection  *conn;
     request     *rqst;
+    int         keep_alive;
 
     conn = ev->conn;
     rqst = conn->app;
+    keep_alive = rqst->keep_alive;
 
     /*
     if (rqst->parse_state != error_) {
@@ -386,12 +400,12 @@ static void finalize_request_handler(event *ev)
     }
    */
 
-    request_destroy(rqst);
-
     ++conn->app_count;
 
-    if (!rqst->keep_alive) {
-        err_msg(status_code_out_str[rqst->status_code]);
+    logger_client(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
+
+    request_destroy(rqst);
+    if (!keep_alive) {
         close_connection(conn);
         return;
     }
@@ -408,12 +422,15 @@ static void empty_handler(event *ev)
 
 static void close_connection(connection *conn)
 {
-    int fd = conn->fd;
+    int                 fd;
+
+    fd = conn->fd;
 
     total_request += conn->app_count;
 
     if (event_conn_del(conn) == -1) {
-        err_quit("event_conn_del error");
+        logger_client(&conn->addr,"event_conn_del error");
+        exit(1);
     }
 
     if (conn->read->timer_set) {
@@ -421,10 +438,11 @@ static void close_connection(connection *conn)
     }
 
     if (close(fd) == -1) {
-        err_sys("close error");
+        logger_client(&conn->addr, "close error");
+        exit(1);
     }
 
     conn_pool_free(conn);
 
-    err_msg("close connection(%d) %d", conn->app_count, fd);
+    logger_client(&conn->addr,"close connection, %d request solved", conn->app_count);
 }

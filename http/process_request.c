@@ -5,7 +5,7 @@
 #include "assert.h"
 #include "request.h"
 
-const char *get_content_type(char *suffix);
+const char *get_content_type(const char *suffix);
 
 int check_request_header_filed(request *r)
 {
@@ -94,7 +94,7 @@ int process_request_static(request *r)
     return FCY_OK;
 }
 
-const char *get_content_type(char *suffix)
+const char *get_content_type(const char *suffix)
 {
     const static char *suffix_str[] = {
             "html", "txt", "xml", "asp", "css",

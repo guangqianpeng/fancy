@@ -13,11 +13,42 @@ int		daemon_proc;		/* set nonzero by daemon_init() */
 
 static void	err_doit(int, int, const char *, va_list);
 
+static char *timestamp();
+
+void logger(const char *fmt, ...)
+{
+    va_list     ap;
+
+    printf("%s ",  timestamp());
+
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+
+    printf("\n");
+    fflush(stdout);
+    return;
+}
+
+void logger_client(struct sockaddr_in *addr, const char *fmt, ...)
+{
+    va_list     ap;
+
+    printf("%s %s:%hu ",  timestamp(), inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+
+    printf("\n");
+    fflush(stdout);
+    return;
+}
+
 /* Nonfatal error related to system call
  * Print message and return */
 
-void
-err_ret(const char *fmt, ...)
+void err_ret(const char *fmt, ...)
 {
     va_list		ap;
 
@@ -30,8 +61,7 @@ err_ret(const char *fmt, ...)
 /* Fatal error related to system call
  * Print message and terminate */
 
-void
-err_sys(const char *fmt, ...)
+void err_sys(const char *fmt, ...)
 {
     va_list		ap;
 
@@ -44,8 +74,7 @@ err_sys(const char *fmt, ...)
 /* Fatal error related to system call
  * Print message, dump core, and terminate */
 
-void
-err_dump(const char *fmt, ...)
+void err_dump(const char *fmt, ...)
 {
     va_list		ap;
 
@@ -59,8 +88,7 @@ err_dump(const char *fmt, ...)
 /* Nonfatal error unrelated to system call
  * Print message and return */
 
-void
-err_msg(const char *fmt, ...)
+void err_msg(const char *fmt, ...)
 {
     va_list		ap;
 
@@ -73,8 +101,7 @@ err_msg(const char *fmt, ...)
 /* Fatal error unrelated to system call
  * Print message and terminate */
 
-void
-err_quit(const char *fmt, ...)
+void err_quit(const char *fmt, ...)
 {
     va_list		ap;
 
@@ -87,8 +114,7 @@ err_quit(const char *fmt, ...)
 /* Print message and return to caller
  * Caller specifies "errnoflag" and "level" */
 
-static void
-err_doit(int errnoflag, int level, const char *fmt, va_list ap)
+static void err_doit(int errnoflag, int level, const char *fmt, va_list ap)
 {
     int		errno_save, n;
     char	buf[MAXLINE + 1];
@@ -112,4 +138,19 @@ err_doit(int errnoflag, int level, const char *fmt, va_list ap)
         fflush(stderr);
     }
     return;
+}
+
+static char *timestamp()
+{
+    struct tm   *tm;
+    time_t      rawtime;
+    char        *ret;
+
+    time(&rawtime);
+
+    tm = localtime(&rawtime);
+    ret = asctime(tm);
+    ret[24] = '\0';
+
+    return ret;
 }

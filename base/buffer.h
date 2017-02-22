@@ -8,7 +8,7 @@
 #include "base.h"
 #include "palloc.h"
 
-#define BUFFER_DEFAULT_SIZE (4 * 1024 - 1)
+#define BUFFER_DEFAULT_SIZE (1024 - 1)
 
 typedef struct buffer buffer;
 

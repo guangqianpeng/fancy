@@ -11,8 +11,11 @@ static int tcp_listen(uint16_t serv_port);
 int init_server(int n_conn, int n_event)
 {
     mem_pool    *pool;
+    size_t      size;
 
-    pool = mem_pool_create(MEM_POOL_DEFAULT_SIZE);
+    size = n_conn * sizeof (connection) + n_conn * sizeof (connection) + sizeof(mem_pool);
+    pool = mem_pool_create(size);
+
     if (pool == NULL){
         return FCY_ERROR;
     }

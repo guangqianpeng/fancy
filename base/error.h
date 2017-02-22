@@ -7,10 +7,13 @@
 
 #include "base.h"
 
-void	 err_dump(const char *, ...);
-void	 err_msg(const char *, ...);
-void	 err_quit(const char *, ...);
-void	 err_ret(const char *, ...);
-void	 err_sys(const char *, ...);
+void    logger(const char *fmt, ...);
+void    logger_client(struct sockaddr_in *addr, const char *fmt, ...);
+void	err_dump(const char *, ...);
+void	err_msg(const char *, ...);
+void	err_quit(const char *, ...);
+void	err_ret(const char *, ...);
+void    err_sys(const char *, ...);
+
 
 #endif //FANCY_ERROR_H

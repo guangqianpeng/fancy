@@ -107,7 +107,7 @@ const static char *dataset[] = {
         "GET /50x.html HTTP/1.1\r\n"
                 "Host: static.blog.csdn.net\r\n\r\n",
 
-        "GET /index.html HTTP/1.1\r\n"
+        "GET /home.html HTTP/1.1\r\n"
                 "Host: static.blog.csdn.net\r\n\r\n",
 
         "GET / HTTP/1.1\r\n"

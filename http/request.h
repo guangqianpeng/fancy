@@ -55,7 +55,7 @@ struct request {
     int             is_static;
 
 
-    char            *request_line_start;
+    char            *request_start;
     char            *uri_start;
     char            *uri_end;
     char            *last_header_name_start;
