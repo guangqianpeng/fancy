@@ -455,13 +455,13 @@ static int parse_uri(request *r)
 
         // 访问文件夹, 结尾无'/'
     if (!last_dot && !r->has_args && *(u - 1) != '/') {
-        strcpy(u, "/home.html");
+        strcpy(u, "/index.html");
         u += 11;
         r->suffix = u - 4;
     }
         // 访问的文件夹但结尾没有'/'
     else if (*(u - 1) == '/') {
-        strcpy(u, "home.html");
+        strcpy(u, "index.html");
         u += 10;
         r->suffix = u - 4;
     }
