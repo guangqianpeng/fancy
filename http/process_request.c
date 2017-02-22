@@ -5,22 +5,17 @@
 #include "assert.h"
 #include "request.h"
 
+const char *get_content_type(char *suffix);
+
 int check_request_header_filed(request *r)
 {
-    connection      *conn;
-    request_headers *headers;
-    long            cnt_len;
-
-    conn = r->conn;
-    headers = r->headers;
-
-    if (r->method != HTTP_M_HEAD && r->method != HTTP_M_GET) {
+    if (r->method != HTTP_M_GET) {
         r->status_code = HTTP_R_NOT_IMPLEMENTED;
         return FCY_ERROR;
     }
 
     /* HTTP/1.1必须有host字段 */
-    if (r->version == HTTP_V11 && r->headers->host_start == NULL) {
+    if (r->version == HTTP_V11 && !r->has_host_header) {
         r->status_code = HTTP_R_BAD_REQUEST;
         return FCY_ERROR;
     }
@@ -29,35 +24,26 @@ int check_request_header_filed(request *r)
      * 然而post请求尚未实现，这段代码不会执行
      * */
     if (r->method == HTTP_M_POST) {
-        if (headers->content_length_start == NULL) {
+        if (!r->has_content_length_header) {
             r->status_code = HTTP_R_LENGTH_REQUIRED;
             return FCY_ERROR;
         }
-
-        cnt_len = strtol(headers->content_length_start, NULL, 0);
-
-        /* TODO:等于0的情况无法判断 */
-        if (cnt_len <= 0) {
+        if (r->cnt_len <= 0) {
             r->status_code = HTTP_R_BAD_REQUEST;
             return FCY_ERROR;
         }
-
-        if (cnt_len >= INT_MAX) {
+        if (r->cnt_len >= INT_MAX) {
             r->status_code = HTTP_R_PAYLOAD_TOO_LARGE;
             return FCY_ERROR;
         }
-
-        /* r->cnt_len_in = (int)cnt_len; */
     }
 
-    /* 设置keep_alive字段 */
-    if (r->version == HTTP_V11) {
-        conn->keep_alive = 1;
-    }
-
-    if (headers->connection_start) {
-        if (strncmp(headers->connection_start, "keep-alive", 10) == 0) {
-            conn->keep_alive = 1;
+    /* 设置content-type, is_static字段
+     * */
+    if (r->suffix) {
+        r->content_type = get_content_type(r->suffix);
+        if (r->content_type != NULL) {
+            r->is_static = 1;
         }
     }
 
@@ -67,27 +53,15 @@ int check_request_header_filed(request *r)
 
 int process_request_static(request *r)
 {
-    request_line    *line;
-    char            *uri_start, *uri_end;
     char            *relpath;
     struct stat     *sbuf;
-    int             fd;
-    int             err;
-    char            temp;
+    int             fd, err, f_flag;
 
-    line = r->line;
-    uri_start = line->uri_start;
-    uri_end = line->uri_end;
-    relpath = (line->uri_static == uri_end ? "index.html" : uri_start + 1);
+    relpath = r->uri + 1;
     sbuf = &r->sbuf;
 
-    assert(*uri_end == ' ');
-
     /* 测试文件 */
-    *uri_end = '\0';
     err = stat(relpath, sbuf);
-    *uri_end = ' ';
-
     if (err == -1) {
         r->status_code = HTTP_R_NOT_FOUND;
         return FCY_ERROR;
@@ -98,31 +72,55 @@ int process_request_static(request *r)
         return FCY_ERROR;
     }
 
-    /* 打开文件 */
-    *uri_end = '\0';
-    fd = open(relpath, O_RDONLY | O_NONBLOCK);
-    *uri_end = ' ';
-
+    /* 打开文件会阻塞！！ */
+    fd = open(relpath, O_RDONLY);
     if (fd == -1) {
         r->status_code = HTTP_R_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;
     }
 
+    f_flag = fcntl(fd, F_GETFL, 0);
+    if (f_flag == -1) {
+        err_sys("fcntl error");
+    }
 
-    /* 默认content-type为text/html */
-    if (line->uri_suffix_start) {
-        temp = *line->uri_suffix_end;
-        *line->uri_suffix_end = '\0';
-        for (int i = 0; file_suffix_str[i] != NULL; ++i) {
-            if (strcmp(line->uri_suffix_start, file_suffix_str[i]) == 0) {
-                r->content_type = i;
-                break;
-            }
-        }
-        *line->uri_suffix_end = temp;
+    err = fcntl(fd, F_SETFL, f_flag | O_NONBLOCK);
+    if (err == -1) {
+        err_sys("fcntl error");
     }
 
     r->send_fd = fd;
     r->status_code = HTTP_R_OK;
     return FCY_OK;
+}
+
+const char *get_content_type(char *suffix)
+{
+    const static char *suffix_str[] = {
+            "html", "txt", "xml", "asp", "css",
+            "gif", "ico", "png", "jpg", "js",
+            "pdf", NULL,
+    };
+    const static char *content_type_str[] = {
+            "text/html; charset=utf-8",
+            "text/plain; charset=utf-8",
+            "text/xml",
+            "text/asp",
+            "text/css",
+            "image/gif",
+            "image/x-icon",
+            "image/png",
+            "image/jpeg",
+            "application/javascript",
+            "application/pdf",
+            NULL,
+    };
+
+    for (int i = 0; suffix_str[i] != NULL ; ++i) {
+        if (strncasecmp(suffix, suffix_str[i], strlen(suffix_str[i])) == 0) {
+            return content_type_str[i];
+        }
+    }
+
+    return NULL;
 }

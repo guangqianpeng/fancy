@@ -19,31 +19,6 @@ const char *status_code_out_str[] = {
         "501 Not Implemented",
 };
 
-const char *content_type_out_str[] = {
-        "text/html",
-        "text/plain",
-        "text/xml",
-        "text/asp",
-        "text/css",
-        "image/gif",
-        "image/x-icon",
-        "image/png",
-        "image/jpeg",
-};
-
-const char *file_suffix_str[] = {
-        "html", "txt", "xml", "asp", "css",
-        "gif", "ico", "png", "jpg", NULL,
-};
-
-static void print_str(const char *start, const char *end)
-{
-    for (; start != end; ++start) {
-        putchar(*start);
-    }
-    fflush(stdout);
-}
-
 request *request_create(connection *c)
 {
     request     *r;
@@ -60,13 +35,9 @@ request *request_create(connection *c)
         return NULL;
     }
 
-    r->line = pcalloc(p, sizeof(*r->line));
-    r->headers = pcalloc(p, sizeof(*r->headers));
     r->header_in = buffer_create(p, HTTP_HEADER_SIZE);
     r->header_out = buffer_create(p, HTTP_HEADER_SIZE);
-    if (r->line == NULL ||
-        r->headers == NULL ||
-        r->header_in == NULL ||
+    if (r->header_in == NULL ||
         r->header_out == NULL) {
         mem_pool_destroy(p);
         return NULL;
@@ -94,70 +65,18 @@ void request_destroy(request *r)
 
 void request_print(request *r)
 {
-    request_line *line;
-    request_headers *headers;
-    char **start;
+    printf("method: %d\n", r->method);
+    printf("version: %d\n", r->version);
+    printf("keep-alive: %d\n", r->keep_alive);
+    printf("content-length: %ld\n", r->cnt_len);
 
-    line = r->line;
-    headers = r->headers;
-    start = (char **) headers;
+    printf("has_args: %d\n", r->has_args);
+    printf("has_host_header: %d\n", r->has_host_header);
+    printf("has_content_length_header: %d\n", r->has_content_length_header);
 
-    assert(line->method_start);
-    print_str(line->method_start, line->method_end);
-    putchar(' ');
-
-
-    if (line->schema_start) {
-        print_str(line->schema_start, line->schema_end);
-    }
-
-    if (line->host_start) {
-        print_str(line->host_start, line->host_end);
-    }
-
-    if (line->port_start) {
-        print_str(line->port_start, line->port_end);
-    }
-
-    assert(line->uri_start);
-    print_str(line->uri_start, line->uri_end);
-    printf(" ");
-
-    assert(line->version_start);
-    print_str(line->version_start, line->version_end);
-    printf("\n");
-
-    if (line->uri_static) {
-        printf("\tstatic service: ");
-        print_str(line->uri_static, line->uri_end);
-        printf("\n");
-    }
-
-    if (line->uri_suffix_start) {
-        printf("\tsuffix: ");
-        print_str(line->uri_suffix_start, line->uri_suffix_end);
-        printf("\n");
-    }
-
-    if (line->uri_dynamic) {
-        printf("\tdynamic service: ");
-        print_str(line->uri_dynamic, line->uri_end);
-        printf("\n");
-    }
-
-    if (line->uri_sharp) {
-        printf("\tfragment: ");
-        print_str(line->uri_sharp, line->uri_end);
-        printf("\n");
-    }
-
-    for (int i = 0; i < sizeof(*headers) / sizeof(char *) / 2; ++i) {
-        if (start[i * 2]) {
-            printf("%s", field_in_str[i]);
-            print_str(start[i * 2], start[i * 2 + 1]);
-            printf("\n");
-        }
-    }
+    printf("suffix: %s\n", r->suffix);
+    printf("is_static: %d\n", r->is_static);
+    printf("content_type: %s\n", r->content_type);
 
     printf("%s\n\n", status_code_out_str[r->status_code]);
 }

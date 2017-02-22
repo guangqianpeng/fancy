@@ -148,12 +148,7 @@ static void read_handler(event *ev)
 
     /* read buffer满 */
     if (buffer_full(header_in)) {
-        if (rqst->parse_state < line_done_) {
-            rqst->status_code = HTTP_R_URI_TOO_LONG;
-        }
-        else {
-            rqst->status_code = HTTP_R_REQUEST_HEADER_FIELD_TOO_LARGE;
-        }
+        rqst->status_code = HTTP_R_URI_TOO_LONG;
         goto error;
     }
 
@@ -181,9 +176,8 @@ static void read_handler(event *ev)
             /* fall through */
         case 0:
             /* 对端在没有发送完整请求的情况下关闭连接 */
-            request_destroy(rqst);
-
             err_msg("read %s", n == 0 ? "FIN" : "RESET");
+            request_destroy(rqst);
             close_connection(conn);
             return;
 
@@ -193,32 +187,22 @@ static void read_handler(event *ev)
 
     buffer_seek_end(header_in, (int)n);
 
-    assert(rqst->parse_state != error_);
+    /* 解析请求 */
+    err = parse_request(rqst);
+    switch (err) {
+        case FCY_ERROR:
+            err_msg("parse_request error");
+            goto error;
 
-    /* 解析请求行 */
-    if (rqst->parse_state < line_done_) {
-        err = parse_request_line(rqst);
-        if (err == FCY_AGAIN) {
+        case FCY_AGAIN:
             read_handler(ev);
             return;
-        }
-        if (err == FCY_ERROR) {
-            err_msg("parse_request_line error");
-            rqst->status_code = HTTP_R_BAD_REQUEST;
-            goto error;
-        }
-    }
 
-    /* 解析请求头 */
-    err = parse_request_headers(rqst);
-    if (err == FCY_AGAIN) {
-        read_handler(ev);
-        return;
-    }
-    if (err == FCY_ERROR) {
-        err_msg("parse_request_headers error");
-        rqst->status_code = HTTP_R_BAD_REQUEST;
-        goto error;
+        case FCY_OK:
+            break;
+
+        default:
+            assert(0);
     }
 
     /* 解析完毕 */
@@ -231,7 +215,7 @@ static void read_handler(event *ev)
     return;
 
     error:
-    conn->keep_alive = 0;
+    rqst->keep_alive = 0;
     ev->handler = empty_handler;
     conn->write->handler = write_headers_handler;
     write_headers_handler(conn->write);
@@ -247,16 +231,18 @@ static void process_request_handler(event *ev)
     conn = ev->conn;
     rqst = conn->app;
 
-    /* 目前只处理静态内容 */
-    assert(rqst->line->uri_static);
-
     err = check_request_header_filed(rqst);
-    if (err == FCY_OK) {
+
+    if (err == FCY_OK && rqst->is_static) {
         err = process_request_static(rqst);
     }
 
+    if (rqst->status_code == HTTP_R_OK && !rqst->is_static) {
+        rqst->status_code = HTTP_R_NOT_FOUND;
+    }
+
     if (err == FCY_ERROR) {
-        conn->keep_alive = 0;
+        rqst->keep_alive = 0;
     }
 
     ev->handler = empty_handler;
@@ -283,22 +269,32 @@ static void write_headers_handler(event *ev)
         /* response line */
         buffer_write(header_out, "HTTP/1.1 ", 9);
         buffer_write(header_out, status_str, strlen(status_str));
+        buffer_write(header_out, "\r\nServer: Fancy", 15);
+        buffer_write(header_out, "\r\nContent-Type: ", 16);
 
-        buffer_write(header_out, "\r\n"
-                "Server: Fancy\r\n"
-                "Content-Type: ", 31);
-        buffer_write(header_out, content_type_out_str[rqst->content_type],
-                     strlen(content_type_out_str[rqst->content_type]));
-
-        buffer_write(header_out, "\r\nContent-Length: ", 18);
-        n = sprintf((char*)header_out->data_end, "%ld\r\n", rqst->sbuf.st_size);
-        buffer_seek_end(header_out, (int)n);
-
-        if (conn->keep_alive) {
-            buffer_write(header_out, "Connection: keep-alive\r\n\r\n", 26);
+        if (rqst->status_code == HTTP_R_OK) {
+            buffer_write(header_out, rqst->content_type,
+                         strlen(rqst->content_type));
+            buffer_write(header_out, "\r\nContent-Length: ", 18);
+            n = sprintf((char *) header_out->data_end, "%ld", rqst->sbuf.st_size);
+            buffer_seek_end(header_out, (int) n);
         }
         else {
-            buffer_write(header_out, "Connection: close\r\n\r\n", 21);
+            buffer_write(header_out, "text/html; charset=utf-8", 24);
+            buffer_write(header_out, "\r\nContent-Length: ", 18);
+            n = sprintf((char *) header_out->data_end, "%ld", strlen(status_str));
+            buffer_seek_end(header_out, (int) n);
+        }
+
+        if (rqst->keep_alive) {
+            buffer_write(header_out, "\r\nConnection: keep-alive\r\n\r\n", 28);
+        }
+        else {
+            buffer_write(header_out, "\r\nConnection: close\r\n\r\n", 23);
+        }
+
+        if (rqst->status_code != HTTP_R_OK) {
+            buffer_write(header_out, status_str, strlen(status_str));
         }
     }
 
@@ -394,7 +390,7 @@ static void finalize_request_handler(event *ev)
 
     ++conn->app_count;
 
-    if (!conn->keep_alive) {
+    if (!rqst->keep_alive) {
         err_msg(status_code_out_str[rqst->status_code]);
         close_connection(conn);
         return;

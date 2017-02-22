@@ -7,14 +7,9 @@
 #include "palloc.h"
 #include "request.h"
 
-static void test_request_method(request *rqst);
-static void test_request_host_port(request *rqst);
-static void test_request_uri(request *rqst);
-static void test_request_version(request *rqst);
+static void test_parse(request *rqst);
+static void reset_request(request *rqst);
 
-static void test_request_header(request *rqst);
-
-static void reset_request(request *rqst, int state);
 
 int main()
 {
@@ -27,26 +22,19 @@ int main()
     }
 
     bzero(&rqst, sizeof(rqst));
-    rqst.line = pcalloc(pool, sizeof(*rqst.line));
-    rqst.headers = pcalloc(pool, sizeof(*rqst.headers));
     rqst.header_in = buffer_create(pool, BUFFER_DEFAULT_SIZE);
-
-    if (rqst.line == NULL || rqst.headers == NULL) {
-        err_quit("pcalloc error");
-    }
     if (rqst.header_in == NULL) {
         err_quit("buffer_create error");
     }
 
-    test_request_method(&rqst);
-    test_request_host_port(&rqst);
-    test_request_uri(&rqst);
-    test_request_version(&rqst);
-
-    rqst.parse_state = line_done_;
-    test_request_header(&rqst);
-
+    rqst.parse_state = 0;
+    test_parse(&rqst);
     printf("OK");
+}
+
+static void test_parse(request *rqst)
+{
+
 }
 
 static void test_request_method(request *rqst)
@@ -435,7 +423,7 @@ static void test_request_header(request *rqst)
     printf("test_request_header OK\n");
 }
 
-static void reset_request(request *rqst, int state)
+static void reset_request(request *rqst)
 {
     buffer          *buf = rqst->header_in;
     request_line    *line = rqst->line;

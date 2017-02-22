@@ -19,7 +19,7 @@ set(PARSE ../http/parse_request.c
 set(PROCESS ../http/process_request.c
         ../http/request.c
         ../http/request.h ${EVENT} ${PARSE})
-set(REQUEST ${PARSE} ${PROCESS})
+set(REQUEST ${PROCESS})
 
 add_executable(test_palloc test_palloc.c ${PALLOC})
 
@@ -33,8 +33,7 @@ add_executable(echo echo.c app.c ${EVENT})
 
 add_executable(echo_cli echo_cli.c ${EVENT})
 
-add_executable(test_parse_request test_parse_request.c ${PARSE})
-
 add_executable(test_process_request test_process_request.c ${PROCESS})
 
 add_executable(http http.c app.c ${REQUEST})
+

@@ -9,7 +9,7 @@
 
 #define CONN_MAX            128
 #define EVENT_MAX           128
-#define REQUEST_TIMEOUT     50000
+#define REQUEST_TIMEOUT     5000
 #define SERV_PORT           9877
 
 
@@ -162,7 +162,7 @@ static void write_handler(event *ev)
             return;
         }
         else if (errno == EPIPE || errno == ECONNRESET) {   /* 对端reset连接 */
-            err_msg("write_headers_handler close connection %d, %s\n", fd, errno == EPIPE ? "pip":"reset");
+            err_msg("write_headers_handler keep_alive connection %d, %s\n", fd, errno == EPIPE ? "pip":"reset");
             close_connection(conn);
             return;
         }
@@ -240,7 +240,7 @@ static void close_connection(connection *conn)
      }
 
     if (close(fd) == -1) {
-        err_sys("close error");
+        err_sys("keep_alive error");
     }
 
     conn_pool_free(conn);

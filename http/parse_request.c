@@ -1,564 +1,475 @@
-//
-// Created by frank on 17-2-14.
-//
-
 #include <ctype.h>
 #include "request.h"
 
-const char   *method_in_str[] = {
-        "OPTIONS ", "GET ", "HEAD ", "POST ",
-        "PUT ", "DELETE ", "TRACE ", "CONNECT ",
-};
-const char   *schema_str = "http://";
-const char   *version_in_str[] = {
-        "HTTP/1.0\r\n", "HTTP/1.1\r\n",
-};
-const char   *field_in_str[] = {
-        /* general headers */
-        "Cache-Control: ",
-        "Connection: ",
-        "Date: ",
-        "Pragma: ",
-        "Trailer: ",
-        "Transfer-Encoding: ",
-        "Upgrade: ",
-        "Via: ",
-        "Warning: ",
+static int parse_request_line(request *r);
+static int parse_request_headers(request *r);
+static int parse_uri(request *r);
 
-        /* entity headers */
-        "Allow: ",
-        "Content-Encoding: ",
-        "Content-Language: ",
-        "Content-Length: ",
-        "Content-Location: ",
-        "Content-MD5: ",
-        "Content-Range: ",
-        "Content-Type: ",
-        "Expires: ",
-        "Last-Modified: ",
+typedef int(*parse_handler)(request*);
 
-        /* request headers */
-        "Accept: ",
-        "Accept-Charset: ",
-        "Accept-Encoding: ",
-        "Accept-Language: ",
-        "Authorization: ",
-        "Expect: ",
-        "From: ",
-        "Host: ",
-        "If-Match: ",
-        "If-Modified-Since: ",
-        "If-None-Match: ",
-        "If-Range: ",
-        "If-Unmodified-Since: ",
-        "Max-Forwards: ",
-        "Proxy-Authorization: ",
-        "Range: ",
-        "Referer: ",
-        "TE: ",
-        "User-Agent: ",
-
-        "Cookie: "
+static parse_handler handlers[] = {
+    parse_request_line,
+    parse_request_headers,
+    parse_uri,
+    NULL,
 };
 
-const static int    method_length[] = {
-        8, 4, 5, 5, 4, 7, 6, 8
-};
-const static int    schema_length = 7;
-const static int    version_length = 10;
-const static int    field_length[] = {
-        15, 12, 6, 8, 9, 19, 9, 5, 9,
-        7, 18, 18, 16, 18, 13, 15, 14, 9, 15,
-        8, 16, 17, 17, 15, 8, 6, 6, 10, 19, 15, 10, 21, 14, 21, 6, 9, 4, 12,
-        8,
-};
-
-#define N_METHOD    sizeof(method_in_str) / sizeof(*method_in_str)
-#define N_VERSION   sizeof(version_in_str) / sizeof(*version_in_str)
-#define N_FIELD     sizeof(field_in_str) / sizeof(*field_in_str)
-
-static int strnequal(const char *s1, const char *s2);
-static int strtwohex(const char *s);
-static char *strrch(char *s, char c);
-
-int parse_request_line(request *r)
+int parse_request(request *r)
 {
-    buffer          *buf;
-    request_line    *line;
-    char            *ch;
-    int             i, n = -1;
+    int         err;
+    static int  i = 0;
 
-    buf = r->header_in;
-    line = r->line;
-    ch = buffer_read(buf);
+    for (; handlers[i] != NULL; ++i) {
+        err = handlers[i](r);
 
-    while (*ch) {
-        switch (r->parse_state) {
+        if (err == FCY_OK) {
+            r->parse_state = 0;
+            continue;
+        }
+
+        return err;
+    }
+
+    i = 0;
+    return FCY_OK;
+}
+
+static int parse_request_line(request *r)
+{
+    char            c, *p;
+    buffer          *header_in;
+    enum {
+        start_ = 0,
+        method_,
+        space_before_uri_,
+        uri_,
+        space_before_version_,
+        version_H_,
+        version_HT_,
+        version_HTT_,
+        version_HTTP_,
+        version_HTTP_slash_,
+        version_HTTP_slash_1_,
+        version_HTTP_slash_1_dot_,
+        space_after_version_,
+        almost_done_,
+        done_,
+        error_,
+    } state;
+
+    header_in = r->header_in;
+    state = r->parse_state;
+
+    for (p = buffer_read(header_in);
+         !buffer_empty(header_in);
+         p = buffer_seek_start(header_in, 1)) {
+
+        c = *p;
+        switch (state) {
+            case start_:
+                /* method_start_ */
+                if (isupper(c)) {
+                    r->request_line_start = p;
+                    state = method_;
+                    break;
+                }
+                goto error;
+
             case method_:
-                for (i = 0; i < N_METHOD; ++i) {
-                    n = strnequal(ch, method_in_str[i]);
-                    if (n >= 0) {
-                        break;
+                if (isupper(c)) {
+                    break;
+                }/* method_end */
+                if (c == ' ') {
+                    if (strncmp(r->request_line_start, "GET", 3) == 0) {
+                        r->method = HTTP_M_GET;
                     }
-                }
-
-                if (n == method_length[i]) {
-                    r->method = i;
-                    r->parse_state = method_sp_;
-
-                    line->method_start = ch;
-                    line->method_end = ch + n - 1; /* 指向空格 */
-
-                    ch = buffer_seek_start(buf, n);
-                }
-                else if (n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else{
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-
-                break;
-
-            case method_sp_:
-                if (*ch == '/') {
-                    r->parse_state = uri_;
-                    line->uri_start = ch;
-                }
-                else {
-                    n = strnequal(ch, schema_str);
-
-                    if (n == schema_length) {
-                        r->parse_state = host_;
-                        line->schema_start = ch;
-                        line->schema_end = ch + n;
-                        line->host_start = ch + n;
-
-                        ch = buffer_seek_start(buf, n);
+                    else if (strncmp(r->request_line_start, "POST", 4) == 0) {
+                        r->method = HTTP_M_POST;
                     }
-                    else if (n >= 0) {
-                        return FCY_AGAIN;
+                    else if (strncmp(r->request_line_start, "HEAD", 4) == 0) {
+                        r->method = HTTP_M_HEAD;
                     }
-                    else{
-                        r->parse_state = error_;
-                        return FCY_ERROR;
+                    else {
+                        goto error;
                     }
-                }
 
-                break;
-
-            case host_:
-                if (isdigit(*ch) || islower(*ch)
-                    || *ch == '.' || *ch == '-') {
-                    ch = buffer_seek_start(buf, 1);
+                    state = space_before_uri_;
                     break;
                 }
-                else if (*ch == ':') {
-                    r->parse_state = port_;
-                    line->host_end = ch;
-                    line->port_start = ch;
 
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else if (*ch == '/') {
-                    r->parse_state = uri_;
-                    line->host_end = ch;
-                    line->uri_start = ch;
-
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-
-                break;
-
-            case port_:
-                if (*ch >= '0' && *ch <= '9') {
-                    ch = buffer_seek_start(buf, 1);
+            case space_before_uri_:
+                if (c == ' ') {
                     break;
                 }
-                else if (*ch == '/') {
-                    r->parse_state = uri_;
-                    line->port_end = ch;
-                    line->uri_start = ch;
-
-                    ch = buffer_seek_start(buf, 1);
+                if (c == '/') {
+                    r->uri_start = p;
+                    state = uri_;
+                    break;
                 }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-
-                break;
+                goto error;
 
             case uri_:
-                if (*ch == ' ') {
-                    r->parse_state = version_;
-
-                    line->uri_static = strrch(ch, '/') + 1;
-                    line->uri_end = ch;
-                    line->version_start = ch + 1;
-
-                    ch = buffer_seek_start(buf, 1);
+                if (c == ' ') {
+                    r->uri_end = p;
+                    state = space_before_version_;
+                    break;
                 }
-                else if (*ch == '#') {
-                    r->parse_state = uri_sharp_;
-                    line->uri_sharp = ch + 1;
+                if (!iscntrl(c)) {
+                    break;
+                }
+                goto error;
 
-                    ch = buffer_seek_start(buf, 1);
+            case space_before_version_:
+                if (c == ' ') {
+                    break;
                 }
-                else if (*ch == '?') {
-                    r->parse_state = uri_dynamic_;
-                    line->uri_dynamic = strrch(ch, '/') + 1;
+                if ((c | 0x20) == 'h') {
+                    state = version_H_;
+                    break;
+                }
+                goto error;
 
-                    ch = buffer_seek_start(buf, 1);
+            case version_H_:
+                if ((c | 0x20) == 't') {
+                    state = version_HT_;
+                    break;
                 }
-                else if (*ch == '.') {
-                    r->parse_state = uri_static_;
-                    line->uri_static = strrch(ch, '/') + 1;
-                    line->uri_suffix_start = ch + 1;
+                goto error;
 
-                    ch = buffer_seek_start(buf, 1);
+            case version_HT_:
+                if ((c | 0x20) == 't') {
+                    state = version_HTT_;
+                    break;
                 }
-                else if (isalnum(*ch) || *ch == '-' || *ch == '.' || *ch == '_' || *ch == '/' || *ch == '~') {
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else if (*ch == '%') {
-                    // 匹配后两个HEX
-                    n = strtwohex(ch + 1);
+                goto error;
 
-                    if (n == 2) {
-                        ch = buffer_seek_start(buf, 3);
-                    }
-                    else if (n >= 0) {
-                        return FCY_AGAIN;
-                    }
-                    else {
-                        r->parse_state = error_;
-                        return FCY_ERROR;
-                    }
+            case version_HTT_:
+                if ((c | 0x20) == 'p') {
+                    state = version_HTTP_;
+                    break;
                 }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
+                goto error;
 
-                break;
-
-            case uri_dynamic_:
-                if (*ch == ' ') {
-                    r->parse_state = version_;
-                    line->uri_end = ch;
-                    line->version_start = ch + 1;
-
-                    ch = buffer_seek_start(buf, 1);
+            case version_HTTP_:
+                if (c == '/') {
+                    state = version_HTTP_slash_;
+                    break;
                 }
-                else if (isalnum(*ch) || *ch == '_' || *ch == '&' || *ch == '=' || *ch == '-' || *ch == '.' || *ch == '/' || *ch == '~') {
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else if (*ch == '%') {
-                    // 匹配后两个HEX
-                    n = strtwohex(ch + 1);
+                goto error;
 
-                    if (n == 2) {
-                        ch = buffer_seek_start(buf, 3);
-                    }
-                    else if (n >= 0) {
-                        return FCY_AGAIN;
-                    }
-                    else {
-                        r->parse_state = error_;
-                        return FCY_ERROR;
-                    }
-                }
-                else if (*ch == '#') {
-                    r->parse_state = uri_sharp_;
-                    line->uri_sharp = ch + 1;
-
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
+            case version_HTTP_slash_:
+                if (c == '1') {
+                    state = version_HTTP_slash_1_;
+                    break;
                 }
 
-                break;
-
-            case uri_static_:
-                if (*ch == ' ') {
-                    r->parse_state = version_;
-                    if (line->uri_suffix_end == NULL) {
-                        line->uri_suffix_end = ch;
-                    }
-                    line->uri_end = ch;
-                    line->version_start = ch + 1;
-
-                    ch = buffer_seek_start(buf, 1);
+            case version_HTTP_slash_1_:
+                if (c == '.') {
+                    state = version_HTTP_slash_1_dot_;
+                    break;
                 }
-                else if (isalnum(*ch) || *ch == '_' || *ch == '.' || *ch == '-' || *ch == '~') {
-                    ch = buffer_seek_start(buf, 1);
+                goto error;
+
+            case version_HTTP_slash_1_dot_:
+                if (c == '0') {
+                    r->version = HTTP_V10;
+                    r->keep_alive = 0;
+                    state = space_after_version_;
+                    break;
                 }
-                else if (*ch == '%') {
-                    // 匹配后两个HEX
-                    n = strtwohex(ch + 1);
-
-                    if (n == 2) {
-                        ch = buffer_seek_start(buf, 3);
-                    }
-                    else if (n >= 0) {
-                        return FCY_AGAIN;
-                    }
-                    else {
-                        r->parse_state = error_;
-                        return FCY_ERROR;
-                    }
+                if (c == '1') {
+                    r->version = HTTP_V11;
+                    r->keep_alive = 1;
+                    state = space_after_version_;
+                    break;
                 }
-                else if (*ch == '#') {
-                    r->parse_state = uri_sharp_;
-                    line->uri_suffix_end = ch - 1;
-                    line->uri_sharp = ch + 1;
+                goto error;
 
-                    ch = buffer_seek_start(buf, 1);
+            case space_after_version_:
+                if (c == ' ') {
+                    break;
                 }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
+                if (c == '\r') {
+                    state = almost_done_;
+                    break;
                 }
+                goto error;
 
-                break;
-
-            case uri_sharp_:
-                if (*ch == ' ') {
-                    r->parse_state = version_;
-                    line->uri_end = ch;
-                    line->version_start = ch + 1;
-
-                    ch = buffer_seek_start(buf, 1);
+            case almost_done_:
+                if (c == '\n') {
+                    buffer_seek_start(header_in, 1);
+                    state = done_;
+                    goto done;
                 }
-                else if (isalnum(*ch) || *ch == '_' || *ch == '.' || *ch == '-' || *ch == '~') {
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else if (*ch == '%') {
-                    // 匹配后两个HEX
-                    n = strtwohex(ch + 1);
-
-                    if (n == 2) {
-                        ch = buffer_seek_start(buf, 3);
-                    }
-                    else if (n >= 0) {
-                        return FCY_AGAIN;
-                    }
-                    else {
-                        r->parse_state = error_;
-                        return FCY_ERROR;
-                    }
-                }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-
-                break;
-
-            case version_:
-                for (i = 0; i < N_VERSION; ++i) {
-                    n = strnequal(ch, version_in_str[i]);
-                    if (n > 0) {
-                        break;
-                    }
-                }
-
-                if (n == version_length) {
-                    r->parse_state = line_done_;
-                    r->version = i;
-                    line->version_end = ch + n - 2;
-
-                    ch = buffer_seek_start(buf, n);
-
-                    return FCY_OK;
-                }
-                else if (n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-            default:
-                r->parse_state = error_;
-                return FCY_ERROR;
-        }
-    }
-
-    return FCY_AGAIN;
-}
-
-int parse_request_headers(request *r)
-{
-    buffer          *buf;
-    request_headers *headers;
-    char            *ch;
-    int             i, n = -1;
-
-    buf = r->header_in;
-    headers = r->headers;
-
-    ch = buffer_read(buf);
-
-    i = r->parse_header_index;
-
-    while (*ch) {
-        switch (r->parse_state) {
-            case line_done_:
-                n = strnequal(ch, "\r\n");
-
-                if (n == 2) {
-                    r->parse_state = method_;
-                    ch = buffer_seek_start(buf, 2);
-                    return FCY_OK;
-                }
-                else if (n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else {
-                    r->parse_state = field_name_;
-                }
-
-                break;
-
-            case field_name_:
-                for (i = 0; i < N_FIELD; ++i) {
-                    n = strnequal(ch, field_in_str[i]);
-                    if (n >= 0) {
-                        break;
-                    }
-                }
-
-                if (n == field_length[i]) {
-                    r->parse_state = field_value_;
-                    r->parse_header_index = i;
-                    /* 设置field_value_start */
-                    *((char **) headers + 2 * i) = ch + n;
-
-                    ch = buffer_seek_start(buf, n);
-                }
-                else if (n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else {  // 返回错误可能是遇到了不认识的header
-                    r->parse_header_index = -1;
-                    r->parse_state = unknown_filed_name_;
-                }
-
-                break;
-
-            case unknown_filed_name_:
-                if (isalpha(*ch) || *ch == '-') {
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else {
-                    n = strnequal(ch, ": ");
-
-                    if (n == 2) {
-                        r->parse_state = field_value_;
-                        ch = buffer_seek_start(buf, 2);
-                    } else if (n >= 0) {
-                        return FCY_AGAIN;
-                    } else {
-                        r->parse_state = FCY_ERROR;
-                        return FCY_ERROR;
-                    }
-                }
-
-                break;
-            case field_value_:
-                n = strnequal(ch, "\r\n");
-                if (n == 2) {
-                    r->parse_state = field_value_sp_;
-
-                    /* 设置field_value_end */
-                    if (i != -1) {
-                        *((char **) headers + 2 * i + 1) = ch;
-                    }
-                    ch = buffer_seek_start(buf, 2);
-                }
-                else if(n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else if (!iscntrl(*ch)) {
-                    ch = buffer_seek_start(buf, 1);
-                }
-                else {
-                    r->parse_state = error_;
-                    return FCY_ERROR;
-                }
-
-                break;
-
-            case field_value_sp_:
-                n = strnequal(ch, "\r\n");
-                if (n == 2) {
-                    r->parse_state = method_;
-                    ch = buffer_seek_start(buf, 2);
-                    return FCY_OK;
-                }
-                else if (n >= 0) {
-                    return FCY_AGAIN;
-                }
-                else {
-                    r->parse_state = field_name_;
-                }
-
-                break;
+                goto error;
 
             default:
-                r->parse_state = error_;
-                return FCY_ERROR;
+                assert(0);
         }
     }
 
-    return FCY_AGAIN;
+    done:
+    r->parse_state = state;
+    return (state == done_ ? FCY_OK : FCY_AGAIN);
+
+    error:
+    r->parse_state = error_;
+    return FCY_ERROR;
 }
 
-static int strnequal(const char *s1, const char *s2)
+static int parse_request_headers(request *r)
 {
-    int count = 0;
-    while (*s1 && *s1 == *s2) {
-        ++s1;
-        ++s2;
-        ++count;
+    char c, *p;
+    buffer *header_in;
+    enum {
+        start_ = 0,
+        name_,
+        space_before_value_,
+        value_,
+        space_after_value_,
+        almost_done_,
+        all_headers_almost_done,
+        all_done_,
+        error_,
+    } state;
+
+    header_in = r->header_in;
+    state = r->parse_state;
+
+    for (p = buffer_read(header_in);
+         !buffer_empty(header_in);
+         p = buffer_seek_start(header_in, 1)) {
+
+        c = *p;
+        switch (state) {
+            case start_:
+                if (c == '\r') {
+                    state = all_headers_almost_done;
+                    break;
+                }
+                if (isalpha(c) || c == '-') {
+                    state = name_;
+                    r->last_header_name_start = p;
+                    break;
+                }
+                goto error;
+
+            case name_:
+                if (isalpha(c) || c == '-') {
+                    break;
+                }
+                if (c == ':') {
+                    state = space_before_value_;
+                    break;
+                }
+                goto error;
+
+            case space_before_value_:
+                if (c == ' ') {
+                    break;
+                }
+                if (!iscntrl(c)) {
+                    r->last_header_value_start = p;
+                    state = value_;
+                    break;
+                }
+                goto error;
+
+            case value_:
+                if (c == '\r' || c == ' ') {
+                    if (strncasecmp(r->last_header_name_start, "Host", 4) == 0) {
+                        r->has_host_header = 1;
+                    }
+                    else if (strncasecmp(r->last_header_name_start, "Connection", 10) == 0) {
+                        if (strncasecmp(r->last_header_value_start, "keep-alive", 10) == 0) {
+                            r->keep_alive = 1;
+                        }
+                        else {
+                            r->keep_alive = 0;
+                        }
+                    }
+                    else if (strncasecmp(r->last_header_name_start, "Content-Length", 14) == 0) {
+                        r->has_content_length_header = 1;
+                        r->cnt_len = strtol(r->last_header_value_start, NULL, 0);
+                    }
+
+                    state = (c == '\r' ? almost_done_ : space_before_value_);
+                    break;
+                }
+                if (!iscntrl(c)) {
+                    break;
+                }
+                goto error;
+
+            case space_after_value_:
+                if (c == ' ') {
+                    break;
+                }
+                if (c == '\r') {
+                    state = almost_done_;
+                    break;
+                }
+                goto error;
+
+            case almost_done_:
+                if (c == '\n') {
+                    state = start_;
+                    break;
+                }
+                goto error;
+
+            case all_headers_almost_done:
+                if (c == '\n') {
+                    buffer_seek_start(header_in, 1);
+                    state = all_done_;
+                    goto done;
+                }
+
+            default:
+                assert(0);
+        }
     }
-    return (*s1 && *s2) ? -1 : count;
+
+    done:
+    r->parse_state = state;
+    return (state == all_done_ ? FCY_OK : FCY_AGAIN);
+
+    error:
+    r->parse_state = error_;
+    return FCY_ERROR;
 }
 
-static int strtwohex(const char *s) {
-    char c1, c2;
-
-    c1 = *s;
-    if (c1 == '\0') {
-        return 0;
-    }
-
-    if (isdigit(c1) || (c1 >= 'A' && c1 <='F')) {
-        c2 = *(s + 1);
-        if (c2 == '\0') {
-            return 1;
-        }
-
-        if (isdigit(c2) || (c2 >= 'A' && c2 <='F')) {
-            return 2;
-        }
-    }
-    return -1;
-}
-
-static char* strrch(char *s, char c)
+static int parse_uri(request *r)
 {
-    while (*s != c) {
-        --s;
+    int     hex1, hex2;
+    char    c, *p, *u, *last_dot = NULL;
+    enum {
+        start_ = 0,
+        after_slash_,
+        quote_,
+        args_,
+        error_,
+    } state;
+
+    state = r->parse_state;
+    u = r->uri;
+
+    /* 注意，此时uri已经读完了，不需要考虑FCY_AGAIN的情况 */
+    for (p = r->uri_start; p < r->uri_end; ++p) {
+
+        c = *p;
+        switch (state) {
+            case start_:
+                if (c == '/') {
+                    u = r->uri = palloc(r->pool, r->uri_end - r->uri_start + 11);
+                    if (r->uri == NULL) {
+                        goto error;
+                    }
+                    *u++ = '/';
+                    state = after_slash_;
+                    break;
+                }
+                goto error;
+
+            case after_slash_:
+                switch (c) {
+                    case '/':
+                        *u++ = '/';
+                        last_dot = NULL;
+                        break;
+                    case '#':
+                        goto done;
+                    case '?':
+                        r->has_args = 1;
+                        *u++ = '?';
+                        state = args_;
+                        break;
+                    case '%':
+                        state = quote_;
+                        break;
+                    case '.':
+                        last_dot = u;
+                        *u++ = '.';
+                        break;
+                    default:
+                        *u++ = c;
+                        break;
+                }
+                break;
+
+            case quote_:
+                if (isdigit(c)) {
+                    hex1 = c - '0';
+                }
+                else {
+                    hex1 = (c | 0x20);
+                    if (hex1 >= 'a' && hex1 <= 'f') {
+                        hex1 = hex1 - 'a' + 10;
+                    }
+                    else {
+                        goto error;
+                    }
+                }
+
+                c = *++p;
+
+                if (isdigit(c)) {
+                    hex2 = c - '0';
+                }
+                else {
+                    hex2 = (c | 0x20);
+                    if (hex2 >= 'a' && hex2 <= 'f') {
+                        hex2 = hex2 - 'a' + 10;
+                    }
+                    else {
+                        goto error;
+                    }
+                }
+
+                *u++ = (char)((hex1 << 4) + hex2);
+                state = after_slash_;
+                break;
+
+            case args_:
+                switch (c) {
+                    case '#':
+                        goto done;
+                    case '/':
+                        goto error;
+                    default:
+                        *u++ = c;
+                        break;
+                }
+                break;
+
+            default:
+                assert(0);
+        }
     }
-    return s;
+
+    done:
+    // 文件后缀
+    if (last_dot) {
+        r->suffix = last_dot + 1;
+    }
+
+        // 访问文件夹, 结尾无'/'
+    if (!last_dot && !r->has_args && *(u - 1) != '/') {
+        strcpy(u, "/index.html");
+        u += 11;
+        r->suffix = u - 4;
+    }
+        // 访问的文件夹但结尾没有'/'
+    else if (*(u - 1) == '/') {
+        strcpy(u, "index.html");
+        u += 10;
+        r->suffix = u - 4;
+    }
+
+    *u = '\0';
+    return FCY_OK;
+
+    error:
+    r->parse_state = error_;
+    return FCY_ERROR;
 }

@@ -60,6 +60,10 @@ void *palloc(mem_pool *pool, size_t size)
     assert(size <= pool->end - (u_char*)pool - offsetof(mem_pool, current));
 
     p = mem_pool_append(pool);
+    if (p == NULL) {
+        return NULL;
+    }
+
     last = p->last;
     p->last += size;
 

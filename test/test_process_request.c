@@ -7,7 +7,36 @@
 #include "request.h"
 
 const static char *dataset[] = {
-        "POST http://www.bing.com/fd/ls/lsp.aspx HTTP/1.0\r\n"
+
+        /* 注意uri路径 */
+        "GET /assets/css/style-nuvue6sithwirecbhvw3dkaobiojqvtadsnhguwi7k04xklybw5djl1smadp.min.css HTTP/1.0\r\n\r\n",
+
+        /* 注意结尾没有'/' */
+        "GET /dir HTTP/1.0\r\n\r\n",
+
+        /* 注意转码 */
+        "GET /hello%20world%20.html HTTP/1.1\r\n"
+                "Host: www.localhost.com:9877\r\n\r\n",
+
+        "GET /a/x.min.js HTTP/1.1\r\n"
+                "Host: www.localhost.com:9877\r\n\r\n",
+
+        "GET /disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.0\r\n"
+                "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
+                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+                "Accept-Language: en-US,en;q=0.5\r\n"
+                "Accept-Encoding: gzip, deflate, br\r\n\r\n",
+
+        "GET /css/common.css HTTP/1.1\r\n"
+                "Host: static.blog.csdn.net\r\n"
+                "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
+                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+                "Accept-Language: en-US,en;q=0.5\r\n"
+                "Accept-Encoding: gzip, deflate\r\n"
+                "Cookie: uuid_tt_dd=3973608807328730451_20160928; __message_sys_msg_id=0; __message_gu_msg_id=0; __message_cnel_msg_id=0; Hm_lvt_6bcd52f51e9b3dce32bec4a3997715ac=1486955517,1486991159,1487159557,1487161187; UN=qq_19450531; UE=\"\"; BT=1487142258000; _ga=GA1.2.1285523080.1484371756; __message_in_school=0; UserName=qq_19450531; UserInfo=AYfNBRq2h3SFG2ys%2ByVm2FcC6%2FJPbJ65COXS6qqcUs%2BKPAqcAzPzkrBTpziPT8nEFN4B4m4BjuKYQAxpSYK3ZQ%3D%3D; UserNick=qq_19450531; AU=450; access-token=09b5f29b-3fe9-4412-94b1-12b60eb95398; __message_district_code=000000; Hm_lpvt_6bcd52f51e9b3dce32bec4a3997715ac=1487161187; dc_tos=olf0wz; dc_session_id=1487161187989\r\n"
+                "Connection: keep-alive\r\n\r\n",
+
+        "GET /fd/ls/lsp.asp HTTP/1.0\r\n"
                 "Host: www.bing.com\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: */*\r\n"
@@ -20,16 +49,7 @@ const static char *dataset[] = {
                 "Connection: keep-alive\r\n\r\n"
                 "<ClientInstRequest><Events><E><T>Event.ClientInst</T><IG>A5D081DE892A44AF9E65916FA16AD054</IG><TS>1487160768092</TS><D><![CDATA[[{\"T\":\"CI.BoxModel\",\"FID\":\"CI\",\"Name\":\"v2.8\",\"SV\":\"4\",\"P\":{\"C\":17,\"N\":8,\"I\":\"2jm\",\"S\":\"C+V\",\"M\":\"V+L+M+MT+E+N+C+K+BD\",\"T\":1215440,\"K\":\"mh8z+mh9v\",\"F\":0},\"V\":\"q119//1////////scroll+q12l//13////////+q133//21////////+q13j//38////////+q140//4f////////+q14g//5o////////+q14y//6t////////+q15e//7x////////+q15u//8w////////+q16b//9u////////+q16r//ao////////+q179//bb////////+q186//c9////////+q193//ci////////\",\"N\":\"@11/p//@5/ls%2Flsp.aspx/xmlhttprequest/v/@6/@11/0/@11/mh90/@12/@12\",\"C\":\"q0io/j////ss/b7/+q0js/////sq/9k/+q0kw/////si/82/+q0pm//mousedown///sd/6t/1+q0s2//mouseup/////0+q0s6//click/////+q0y0//@m///ry/6x/\"}]]]></D></E></Events><STS>1487160768092</STS></ClientInstRequest>",
 
-        "GET http://static.blog.csdn.net/css/common.css HTTP/1.1\r\n"
-                "Host: static.blog.csdn.net\r\n"
-                "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
-                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-                "Accept-Language: en-US,en;q=0.5\r\n"
-                "Accept-Encoding: gzip, deflate\r\n"
-                "Cookie: uuid_tt_dd=3973608807328730451_20160928; __message_sys_msg_id=0; __message_gu_msg_id=0; __message_cnel_msg_id=0; Hm_lvt_6bcd52f51e9b3dce32bec4a3997715ac=1486955517,1486991159,1487159557,1487161187; UN=qq_19450531; UE=\"\"; BT=1487142258000; _ga=GA1.2.1285523080.1484371756; __message_in_school=0; UserName=qq_19450531; UserInfo=AYfNBRq2h3SFG2ys%2ByVm2FcC6%2FJPbJ65COXS6qqcUs%2BKPAqcAzPzkrBTpziPT8nEFN4B4m4BjuKYQAxpSYK3ZQ%3D%3D; UserNick=qq_19450531; AU=450; access-token=09b5f29b-3fe9-4412-94b1-12b60eb95398; __message_district_code=000000; Hm_lpvt_6bcd52f51e9b3dce32bec4a3997715ac=1487161187; dc_tos=olf0wz; dc_session_id=1487161187989\r\n"
-                "Connection: keep-alive\r\n\r\n",
-
-        "GET http://googleads.g.doubleclick.net/pagead/gen_204?id=wfocus&gqid=ZkekWPDuIIXS2QTfyZOoBQ&qqid=CN6I8pOLktICFUY5lgod80MHaw&fg=1 HTTP/1.1\r\n"
+        "GET /pagead/gen_204?id=wfocus&gqid=ZkekWPDuIIXS2QTfyZOoBQ&qqid=CN6I8pOLktICFUY5lgod80MHaw&fg=1 HTTP/1.1\r\n"
                 "Host: googleads.g.doubleclick.net\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: */*\r\n"
@@ -39,7 +59,7 @@ const static char *dataset[] = {
                 "Cookie: id=223919fead0b004d||t=1474440980|et=730|cs=002213fd48c3665071787ac7ac\r\n"
                 "Connection: keep-alive\r\n\r\n",
 
-        "GET http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html#sec9.6 HTTP/1.1\r\n"
+        "GET /Protocols/rfc2616/rfc2616-sec9.html#sec9.6 HTTP/1.1\r\n"
                 "Host: www.w3.org\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
@@ -52,7 +72,7 @@ const static char *dataset[] = {
                 "If-None-Match: \"40d7-3e3073913b100\"\r\n"
                 "Cache-Control: max-age=0\r\n\r\n",
 
-        "GET http://pan.baidu.com/disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
+        "GET /disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
                 "Host: pan.baidu.com\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
@@ -63,51 +83,41 @@ const static char *dataset[] = {
                 "Upgrade-Insecure-Requests: 1\r\n"  /* 忽略不支持的header */
                 "Cache-Control: max-age=0\r\n\r\n",
 
-        /* HTTP1.1必须提供Host */
-        "GET http://pan.baidu.com/disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
+        "GET /disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
                 "Accept-Language: en-US,en;q=0.5\r\n"
                 "Accept-Encoding: gzip, deflate, br\r\n\r\n",
 
-        /* POST必须提供Content-Length */
-        "POST http://pan.baidu.com/disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
+        "GET /disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.1\r\n"
                 "Host: pan.baidu.com\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
                 "Accept-Language: en-US,en;q=0.5\r\n"
                 "Accept-Encoding: gzip, deflate, br\r\n\r\n",
 
-        /* 目前只实现 HEAD GET POST */
-        "PUT http://pan.baidu.com/disk/home?errno=0&errmsg=Auth%20Login%20Sucess&bduss=&ssnerror=0#listpath HTTP/1.0\r\n"
-                "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
-                "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
-                "Accept-Language: en-US,en;q=0.5\r\n"
-                "Accept-Encoding: gzip, deflate, br\r\n\r\n",
-
-        /* Content-Length不合法 */
-        "POST http://www.bing.com/fd/ls/lsp.aspx HTTP/1.1\r\n"
+        "GET /fd/ls/lsp.aspx HTTP/1.1\r\n"
                 "Host: www.bing.com\r\n"
                 "Content-Length: 80400000000000\r\n\r\n",
 
-        "POST http://www.bing.com/fd/ls/lsp.aspx HTTP/1.1\r\n"
+        "GET /fd/ls/lsp.aspx HTTP/1.1\r\n"
                 "Host: www.bing.com\r\n"
                 "Content-Length: -1\r\n\r\n",
 
-        "GET http://static.blog.csdn.net/50x.html HTTP/1.1\r\n"
+        "GET /50x.html HTTP/1.1\r\n"
                 "Host: static.blog.csdn.net\r\n\r\n",
 
-        "GET http://static.blog.csdn.net/index.html HTTP/1.1\r\n"
+        "GET /index.html HTTP/1.1\r\n"
                 "Host: static.blog.csdn.net\r\n\r\n",
 
-        "GET http://www.localhost.com:9877/ HTTP/1.1\r\n"
+        "GET / HTTP/1.1\r\n"
                 "Host: www.localhost.com:9877\r\n"
                 "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:51.0) Gecko/20100101 Firefox/51.0\r\n"
                 "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
                 "Accept-Language: en-US,en;q=0.5\r\n"
                 "Accept-Encoding: gzip, deflate\r\n"
                 "Connection: keep-alive\r\n"
-                "Upgrade-Insecure-Requests: 1\r\n\r\n"
+                "Upgrade-Insecure-Requests: 1\r\n\r\n",
 };
 
 
@@ -147,15 +157,11 @@ static request *create_request(mem_pool *pool)
         return NULL;
     }
 
-    rqst->line = pcalloc(pool, sizeof(*rqst->line));
-    rqst->headers = pcalloc(pool, sizeof(*rqst->headers));
     rqst->header_in = buffer_create(pool, BUFFER_DEFAULT_SIZE);
     rqst->conn = pcalloc(pool, sizeof(*rqst->conn));
+    rqst->pool = mem_pool_create(MEM_POOL_DEFAULT_SIZE);
 
-    if (rqst->line == NULL || rqst->headers == NULL || rqst->conn == NULL) {
-        return NULL;
-    }
-    if (rqst->header_in == NULL) {
+    if (rqst->conn == NULL || rqst->header_in == NULL) {
         return NULL;
     }
 
@@ -166,7 +172,7 @@ static void test_one_request(request *r, const char *data)
 {
     buffer      *in;
     size_t      i, n;
-    int         err;
+    int         err = 0;
 
     in = r->header_in;
     n = strlen(data);
@@ -177,37 +183,21 @@ static void test_one_request(request *r, const char *data)
             return;
         }
 
-        err = parse_request_line(r);
+        err = parse_request(r);
         if (err == FCY_ERROR) {
-            err_quit("parse_request_line error");
-            return;
+            err_quit("parse_request error");
+            exit(1);
         }
-        else if (err == FCY_OK) {
-            break;
-        }
-        /* FCY_AGAIN */
-    }
-
-    for (++i; i < n; ++i) {
-        if (buffer_write(in, &data[i], 1) == -1) {
-            err_quit("buffer_write error");
-            return;
-        }
-
-        err = parse_request_headers(r);
-        if (err == FCY_ERROR) {
-            err_quit("parse_request_headers error");
-            return;
-        }
-        else if (err == FCY_OK) {
+        if (err == FCY_OK) {
             break;
         }
     }
 
+    assert(err == FCY_OK);
 
     err = check_request_header_filed(r);
-    if (err == FCY_OK && r->line->uri_static) {
-        process_request_static(r);
+    if (err == FCY_OK && r->is_static) {
+        err = process_request_static(r);
     }
 
     request_print(r);
