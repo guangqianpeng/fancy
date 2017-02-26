@@ -4,7 +4,8 @@
 
 #include "conn_pool.h"
 
-static int          n_conn;
+int                 n_free_connections;
+
 static connection   *conns;
 static event        *revents;
 static event        *wevents;
@@ -16,19 +17,19 @@ static void event_set_field(event *ev);
 
 int conn_pool_init(mem_pool *p, int size)
 {
-    n_conn = size;
+    n_free_connections = size;
 
     list_init(&conn_list);
 
-    conns = palloc(p, n_conn * sizeof(connection));
-    revents = palloc(p, n_conn * sizeof(event));
-    wevents = palloc(p, n_conn * sizeof(event));
+    conns = palloc(p, size * sizeof(connection));
+    revents = palloc(p, size * sizeof(event));
+    wevents = palloc(p, size * sizeof(event));
 
     if (conns == NULL || revents == NULL || wevents == NULL) {
         return FCY_ERROR;
     }
 
-    for (int i = n_conn - 1; i >= 0; --i) {
+    for (int i = size - 1; i >= 0; --i) {
         conns[i].read = &revents[i];
         conns[i].write = &wevents[i];
         revents[i].conn = wevents[i].conn = &conns[i];
@@ -57,6 +58,7 @@ connection *conn_pool_get()
         return NULL;
     }
 
+    --n_free_connections;
     return conn;
 }
 
@@ -64,13 +66,14 @@ void conn_pool_free(connection *conn)
 {
     conn_free(conn);
     list_insert_head(&conn_list, &conn->node);
+    ++n_free_connections;
 }
 
 static int conn_init(connection *conn)
 {
     conn->pool = mem_pool_create(MEM_POOL_DEFAULT_SIZE);
     if (conn->pool == NULL) {
-        return -1;
+        return FCY_ERROR;
     }
 
     conn->buf = buffer_create(conn->pool, BUFFER_DEFAULT_SIZE);
@@ -86,7 +89,7 @@ static int conn_init(connection *conn)
     event_set_field(conn->read);
     event_set_field(conn->write);
 
-    return 0;
+    return FCY_OK;
 }
 
 static void conn_free(connection *conn)

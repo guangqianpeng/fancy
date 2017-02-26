@@ -7,12 +7,6 @@
 #include "timer.h"
 #include "conn_pool.h"
 
-#define CONN_MAX            128
-#define EVENT_MAX           128
-#define REQUEST_TIMEOUT     5000
-#define SERV_PORT           9877
-
-
 static void sig_handler(int signo);
 static void empty_handler(event *ev);
 static void read_handler(event *ev);
@@ -23,35 +17,6 @@ static void close_connection(connection *conn);
 
 int main()
 {
-    timer_msec  timeout;
-    int         n_ev;
-
-    if (init_server(CONN_MAX, EVENT_MAX) == FCY_ERROR) {
-        err_quit("init_server error");
-    }
-
-    if (add_accept_event(SERV_PORT, accept_handler) == FCY_ERROR) {
-        err_quit("add_accept_event error");
-    }
-
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, sig_handler);
-
-    /* 事件循环 */
-    while (1) {
-
-        timeout = timer_recent();
-
-        n_ev = event_process(timeout);
-
-        if (n_ev == FCY_ERROR) {
-            break;
-        }
-
-        timer_process();
-    }
-
-    err_msg("echo quit normally");
 }
 
 static void sig_handler(int signo)
@@ -92,7 +57,7 @@ static void read_handler(event *ev)
     if (n <= 0) {
         if (n == -1 && errno == EAGAIN) { // 正常返回
             if (!ev->timer_set) {
-                timer_add(ev, REQUEST_TIMEOUT);
+                timer_add(ev, request_timeout);
             }
             return;
         }
@@ -224,7 +189,7 @@ static void accept_handler(event *ev)
         err_quit("event_conn_add error");
     }
 
-    timer_add(conn->read, REQUEST_TIMEOUT);
+    timer_add(conn->read, request_timeout);
 }
 
 static void close_connection(connection *conn)

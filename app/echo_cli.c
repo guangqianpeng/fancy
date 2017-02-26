@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "../event/event.h"
-#include "../event/conn_pool.h"
+#include "event.h"
+#include "conn_pool.h"
 
 int main(int argc, char **argv)
 {

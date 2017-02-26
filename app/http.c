@@ -8,14 +8,8 @@
 #include "request.h"
 #include "app.h"
 
-#define CONN_MAX            256
-#define EVENT_MAX           128
-#define REQUEST_TIMEOUT     20000
-#define SERV_PORT           9877
-
 int total_request = 0;
 
-static void sig_handler(int signo);
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
 static void process_request_handler(event *ev);
@@ -29,43 +23,65 @@ static void close_connection(connection *conn);
 
 int main()
 {
-    timer_msec  timeout;
-    int         n_ev;
+    int     err;
 
-    if (init_server(CONN_MAX, EVENT_MAX) == FCY_ERROR) {
-        logger("init_server error");
+    err = init_server();
+    if (err == FCY_ERROR) {
+        logger("init server error");
         exit(1);
     }
 
-    if (add_accept_event(SERV_PORT, accept_handler) == FCY_ERROR) {
-        logger("add_accept_event error");
-        exit(1);
-    }
-
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, sig_handler);
-
-    logger("listening on port %d", SERV_PORT);
-
-    /* 事件循环 */
-    while (1) {
-
-        timeout = timer_recent();
-
-        n_ev = event_process(timeout);
-
-        if (n_ev == FCY_ERROR) {
-            break;
+    /* 单进程模式 */
+    if (single_process) {
+        err = init_worker(accept_handler);
+        if (err == FCY_ERROR) {
+            logger("init_worker error");
+            exit(1);
         }
 
-        timer_process();
+        logger("single listening port %d", serv_port);
+
+        event_and_timer_process();
+
+        logger("single quit");
+        exit(0);
     }
 
-    logger("server quit normally, total request = %d", total_request);
-}
+    /* 多进程模式 */
+    for (int i = 1; i <= n_workers; ++i) {
+        err = fork();
+        switch (err) {
+            case -1:
+                logger("fork error");
+                exit(1);
 
-static void sig_handler(int signo)
-{
+            case 0:
+                err = init_worker(accept_handler);
+                if (err == FCY_ERROR) {
+                    logger("worker %d init worker error", i);
+                    exit(1);
+                }
+
+                logger("worker %d listening port %d", i, serv_port);
+
+                event_and_timer_process();
+
+                logger("worker %d quit", i);
+                exit(0);
+
+            default:
+                break;
+        }
+    }
+
+    signal(SIGINT, SIG_IGN);
+
+    for (int i = 1; i <= n_workers; ++i) {
+        wait(NULL);
+    }
+
+    logger("master quit");
+    exit(0);
 }
 
 static void accept_handler(event *ev)
@@ -112,7 +128,7 @@ static void accept_handler(event *ev)
         exit(1);
     }
 
-    timer_add(conn->read, REQUEST_TIMEOUT);
+    timer_add(conn->read, request_timeout);
 
     /* 边沿触发必须读到EAGAIN为止 */
     accept_handler(ev);
@@ -173,7 +189,7 @@ static void read_handler(event *ev)
             }
             if (errno == EAGAIN) {
                 if (!ev->timer_set) {
-                    timer_add(ev, REQUEST_TIMEOUT);
+                    timer_add(ev, request_timeout);
                 }
                 return;
             }
@@ -341,7 +357,6 @@ static void write_headers_handler(event *ev)
     else {
         ev->handler = finalize_request_handler;
     }
-
     ev->handler(ev);
 }
 
@@ -393,12 +408,6 @@ static void finalize_request_handler(event *ev)
     conn = ev->conn;
     rqst = conn->app;
     keep_alive = rqst->keep_alive;
-
-    /*
-    if (rqst->parse_state != error_) {
-        request_print(rqst);
-    }
-   */
 
     ++conn->app_count;
 

@@ -8,8 +8,8 @@
 
 #include "event.h"
 
-static int epollfd = -1;
 static int n_events;
+static int epollfd = -1;
 static struct epoll_event *event_list;
 
 int event_init(mem_pool *p, int n_ev)
@@ -147,7 +147,8 @@ int event_process(timer_msec timeout)
         if (errno == EINTR) {
             return FCY_ERROR;
         }
-        err_sys("epoll_wait error");
+        logger("epoll_wait error: %s", strerror(errno));
+        return FCY_ERROR;
     }
     else if (n_ev == 0) {
         /* 超时 */
