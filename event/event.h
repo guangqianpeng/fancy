@@ -16,6 +16,8 @@ typedef struct event        event;
 typedef struct connection   connection;
 typedef void (*event_handler)(event *);
 
+timer_msec current_msec();
+
 struct event {
     unsigned        read;       // 应用层(http)可读, 例如一个完整的请求抵达
     unsigned        write;      // 应用层可写

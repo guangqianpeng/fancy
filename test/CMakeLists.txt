@@ -1,5 +1,7 @@
 add_compile_options(-Wall -Werror)
 
+set(CMAKE_C_FLAGS -pg)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/html)
 
 set(ERROR ../base/error.h ../base/error.c ../base/base.h)
@@ -36,5 +38,5 @@ add_executable(echo_cli ../app/echo_cli.c ${EVENT})
 add_executable(test_process_request test_process_request.c ${PROCESS})
 
 add_executable(http ../app/http.c ../app/app.c ${REQUEST})
-target_link_libraries(http pthread)
 
+target_link_libraries(http pthread)

@@ -34,6 +34,7 @@ void logger_client(struct sockaddr_in *addr, const char *fmt, ...)
 {
     va_list     ap;
 
+    // TODO:
     printf("%s %s:%hu ",  timestamp(), inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 
     va_start(ap, fmt);

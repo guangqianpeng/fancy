@@ -10,8 +10,6 @@
 static rbtree      timer;
 static rbtree_node sentinel;
 
-static timer_msec current_msec();
-
 void timer_init()
 {
     rbtree_init(&timer, &sentinel);
@@ -86,7 +84,7 @@ void timer_process()
     }
 }
 
-static timer_msec current_msec()
+timer_msec current_msec()
 {
     struct timeval now;
 

@@ -30,8 +30,6 @@ static int unlock_accept_mutex();
 static int tcp_listen(int serv_port);
 static int init_and_add_accept_event(event_handler accept_handler);
 
-static void sig_handler(int signo);
-
 /* master运行 */
 int init_server()
 {
@@ -85,7 +83,6 @@ int init_worker(event_handler accept_handler)
         return FCY_ERROR;
     }
 
-    signal(SIGINT, sig_handler);
     signal(SIGPIPE, SIG_IGN);
 
     return FCY_OK;
@@ -119,8 +116,10 @@ void event_and_timer_process()
         }
 
         n_ev = event_process(timeout);
+
         if (n_ev == FCY_ERROR) {
-            break;
+            logger("event_process error");
+            return;
         }
 
         if (accept_mutex_held) {
@@ -131,7 +130,6 @@ void event_and_timer_process()
         }
 
         timer_process();
-
         timeout = timer_recent();
     }
 }
@@ -209,7 +207,7 @@ static int tcp_listen(int serv_port)
     int                 listenfd;
     struct sockaddr_in  servaddr;
     socklen_t           addrlen;
-    const int           sockopt;
+    const int           sockopt = 1;
     int                 err;
 
     listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
@@ -264,8 +262,4 @@ int init_and_add_accept_event(event_handler accept_handler)
 
     accept_event = conn->read;
     return FCY_OK;
-}
-
-static void sig_handler(int signo)
-{
 }

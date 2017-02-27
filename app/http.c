@@ -10,6 +10,7 @@
 
 int total_request = 0;
 
+static void sig_handler(int signo);
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
 static void process_request_handler(event *ev);
@@ -30,6 +31,8 @@ int main()
         logger("init server error");
         exit(1);
     }
+
+    signal(SIGINT, sig_handler);
 
     /* 单进程模式 */
     if (single_process) {
@@ -74,14 +77,19 @@ int main()
         }
     }
 
-    signal(SIGINT, SIG_IGN);
-
     for (int i = 1; i <= n_workers; ++i) {
         wait(NULL);
     }
 
     logger("master quit");
     exit(0);
+}
+
+static void sig_handler(int signo)
+{
+    ssize_t x = write(STDERR_FILENO, "process quit", 12);
+    (void) x;
+    exit(1);
 }
 
 static void accept_handler(event *ev)
@@ -225,6 +233,7 @@ static void read_handler(event *ev)
             return;
 
         case FCY_OK:
+            assert(buffer_empty(header_in));
             break;
 
         default:
@@ -232,6 +241,8 @@ static void read_handler(event *ev)
     }
 
     /* 解析完毕 */
+
+
     if (ev->timer_set) {
         timer_del(ev);
     }
@@ -346,6 +357,7 @@ static void write_headers_handler(event *ev)
                     return;
                 default:
                     logger_client(&conn->addr,"write error: %s", strerror(errno));
+                    exit(1);
             }
         }
         buffer_seek_start(header_out, (int) n);
@@ -357,6 +369,7 @@ static void write_headers_handler(event *ev)
     else {
         ev->handler = finalize_request_handler;
     }
+
     ev->handler(ev);
 }
 
@@ -414,6 +427,7 @@ static void finalize_request_handler(event *ev)
     logger_client(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
 
     request_destroy(rqst);
+
     if (!keep_alive) {
         close_connection(conn);
         return;
