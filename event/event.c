@@ -33,7 +33,7 @@ int event_init(mem_pool *p, int n_ev)
     return FCY_OK;
 }
 
-int event_add(event *ev)
+int event_add(event *ev, int flag)
 {
     int                 op;
     connection          *conn;
@@ -46,7 +46,7 @@ int event_add(event *ev)
 
     /* 加入的事件为读事件 */
     if (conn->read == ev) {
-        e_event.events = EPOLLIN | EPOLLET |EPOLLRDHUP;
+        e_event.events = EPOLLIN | flag;
 
         /* connection已经被监控 */
         if (conn->write->active) {
@@ -59,11 +59,11 @@ int event_add(event *ev)
     }
         /* 加入的事件为写事件 */
     else if (conn->write == ev) {
-        e_event.events = EPOLLOUT | EPOLLET;
+        e_event.events = EPOLLOUT | flag;
 
         /* connection已经被监控 */
         if (conn->read->active) {
-            e_event.events |= EPOLLIN | EPOLLRDHUP;
+            e_event.events |= EPOLLIN;
             op = EPOLL_CTL_MOD;
         }
         else {
@@ -76,7 +76,8 @@ int event_add(event *ev)
     }
 
     if (epoll_ctl(epollfd, op, conn->fd, &e_event) == -1) {
-        err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
+        err_msg("%d", conn->fd);
+        err_sys("%s error at line %d", __FUNCTION__, __LINE__);
         return FCY_ERROR;
     }
 
@@ -85,7 +86,7 @@ int event_add(event *ev)
     return FCY_OK;
 }
 
-int event_del(event *ev)
+int event_del(event *ev, int flag)
 {
     int                 op;
     connection          *conn;
@@ -98,7 +99,7 @@ int event_del(event *ev)
 
     if (conn->read == ev) {
         if (conn->write->active) {
-            e_event.events = EPOLLOUT | EPOLLET;
+            e_event.events = EPOLLOUT | flag;
             op = EPOLL_CTL_MOD;
         }
         else {
@@ -108,7 +109,7 @@ int event_del(event *ev)
     }
     else if (conn->write == ev) {
         if (conn->read->active) {
-            e_event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+            e_event.events = EPOLLIN | flag;
             op = EPOLL_CTL_MOD;
         }
         else {

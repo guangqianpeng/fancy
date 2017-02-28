@@ -49,8 +49,9 @@ struct connection {
 };
 
 int event_init(mem_pool *p, int n_ev);  // n_events是epoll返回的最大事件数目
-int event_add(event *ev);
-int event_del(event *ev);
+int event_add(event *ev, int flag);
+int event_del(event *ev, int flag);
+int event_mod(event *ev, int flag);
 int event_conn_add(connection *conn);
 int event_conn_del(connection *conn);
 

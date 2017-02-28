@@ -2,6 +2,7 @@
 // Created by frank on 17-2-19.
 //
 
+#include <sys/epoll.h>
 #include "app.h"
 #include "conn_pool.h"
 #include "timer.h"
@@ -11,9 +12,9 @@ int n_events            = 128;
 int request_timeout     = 10000;
 int serv_port           = 9877;
 int use_accept_mutex    = 0;
-int accept_dealy        = 200;
-int single_process      = 1;
-int n_workers           = 0;
+int accept_dealy        = 10;
+int single_process      = 0;
+int n_workers           = 4;
 
 static pthread_mutex_t  *accept_mutex;
 static int              listenfd;
@@ -22,6 +23,7 @@ extern int              n_free_connections;
 static int              accept_mutex_held = 0;
 static int              disable_accept = 0;
 static event            *accept_event;
+static int              listenfd;
 
 static int init_accept_mutex();
 static int trylock_accept_mutex();
@@ -138,7 +140,7 @@ static int init_accept_mutex()
 {
     pthread_mutexattr_t     attr;
 
-    accept_mutex = mmap(NULL, sizeof(*accept_mutex), PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
+    accept_mutex = mmap(NULL, sizeof(*accept_mutex), PROT_READ | PROT_WRITE, MAP_ANONYMOUS |MAP_SHARED, -1, 0);
     if (accept_mutex == MAP_FAILED) {
         logger("mmap error %s", strerror(errno));
         return FCY_ERROR;
@@ -166,7 +168,10 @@ static int trylock_accept_mutex()
 
     err = pthread_mutex_trylock(accept_mutex);
     if (err == 0) {
-        if (event_add(accept_event) == FCY_ERROR) {
+
+        /* accept采用水平触发 */
+        accept_event->conn->fd = listenfd;
+        if (event_add(accept_event, EPOLLERR) == FCY_ERROR) {
             return FCY_ERROR;
         }
 
@@ -192,7 +197,7 @@ static int unlock_accept_mutex()
         return FCY_ERROR;
     }
 
-    err = event_del(accept_event);
+    err = event_del(accept_event, 0);
     if (err == FCY_ERROR) {
         return FCY_ERROR;
     }
@@ -255,9 +260,12 @@ int init_and_add_accept_event(event_handler accept_handler)
     conn->fd = listenfd;
     conn->read->handler = accept_handler;
 
-    if (event_add(conn->read) == FCY_ERROR) {
-        conn_pool_free(conn);
-        return FCY_ERROR;
+    /* 若不使用accept mutex，则每个worker监听端口 */
+    if (!use_accept_mutex) {
+        if (event_add(conn->read, EPOLLERR) == FCY_ERROR) {
+            conn_pool_free(conn);
+            return FCY_ERROR;
+        }
     }
 
     accept_event = conn->read;

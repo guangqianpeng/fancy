@@ -9,8 +9,9 @@
 #include "app.h"
 
 int total_request = 0;
+int worker_id = 0;
 
-static void sig_handler(int signo);
+static void sig_empty_handler(int signo);
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
 static void process_request_handler(event *ev);
@@ -32,10 +33,9 @@ int main()
         exit(1);
     }
 
-    signal(SIGINT, sig_handler);
-
     /* 单进程模式 */
     if (single_process) {
+
         err = init_worker(accept_handler);
         if (err == FCY_ERROR) {
             logger("init_worker error");
@@ -59,6 +59,8 @@ int main()
                 exit(1);
 
             case 0:
+                worker_id = i;
+
                 err = init_worker(accept_handler);
                 if (err == FCY_ERROR) {
                     logger("worker %d init worker error", i);
@@ -69,7 +71,7 @@ int main()
 
                 event_and_timer_process();
 
-                logger("worker %d quit", i);
+                /* never reach here */
                 exit(0);
 
             default:
@@ -77,19 +79,30 @@ int main()
         }
     }
 
+    signal(SIGINT, sig_empty_handler);
+
     for (int i = 1; i <= n_workers; ++i) {
-        wait(NULL);
+        inter:
+        switch (wait(NULL)) {
+            case -1:
+                if (errno == EINTR) {
+                    goto inter;
+                }
+                else {
+                    logger("master wait error %s", strerror(errno));
+                }
+            default:
+                logger("master get a worker quit");
+                break;
+        }
     }
 
-    logger("master quit");
+    err_msg("master quit normally");
     exit(0);
 }
 
-static void sig_handler(int signo)
+static void sig_empty_handler(int signo)
 {
-    ssize_t x = write(STDERR_FILENO, "process quit", 12);
-    (void) x;
-    exit(1);
 }
 
 static void accept_handler(event *ev)
@@ -124,13 +137,7 @@ static void accept_handler(event *ev)
         }
     }
 
-    const int nodelay = 1;
-    err = setsockopt(connfd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(int));
-    if (err == -1) {
-        err_sys("sockopt error");
-    }
-
-    logger_client(addr, "new connection");
+    logger_client(addr, "worker %d new connection", worker_id);
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -144,8 +151,7 @@ static void accept_handler(event *ev)
 
     timer_add(conn->read, request_timeout);
 
-    /* 边沿触发必须读到EAGAIN为止 */
-    accept_handler(ev);
+    /* accept事件为水平触发，因此不必重复调用 */
 }
 
 static void read_handler(event *ev)
