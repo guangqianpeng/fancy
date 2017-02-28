@@ -27,6 +27,7 @@ int parse_request(request *r)
             continue;
         }
 
+        i = 0;
         return err;
     }
 

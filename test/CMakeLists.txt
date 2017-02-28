@@ -1,6 +1,6 @@
 add_compile_options(-Wall -Werror)
 
-set(CMAKE_C_FLAGS -pg)
+# set(CMAKE_C_FLAGS -pg)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/html)
 

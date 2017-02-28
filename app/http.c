@@ -124,6 +124,12 @@ static void accept_handler(event *ev)
         }
     }
 
+    const int nodelay = 1;
+    err = setsockopt(connfd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(int));
+    if (err == -1) {
+        err_sys("sockopt error");
+    }
+
     logger_client(addr, "new connection");
 
     conn->fd = connfd;

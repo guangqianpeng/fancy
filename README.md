@@ -2,6 +2,8 @@
 
 Fancy is an event-driven(epoll) high-performance Web server. The principle is similar to Nginx and can be viewed as a simplified version of Nginx. Fancy is being developed and currently only supports GET method and static page access.
 
+[开发笔记（一）：TCP的Nagle算法与Delay ACK](problems_encountered.html)
+
 ## 介绍
 
 Fancy是一个基于事件驱动(epoll)的高性能Web服务器。其原理与Nginx类似，可以看作简化版Nginx. Fancy正在开发，目前仅支持GET方法和静态页面访问。Fancy的特性如下：

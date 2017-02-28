@@ -141,10 +141,7 @@ int event_process(timer_msec timeout)
     connection  *conn;
     struct epoll_event *e_event;
 
-    timer_msec t = current_msec();
     n_ev = epoll_wait(epollfd, event_list, n_events, timeout);
-    t = current_msec() - t;
-    printf("n_ev = %d, epoll_wait: %ldms\n", n_ev, t);
 
     if (n_ev == -1) {
         if (errno == EINTR) {
@@ -196,7 +193,7 @@ int event_conn_add(connection *conn)
     struct epoll_event e_event;
 
     e_event.data.ptr = conn;
-    e_event.events = EPOLLIN | EPOLLOUT | EPOLLET |EPOLLRDHUP;
+    e_event.events = EPOLLPRI | EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
 
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event) == -1) {
         err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
