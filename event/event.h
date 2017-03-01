@@ -38,7 +38,6 @@ struct connection {
     event               *write;
 
     void                *app;   // http, echo
-    int                 app_count;
 
     struct sockaddr_in  addr;
 

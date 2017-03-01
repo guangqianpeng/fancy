@@ -13,8 +13,8 @@ int request_timeout     = 10000;
 int serv_port           = 9877;
 int use_accept_mutex    = 0;
 int accept_dealy        = 10;
-int single_process      = 0;
-int n_workers           = 4;
+int single_process      = 1;
+int n_workers           = 0;
 
 static pthread_mutex_t  *accept_mutex;
 static int              listenfd;
@@ -84,8 +84,6 @@ int init_worker(event_handler accept_handler)
         logger("add_aceept_event error");
         return FCY_ERROR;
     }
-
-    signal(SIGPIPE, SIG_IGN);
 
     return FCY_OK;
 }

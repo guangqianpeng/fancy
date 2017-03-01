@@ -8,10 +8,17 @@
 #include "request.h"
 #include "app.h"
 
-int total_request = 0;
-int worker_id = 0;
+static int localfd[2];
+
+static struct Msg {
+    int worker_id;
+    int total_connection;
+    int total_request;
+    int ok_request;
+} msg;
 
 static void sig_empty_handler(int signo);
+static void sig_quit_handler(int signo);
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
 static void process_request_handler(event *ev);
@@ -51,6 +58,12 @@ int main()
     }
 
     /* 多进程模式 */
+    err = socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, localfd);
+    if (err == -1) {
+        logger("socketpair error", strerror(errno));
+        exit(1);
+    }
+
     for (int i = 1; i <= n_workers; ++i) {
         err = fork();
         switch (err) {
@@ -59,7 +72,16 @@ int main()
                 exit(1);
 
             case 0:
-                worker_id = i;
+
+                msg.worker_id = i;
+
+                if (close(localfd[0]) == -1 ) {
+                    logger("worker %d close error %s", i, strerror(errno));
+                    exit(1);
+                }
+
+                signal(SIGPIPE, SIG_IGN);
+                signal(SIGINT, sig_quit_handler);
 
                 err = init_worker(accept_handler);
                 if (err == FCY_ERROR) {
@@ -72,6 +94,7 @@ int main()
                 event_and_timer_process();
 
                 /* never reach here */
+                assert(1);
                 exit(0);
 
             default:
@@ -81,23 +104,60 @@ int main()
 
     signal(SIGINT, sig_empty_handler);
 
+    if (close(localfd[1]) == -1) {
+        logger("master close error %s", strerror(errno));
+        exit(1);
+    }
+
     for (int i = 1; i <= n_workers; ++i) {
-        inter:
+        inter_wait:
         switch (wait(NULL)) {
             case -1:
                 if (errno == EINTR) {
-                    goto inter;
+                    goto inter_wait;
                 }
                 else {
                     logger("master wait error %s", strerror(errno));
+                    exit(1);
                 }
+
             default:
-                logger("master get a worker quit");
+                logger("master get a worker, now reading...");
+
+            inter_read:
+                if (read(localfd[0], &msg, sizeof(msg)) == -1) {
+                    if (errno == EINTR) {
+                        goto inter_read;
+                    }
+                    else if (err == EAGAIN) {
+                        logger("master got bad worker");
+                    }
+                    else {
+                        logger("master read error", strerror(errno));
+                        exit(1);
+                    }
+                }
+
+                logger("worker %d quit: "
+                               "connection=%d\tok_request=%d\tother_request=%d",
+                msg.worker_id, msg.total_connection, msg.ok_request, msg.total_request - msg.ok_request);
+
                 break;
         }
     }
 
     err_msg("master quit normally");
+    exit(0);
+}
+
+static void sig_quit_handler(int signo) {
+    ssize_t err;
+
+    err = write(localfd[1], &msg, sizeof(msg));
+    if (err != sizeof(msg)) {
+        write(STDERR_FILENO, "worker %d write failed\n", 23);
+    }
+
     exit(0);
 }
 
@@ -137,7 +197,7 @@ static void accept_handler(event *ev)
         }
     }
 
-    logger_client(addr, "worker %d new connection", worker_id);
+    logger_client(addr, "worker %d new connection", msg.worker_id);
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -151,7 +211,7 @@ static void accept_handler(event *ev)
 
     timer_add(conn->read, request_timeout);
 
-    /* accept事件为水平触发，因此不必重复调用 */
+    ++msg.total_connection;
 }
 
 static void read_handler(event *ev)
@@ -186,6 +246,8 @@ static void read_handler(event *ev)
             logger("request_create error");
             exit(1);
         }
+
+        ++msg.total_request;
     }
 
     header_in = rqst->header_in;
@@ -220,6 +282,7 @@ static void read_handler(event *ev)
 
             /* fall through */
         case 0:
+
             /* 对端在没有发送完整请求的情况下关闭连接 */
             logger_client(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
             request_destroy(rqst);
@@ -434,9 +497,11 @@ static void finalize_request_handler(event *ev)
     rqst = conn->app;
     keep_alive = rqst->keep_alive;
 
-    ++conn->app_count;
-
     logger_client(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
+
+    if (rqst->status_code == HTTP_R_OK) {
+        ++msg.ok_request;
+    }
 
     request_destroy(rqst);
 
@@ -461,8 +526,6 @@ static void close_connection(connection *conn)
 
     fd = conn->fd;
 
-    total_request += conn->app_count;
-
     if (event_conn_del(conn) == -1) {
         logger_client(&conn->addr,"event_conn_del error");
         exit(1);
@@ -479,5 +542,5 @@ static void close_connection(connection *conn)
 
     conn_pool_free(conn);
 
-    logger_client(&conn->addr,"close connection, %d request solved", conn->app_count);
+    logger_client(&conn->addr," %d worker close connection", msg.worker_id);
 }
