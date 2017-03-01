@@ -4,7 +4,7 @@ add_compile_options(-Wall -Werror)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/html)
 
-set(ERROR ../base/error.h ../base/error.c ../base/base.h)
+set(ERROR ../base/error.h ../base/error.c ../base/Signal.c ../base/base.h)
 set(PALLOC ../base/palloc.h ../base/palloc.c ${ERROR})
 set(BUFFER ../base/buffer.h ../base/buffer.c ${ERROR} ${PALLOC})
 set(ARRAY ../base/array.h ../base/array.c ${PALLOC} ${ERROR})

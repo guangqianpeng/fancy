@@ -3,6 +3,7 @@
 //
 
 #include "base.h"
+#include "Signal.h"
 #include "timer.h"
 #include "conn_pool.h"
 #include "request.h"
@@ -10,15 +11,16 @@
 
 static int localfd[2];
 
-static struct Msg {
+static struct {
     int worker_id;
     int total_connection;
     int total_request;
     int ok_request;
-} msg;
+} msg, total;
 
 static void sig_empty_handler(int signo);
 static void sig_quit_handler(int signo);
+
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
 static void process_request_handler(event *ev);
@@ -51,6 +53,8 @@ int main()
 
         logger("single listening port %d", serv_port);
 
+        Signal(SIGINT, sig_quit_handler);
+
         event_and_timer_process();
 
         logger("single quit");
@@ -80,9 +84,6 @@ int main()
                     exit(1);
                 }
 
-                signal(SIGPIPE, SIG_IGN);
-                signal(SIGINT, sig_quit_handler);
-
                 err = init_worker(accept_handler);
                 if (err == FCY_ERROR) {
                     logger("worker %d init worker error", i);
@@ -91,18 +92,21 @@ int main()
 
                 logger("worker %d listening port %d", i, serv_port);
 
+                Signal(SIGPIPE, SIG_IGN);
+                Signal(SIGINT, sig_quit_handler);
+
                 event_and_timer_process();
 
                 /* never reach here */
                 assert(1);
-                exit(0);
+                exit(1);
 
             default:
                 break;
         }
     }
 
-    signal(SIGINT, sig_empty_handler);
+    Signal(SIGINT, sig_empty_handler);
 
     if (close(localfd[1]) == -1) {
         logger("master close error %s", strerror(errno));
@@ -122,10 +126,8 @@ int main()
                 }
 
             default:
-                logger("master get a worker, now reading...");
-
             inter_read:
-                if (read(localfd[0], &msg, sizeof(msg)) == -1) {
+                if (read(localfd[0], &msg, sizeof(msg)) != sizeof(msg)) {
                     if (errno == EINTR) {
                         goto inter_read;
                     }
@@ -138,15 +140,21 @@ int main()
                     }
                 }
 
-                logger("worker %d quit: "
-                               "connection=%d\tok_request=%d\tother_request=%d",
+                total.total_connection += msg.total_connection;
+                total.total_request += msg.total_request;
+                total.ok_request += msg.ok_request;
+
+                logger("worker %d quit:"
+                               "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
                 msg.worker_id, msg.total_connection, msg.ok_request, msg.total_request - msg.ok_request);
 
                 break;
         }
     }
 
-    err_msg("master quit normally");
+    logger("master quit normally:"
+                    "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
+            total.total_connection, total.ok_request, total.total_request - total.ok_request);
     exit(0);
 }
 
@@ -155,7 +163,8 @@ static void sig_quit_handler(int signo) {
 
     err = write(localfd[1], &msg, sizeof(msg));
     if (err != sizeof(msg)) {
-        write(STDERR_FILENO, "worker %d write failed\n", 23);
+        err = write(STDERR_FILENO, "worker write failed\n", 20);
+        (void)err;
     }
 
     exit(0);
@@ -175,7 +184,7 @@ static void accept_handler(event *ev)
 
     conn = conn_pool_get();
     if (conn == NULL) {
-        logger("not enough free connections");
+        logger("worker %d not enough free connections", msg.worker_id);
         return;
     }
 
@@ -192,7 +201,7 @@ static void accept_handler(event *ev)
                 conn_pool_free(conn);
                 return;
             default:
-                logger("accept4 error: ", strerror(errno));
+                logger("worker %d accept4 error: %s", msg.worker_id, strerror(errno));
                 exit(1);
         }
     }
@@ -205,7 +214,7 @@ static void accept_handler(event *ev)
 
     err = event_conn_add(conn);
     if (err == -1) {
-        logger("event_conn_add error");
+        logger("worker %d event_conn_add error", msg.worker_id);
         exit(1);
     }
 
@@ -233,7 +242,7 @@ static void read_handler(event *ev)
             request_destroy(rqst);
         }
 
-        logger_client(&conn->addr, "timeout");
+        logger_client(&conn->addr, "worker %d timeout", msg.worker_id);
         close_connection(conn);
         return;
     }
@@ -243,11 +252,9 @@ static void read_handler(event *ev)
 
         rqst = conn->app = request_create(conn);
         if (rqst == NULL) {
-            logger("request_create error");
+            logger("worker %d request_create error", msg.worker_id);
             exit(1);
         }
-
-        ++msg.total_request;
     }
 
     header_in = rqst->header_in;
@@ -301,6 +308,7 @@ static void read_handler(event *ev)
         case FCY_ERROR:
             logger_client(&conn->addr, "parse_request error %s", rqst->request_start);
             rqst->status_code = HTTP_R_BAD_REQUEST;
+
             goto error;
 
         case FCY_AGAIN:
@@ -308,6 +316,7 @@ static void read_handler(event *ev)
             return;
 
         case FCY_OK:
+
             assert(buffer_empty(header_in));
             break;
 
@@ -316,7 +325,6 @@ static void read_handler(event *ev)
     }
 
     /* 解析完毕 */
-
 
     if (ev->timer_set) {
         timer_del(ev);
@@ -431,7 +439,7 @@ static void write_headers_handler(event *ev)
                     close_connection(conn);
                     return;
                 default:
-                    logger_client(&conn->addr,"write error: %s", strerror(errno));
+                    logger_client(&conn->addr, "write error: %s", strerror(errno));
                     exit(1);
             }
         }
@@ -499,6 +507,7 @@ static void finalize_request_handler(event *ev)
 
     logger_client(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
 
+    ++msg.total_request;
     if (rqst->status_code == HTTP_R_OK) {
         ++msg.ok_request;
     }
@@ -512,6 +521,7 @@ static void finalize_request_handler(event *ev)
 
     ev->handler = empty_handler;
     conn->read->handler = read_handler;
+    /* TODO: 此处到底需不需要 */
     read_handler(conn->read);
     return;
 }

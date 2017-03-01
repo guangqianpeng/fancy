@@ -8,6 +8,9 @@
 
 #include "event.h"
 
+list        event_accept_post;
+list        event_other_post;
+
 static int n_events;
 static int epollfd = -1;
 static struct epoll_event *event_list;
@@ -27,6 +30,9 @@ int event_init(mem_pool *p, int n_ev)
         err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
         return FCY_ERROR;
     }
+
+    list_init(&event_accept_post);
+    list_init(&event_other_post);
 
     n_events = n_ev;
 
@@ -114,7 +120,7 @@ int event_del(event *ev, int flag)
         }
         else {
             e_event.events = 0;
-            op = EPOLL_CTL_ADD;
+            op = EPOLL_CTL_DEL;
         }
     }
     else {
@@ -135,7 +141,7 @@ int event_del(event *ev, int flag)
     return FCY_OK;
 }
 
-int event_process(timer_msec timeout)
+int event_process(timer_msec timeout, int post_events)
 {
     int         n_ev, events;
     event       *revent, *wevent;
@@ -169,22 +175,51 @@ int event_process(timer_msec timeout)
 
         revent = conn->read;
         if (revent->active && (events & EPOLLIN)) {
-            revent->handler(revent);
+            if (post_events) {
+                if (revent->accept) {
+                    list_insert_head(&event_accept_post, &revent->l_node);
+                }
+                else {
+                    list_insert_head(&event_other_post, &revent->l_node);
+                }
+            }
+            else {
+                revent->handler(revent);
+            }
         }
 
         wevent = conn->write;
         if (wevent->active && (events & EPOLLOUT)) {
             // TODO: 忽略过期事件
-
             if (conn->fd == -1) {
                 continue;
             }
 
-            wevent->handler(revent);
+            if (post_events) {
+                list_insert_head(&event_other_post, &wevent->l_node);
+            }
+            else {
+                wevent->handler(revent);
+            }
         }
     }
 
     return n_ev;
+}
+
+void event_process_posted(list *events)
+{
+    list_node   *x;
+    event       *ev;
+
+    while (!list_empty(events)) {
+        x = list_head(events);
+
+        ev = link_data(x, event, l_node);
+        ev->handler(ev);
+
+        list_remove(x);
+    }
 }
 
 int event_conn_add(connection *conn)

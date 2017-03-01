@@ -11,10 +11,10 @@ int n_connections       = 256;
 int n_events            = 128;
 int request_timeout     = 10000;
 int serv_port           = 9877;
-int use_accept_mutex    = 0;
-int accept_dealy        = 10;
-int single_process      = 1;
-int n_workers           = 0;
+int use_accept_mutex    = 1;
+int accept_dealy        = 0;
+int single_process      = 0;
+int n_workers           = 4;
 
 static pthread_mutex_t  *accept_mutex;
 static int              listenfd;
@@ -61,7 +61,7 @@ int init_worker(event_handler accept_handler)
     mem_pool    *pool;
     size_t      size;
 
-    size = n_connections * sizeof (connection) + sizeof(mem_pool);
+    size = n_connections * sizeof (connection)+ 2 * n_events * sizeof (event) + sizeof(mem_pool);
     pool = mem_pool_create(size);
 
     if (pool == NULL){
@@ -107,26 +107,35 @@ void event_and_timer_process()
                 }
                 // 没抢到锁
                 if (!accept_mutex_held) {
-                    timeout = (timer_msec)accept_dealy;
+                    if (timeout > accept_dealy) {
+                        timeout = (timer_msec)accept_dealy;
+                    }
                 }
                 else {
+                    // TODO
                     disable_accept = n_connections / 8 - n_free_connections;
                 }
             }
         }
 
-        n_ev = event_process(timeout);
-
+        n_ev = event_process(timeout, accept_mutex_held);
         if (n_ev == FCY_ERROR) {
             logger("event_process error");
             return;
         }
 
         if (accept_mutex_held) {
+
+            /* 下面的执行顺序充分压缩了accept mutex的临界区 */
+
+            event_process_posted(&event_accept_post);
+
             if (unlock_accept_mutex() == FCY_ERROR) {
                 logger("unlock_accept_mutex error");
                 return;
             }
+
+            event_process_posted(&event_other_post);
         }
 
         timer_process();
@@ -267,5 +276,6 @@ int init_and_add_accept_event(event_handler accept_handler)
     }
 
     accept_event = conn->read;
+    accept_event->accept = 1;
     return FCY_OK;
 }
