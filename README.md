@@ -28,6 +28,6 @@ Fancy暂时不考虑动态内容访问的功能。
 
 IDE：CLion
 
-主函数在test/http.c中，默认端口9877。请把Web Pages直接放在working directory中。
+主函数在app/http.c中，默认端口9877。请把Web Pages直接放在working directory中。
 
 链接：https://github.com/guangqianpeng/Fancy/
