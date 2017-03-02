@@ -21,14 +21,14 @@ int event_init(mem_pool *p, int n_ev)
 
     event_list = palloc(p, n_ev * sizeof(struct epoll_event));
     if (event_list == NULL) {
-        err_msg("%s error at line %d\n", __FUNCTION__, __LINE__);
+        error_log("%s error at line %d\n", __FUNCTION__, __LINE__);
         return FCY_ERROR;
     }
 
     epollfd = epoll_create1(0);
     if (epollfd == -1) {
-        err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
+        error_log("%s error at line %d\n", __FUNCTION__, __LINE__);
+        exit(1);
     }
 
     list_init(&event_accept_post);
@@ -82,8 +82,7 @@ int event_add(event *ev, int flag)
     }
 
     if (epoll_ctl(epollfd, op, conn->fd, &e_event) == -1) {
-        err_msg("%d", conn->fd);
-        err_sys("%s error at line %d", __FUNCTION__, __LINE__);
+        error_log("%s error at line %d", __FUNCTION__, __LINE__);
         return FCY_ERROR;
     }
 
@@ -152,10 +151,10 @@ int event_process(timer_msec timeout, int post_events)
 
     if (n_ev == -1) {
         if (errno == EINTR) {
-            logger("epoll_wait EINTR");
+            error_log("epoll_wait EINTR");
             return 0;
         }
-        logger("epoll_wait error: %s", strerror(errno));
+        error_log("epoll_wait error: %s", strerror(errno));
         return FCY_ERROR;
     }
     else if (n_ev == 0) {

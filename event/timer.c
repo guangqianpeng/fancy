@@ -60,7 +60,7 @@ timer_msec timer_recent()
     return 0;
 }
 
-void timer_process()
+void timer_expired_process()
 {
     timer_msec      current;
     event           *ev;

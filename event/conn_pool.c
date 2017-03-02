@@ -83,6 +83,7 @@ static int conn_init(connection *conn)
 
     conn->fd = -1;
     conn->app = NULL;
+    conn->app_count = 0;
     bzero(&conn->addr, sizeof(conn->addr));
 
     event_set_field(conn->read);

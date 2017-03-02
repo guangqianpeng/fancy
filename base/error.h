@@ -7,8 +7,10 @@
 
 #include "base.h"
 
-void    logger(const char *fmt, ...);
-void    logger_client(struct sockaddr_in *addr, const char *fmt, ...);
+void    error_log(const char *fmt, ...);
+void    access_log(struct sockaddr_in *addr, const char *fmt, ...);
+
+/* debug */
 void	err_dump(const char *, ...);
 void	err_msg(const char *, ...);
 void	err_quit(const char *, ...);

@@ -50,6 +50,7 @@ request *request_create(connection *c)
 
     assert(c->app == NULL);  /* 同一时刻只允许一个app占用connection */
     c->app = r;
+    ++c->app_count;
 
     /* 打开TCP_CORK选项 */
     set_cork(c, 1);
@@ -94,6 +95,6 @@ static void set_cork(connection *conn, int open)
 
     err = setsockopt(conn->fd, IPPROTO_TCP, TCP_CORK, &open, sizeof(open));
     if (err == -1) {
-        logger_client(&conn->addr, "setsockopt error %s", strerror(errno));
+        access_log(&conn->addr, "setsockopt error %s", strerror(errno));
     }
 }

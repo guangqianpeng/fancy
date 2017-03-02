@@ -8,13 +8,15 @@
 #include "timer.h"
 
 int n_connections       = 256;
-int n_events            = 128;
-int request_timeout     = 10000;
+int n_events            = 256;
+int request_per_conn    = 256;
+int request_timeout     = 5000;
 int serv_port           = 9877;
-int use_accept_mutex    = 1;
-int accept_dealy        = 0;
 int single_process      = 0;
 int n_workers           = 4;
+int use_accept_mutex    = 0;
+int accept_dealy        = 20;
+
 
 static pthread_mutex_t  *accept_mutex;
 static int              listenfd;
@@ -46,7 +48,7 @@ int init_server()
     if (use_accept_mutex) {
         err = init_accept_mutex();
         if (err == FCY_ERROR) {
-            logger("init_accept_mutex error");
+            error_log("init_accept_mutex error");
             return FCY_ERROR;
         }
     }
@@ -81,7 +83,7 @@ int init_worker(event_handler accept_handler)
     timer_init();
 
     if (init_and_add_accept_event(accept_handler) == FCY_ERROR) {
-        logger("add_aceept_event error");
+        error_log("add_aceept_event error");
         return FCY_ERROR;
     }
 
@@ -98,21 +100,19 @@ void event_and_timer_process()
         if (use_accept_mutex) {
             if (disable_accept > 0) {
                 --disable_accept;
-            }
-            else {
+            } else {
                 // 抢锁并监听accept事件
                 if (trylock_accept_mutex() == FCY_ERROR) {
-                    logger("trylock_accept_mutex error");
+                    error_log("trylock_accept_mutex error");
                     return;
                 }
+
                 // 没抢到锁
                 if (!accept_mutex_held) {
-                    if (timeout > accept_dealy) {
-                        timeout = (timer_msec)accept_dealy;
+                    if (timeout == (timer_msec) -1 || timeout > accept_dealy) {
+                        timeout = (timer_msec) accept_dealy;
                     }
-                }
-                else {
-                    // TODO
+                } else {
                     disable_accept = n_connections / 8 - n_free_connections;
                 }
             }
@@ -120,25 +120,24 @@ void event_and_timer_process()
 
         n_ev = event_process(timeout, accept_mutex_held);
         if (n_ev == FCY_ERROR) {
-            logger("event_process error");
+            error_log("event_process error");
             return;
         }
 
+        event_process_posted(&event_accept_post);
+
         if (accept_mutex_held) {
-
-            /* 下面的执行顺序充分压缩了accept mutex的临界区 */
-
-            event_process_posted(&event_accept_post);
-
             if (unlock_accept_mutex() == FCY_ERROR) {
-                logger("unlock_accept_mutex error");
+                error_log("unlock_accept_mutex error");
                 return;
             }
-
-            event_process_posted(&event_other_post);
         }
 
-        timer_process();
+        timer_expired_process();
+
+        event_process_posted(&event_other_post);
+
+
         timeout = timer_recent();
     }
 }
@@ -149,7 +148,7 @@ static int init_accept_mutex()
 
     accept_mutex = mmap(NULL, sizeof(*accept_mutex), PROT_READ | PROT_WRITE, MAP_ANONYMOUS |MAP_SHARED, -1, 0);
     if (accept_mutex == MAP_FAILED) {
-        logger("mmap error %s", strerror(errno));
+        error_log("mmap error %s", strerror(errno));
         return FCY_ERROR;
     }
 
@@ -213,7 +212,6 @@ static int unlock_accept_mutex()
     return FCY_OK;
 }
 
-
 static int tcp_listen(int serv_port)
 {
     int                 listenfd;
@@ -224,13 +222,13 @@ static int tcp_listen(int serv_port)
 
     listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (listenfd == -1) {
-        logger("socket error %s", strerror(errno));
+        error_log("socket error %s", strerror(errno));
         return FCY_ERROR;
     }
 
     err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
     if (err == -1) {
-        logger("setsockopt error %s", strerror(errno));
+        error_log("setsockopt error %s", strerror(errno));
         return FCY_ERROR;
     }
 
@@ -242,13 +240,13 @@ static int tcp_listen(int serv_port)
     addrlen = sizeof(servaddr);
     err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
     if (err == -1) {
-        logger("bind error %s", strerror(errno));
+        error_log("bind error %s", strerror(errno));
         return FCY_ERROR;
     }
 
     err = listen(listenfd, 1024);
     if (err == -1) {
-        logger("listen error %s", strerror(errno));
+        error_log("listen error %s", strerror(errno));
         return FCY_ERROR;
     }
 

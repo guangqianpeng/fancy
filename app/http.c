@@ -38,7 +38,7 @@ int main()
 
     err = init_server();
     if (err == FCY_ERROR) {
-        logger("init server error");
+        error_log("init server error");
         exit(1);
     }
 
@@ -47,24 +47,24 @@ int main()
 
         err = init_worker(accept_handler);
         if (err == FCY_ERROR) {
-            logger("init_worker error");
+            error_log("init_worker error");
             exit(1);
         }
 
-        logger("single listening port %d", serv_port);
+        error_log("single listening port %d", serv_port);
 
         Signal(SIGINT, sig_quit_handler);
 
         event_and_timer_process();
 
-        logger("single quit");
+        error_log("single quit");
         exit(0);
     }
 
     /* 多进程模式 */
     err = socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, localfd);
     if (err == -1) {
-        logger("socketpair error", strerror(errno));
+        error_log("socketpair error", strerror(errno));
         exit(1);
     }
 
@@ -72,7 +72,7 @@ int main()
         err = fork();
         switch (err) {
             case -1:
-                logger("fork error");
+                error_log("fork error");
                 exit(1);
 
             case 0:
@@ -80,17 +80,17 @@ int main()
                 msg.worker_id = i;
 
                 if (close(localfd[0]) == -1 ) {
-                    logger("worker %d close error %s", i, strerror(errno));
+                    error_log("worker %d close error %s", i, strerror(errno));
                     exit(1);
                 }
 
                 err = init_worker(accept_handler);
                 if (err == FCY_ERROR) {
-                    logger("worker %d init worker error", i);
+                    error_log("worker %d init worker error", i);
                     exit(1);
                 }
 
-                logger("worker %d listening port %d", i, serv_port);
+                error_log("worker %d listening port %d", i, serv_port);
 
                 Signal(SIGPIPE, SIG_IGN);
                 Signal(SIGINT, sig_quit_handler);
@@ -109,7 +109,7 @@ int main()
     Signal(SIGINT, sig_empty_handler);
 
     if (close(localfd[1]) == -1) {
-        logger("master close error %s", strerror(errno));
+        error_log("master close error %s", strerror(errno));
         exit(1);
     }
 
@@ -121,7 +121,7 @@ int main()
                     goto inter_wait;
                 }
                 else {
-                    logger("master wait error %s", strerror(errno));
+                    error_log("master wait error %s", strerror(errno));
                     exit(1);
                 }
 
@@ -132,10 +132,10 @@ int main()
                         goto inter_read;
                     }
                     else if (err == EAGAIN) {
-                        logger("master got bad worker");
+                        error_log("master got bad worker");
                     }
                     else {
-                        logger("master read error", strerror(errno));
+                        error_log("master read error", strerror(errno));
                         exit(1);
                     }
                 }
@@ -144,17 +144,17 @@ int main()
                 total.total_request += msg.total_request;
                 total.ok_request += msg.ok_request;
 
-                logger("worker %d quit:"
-                               "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
-                msg.worker_id, msg.total_connection, msg.ok_request, msg.total_request - msg.ok_request);
+                error_log("worker %d quit:"
+                                  "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
+                          msg.worker_id, msg.total_connection, msg.ok_request, msg.total_request - msg.ok_request);
 
                 break;
         }
     }
 
-    logger("master quit normally:"
-                    "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
-            total.total_connection, total.ok_request, total.total_request - total.ok_request);
+    error_log("master quit normally:"
+                      "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
+              total.total_connection, total.ok_request, total.total_request - total.ok_request);
     exit(0);
 }
 
@@ -184,7 +184,7 @@ static void accept_handler(event *ev)
 
     conn = conn_pool_get();
     if (conn == NULL) {
-        logger("worker %d not enough free connections", msg.worker_id);
+        error_log("worker %d not enough free connections", msg.worker_id);
         return;
     }
 
@@ -201,12 +201,12 @@ static void accept_handler(event *ev)
                 conn_pool_free(conn);
                 return;
             default:
-                logger("worker %d accept4 error: %s", msg.worker_id, strerror(errno));
+                error_log("worker %d accept4 error: %s", msg.worker_id, strerror(errno));
                 exit(1);
         }
     }
 
-    logger_client(addr, "worker %d new connection", msg.worker_id);
+    access_log(addr, "worker %d new connection", msg.worker_id);
 
     conn->fd = connfd;
     conn->read->handler = read_handler;
@@ -214,7 +214,7 @@ static void accept_handler(event *ev)
 
     err = event_conn_add(conn);
     if (err == -1) {
-        logger("worker %d event_conn_add error", msg.worker_id);
+        error_log("worker %d event_conn_add error", msg.worker_id);
         exit(1);
     }
 
@@ -242,7 +242,7 @@ static void read_handler(event *ev)
             request_destroy(rqst);
         }
 
-        logger_client(&conn->addr, "worker %d timeout", msg.worker_id);
+        access_log(&conn->addr, "worker %d timeout", msg.worker_id);
         close_connection(conn);
         return;
     }
@@ -252,7 +252,7 @@ static void read_handler(event *ev)
 
         rqst = conn->app = request_create(conn);
         if (rqst == NULL) {
-            logger("worker %d request_create error", msg.worker_id);
+            error_log("worker %d request_create error", msg.worker_id);
             exit(1);
         }
     }
@@ -283,7 +283,7 @@ static void read_handler(event *ev)
                 return;
             }
             if (errno != ECONNRESET) {
-                logger_client(&conn->addr, "read error");
+                access_log(&conn->addr, "read error");
                 exit(1);
             }
 
@@ -291,7 +291,7 @@ static void read_handler(event *ev)
         case 0:
 
             /* 对端在没有发送完整请求的情况下关闭连接 */
-            logger_client(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
+            access_log(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
             request_destroy(rqst);
             close_connection(conn);
             return;
@@ -306,7 +306,7 @@ static void read_handler(event *ev)
     err = parse_request(rqst);
     switch (err) {
         case FCY_ERROR:
-            logger_client(&conn->addr, "parse_request error %s", rqst->request_start);
+            access_log(&conn->addr, "parse_request error %s", rqst->request_start);
             rqst->status_code = HTTP_R_BAD_REQUEST;
 
             goto error;
@@ -330,7 +330,12 @@ static void read_handler(event *ev)
         timer_del(ev);
     }
 
-    logger_client(&conn->addr, "request %s", rqst->uri);
+    if (conn->app_count >= request_per_conn) {
+        access_log(&conn->addr, "worker %d too many requests", msg.worker_id);
+        rqst->keep_alive = 0;
+    }
+
+    access_log(&conn->addr, "request %s", rqst->uri);
     ev->handler = process_request_handler;
     process_request_handler(ev);
     return;
@@ -435,11 +440,11 @@ static void write_headers_handler(event *ev)
                 case EPIPE:
                 case ECONNRESET:
                     request_destroy(rqst);
-                    logger_client(&conn->addr, "send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                    access_log(&conn->addr, "send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
-                    logger_client(&conn->addr, "write error: %s", strerror(errno));
+                    access_log(&conn->addr, "write error: %s", strerror(errno));
                     exit(1);
             }
         }
@@ -480,11 +485,11 @@ static void write_body_handler(event *ev)
                 case ECONNRESET:
                     request_destroy(rqst);
 
-                    logger_client(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                    access_log(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
                     close_connection(conn);
                     return;
                 default:
-                    logger_client(&conn->addr, "sendfile error %s", strerror(errno));
+                    access_log(&conn->addr, "sendfile error %s", strerror(errno));
                     exit(1);
             }
         }
@@ -505,7 +510,7 @@ static void finalize_request_handler(event *ev)
     rqst = conn->app;
     keep_alive = rqst->keep_alive;
 
-    logger_client(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
+    access_log(&conn->addr, "%s %s", rqst->uri, status_code_out_str[rqst->status_code]);
 
     ++msg.total_request;
     if (rqst->status_code == HTTP_R_OK) {
@@ -514,13 +519,14 @@ static void finalize_request_handler(event *ev)
 
     request_destroy(rqst);
 
-    if (!keep_alive) {
+    if (!keep_alive || conn->app_count >= request_per_conn) {
         close_connection(conn);
         return;
     }
 
     ev->handler = empty_handler;
     conn->read->handler = read_handler;
+
     /* TODO: 此处到底需不需要 */
     read_handler(conn->read);
     return;
@@ -537,7 +543,7 @@ static void close_connection(connection *conn)
     fd = conn->fd;
 
     if (event_conn_del(conn) == -1) {
-        logger_client(&conn->addr,"event_conn_del error");
+        access_log(&conn->addr, "event_conn_del error");
         exit(1);
     }
 
@@ -546,11 +552,11 @@ static void close_connection(connection *conn)
     }
 
     if (close(fd) == -1) {
-        logger_client(&conn->addr, "close error");
+        access_log(&conn->addr, "close error");
         exit(1);
     }
 
     conn_pool_free(conn);
 
-    logger_client(&conn->addr," %d worker close connection", msg.worker_id);
+    access_log(&conn->addr, " %d worker close connection", msg.worker_id);
 }

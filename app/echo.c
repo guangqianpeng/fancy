@@ -158,7 +158,7 @@ static void accept_handler(event *ev)
 
     conn = conn_pool_get();
     if (conn == NULL) {
-        err_msg("%s error at line %d: not enough free connections", __FUNCTION__, __LINE__);
+        error_log("%s error at line %d: not enough free connections", __FUNCTION__, __LINE__);
         return;
     }
 

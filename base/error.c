@@ -15,34 +15,30 @@ static void	err_doit(int, int, const char *, va_list);
 
 static char *timestamp();
 
-void logger(const char *fmt, ...)
+void error_log(const char *fmt, ...)
 {
     va_list     ap;
 
-    printf("%s ",  timestamp());
+    dprintf(STDERR_FILENO, "%s ",  timestamp());
 
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    vdprintf(STDERR_FILENO, fmt, ap);
     va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
-    return;
+    dprintf(STDERR_FILENO, "\n");
 }
 
-void logger_client(struct sockaddr_in *addr, const char *fmt, ...)
+void access_log(struct sockaddr_in *addr, const char *fmt, ...)
 {
     va_list     ap;
 
-    // TODO:
-    printf("%s %s:%hu ",  timestamp(), inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
+    dprintf(STDOUT_FILENO, "%s %s:%hu ",  timestamp(), inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
 
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    vdprintf(STDOUT_FILENO, fmt, ap);
     va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+    dprintf(STDOUT_FILENO, "\n");
     return;
 }
 

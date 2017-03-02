@@ -17,7 +17,6 @@ mem_pool *mem_pool_create(size_t size)
 
     val = posix_memalign((void**)&pool, MEM_POOL_ALIGNMENT, size);
     if (val == -1 || pool == NULL) {
-        err_msg("%s error at line %d", __FUNCTION__, __LINE__);
         return NULL;
     }
 
@@ -90,7 +89,6 @@ static mem_pool *mem_pool_append(mem_pool *pool)
     size = pool->end - (u_char*)pool;
     new = malloc(size);
     if (new == NULL) {
-        err_msg("%s error at line %d", __FUNCTION__, __LINE__);
         return NULL;
     }
 
