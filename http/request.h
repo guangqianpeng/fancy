@@ -81,6 +81,7 @@ struct request {
 
 request *request_create(connection *c);
 void request_destroy(request *r);
+void request_reset(request *r); /* avoid destroy */
 void request_print(request *r); /* debug */
 
 int parse_request(request *r);

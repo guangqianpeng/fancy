@@ -37,7 +37,7 @@
 #define FCY_ERROR   -1
 #define FCY_AGAIN   EAGAIN
 
-#define link_data(node, type, member)                                         \
+#define link_data(node, type, member) \
     (type*)((u_char*)node - offsetof(type, member))
 
 #endif //FANCY_BASE_H

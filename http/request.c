@@ -31,7 +31,7 @@ request *request_create(connection *c)
         return NULL;
     }
 
-    r = pcalloc(p, sizeof(*r));
+    r = pcalloc(p, sizeof(request));
     if (r == NULL) {
         mem_pool_destroy(p);
         return NULL;
@@ -56,6 +56,34 @@ request *request_create(connection *c)
     set_cork(c, 1);
 
     return r;
+}
+
+void request_reset(request *r)
+{
+    set_cork(r->conn, 0);
+    set_cork(r->conn, 1);
+
+    if (r->send_fd > 0) {
+        close(r->send_fd);
+    }
+
+    buffer *header_in = r->header_in;
+    buffer *header_out = r->header_out;
+
+    buffer_reset(header_in);
+    buffer_reset(header_out);
+
+    connection *conn = r->conn;
+    ++conn->app_count;
+
+    mem_pool *pool = r->pool;
+
+    bzero(r, sizeof(request));
+
+    r->header_in = header_in;
+    r->header_out = header_out;
+    r->conn = conn;
+    r->pool = pool;
 }
 
 void request_destroy(request *r)

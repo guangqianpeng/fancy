@@ -7,14 +7,15 @@
 #include "conn_pool.h"
 #include "timer.h"
 
+/* TODO: 可配置参数 */
 int n_connections       = 256;
 int n_events            = 256;
 int request_per_conn    = 256;
 int request_timeout     = 5000;
 int serv_port           = 9877;
-int single_process      = 0;
+int single_process      = 1;
 int n_workers           = 4;
-int use_accept_mutex    = 0;
+int use_accept_mutex    = 1;
 int accept_dealy        = 20;
 
 
@@ -136,7 +137,6 @@ void event_and_timer_process()
         timer_expired_process();
 
         event_process_posted(&event_other_post);
-
 
         timeout = timer_recent();
     }

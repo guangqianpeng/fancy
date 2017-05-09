@@ -40,3 +40,5 @@ add_executable(test_process_request test_process_request.c ${PROCESS})
 add_executable(http ../app/http.c ../app/app.c ${REQUEST})
 
 target_link_libraries(http pthread)
+
+set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS} -pg)

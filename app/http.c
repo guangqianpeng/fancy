@@ -517,7 +517,7 @@ static void finalize_request_handler(event *ev)
         ++msg.ok_request;
     }
 
-    request_destroy(rqst);
+    request_reset(rqst);
 
     if (!keep_alive || conn->app_count >= request_per_conn) {
         close_connection(conn);
@@ -558,5 +558,5 @@ static void close_connection(connection *conn)
 
     conn_pool_free(conn);
 
-    access_log(&conn->addr, " %d worker close connection", msg.worker_id);
+    access_log(&conn->addr, "worker %d close connection", msg.worker_id);
 }

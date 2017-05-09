@@ -72,6 +72,10 @@ void *palloc(mem_pool *pool, size_t size)
 void *pcalloc(mem_pool *pool, size_t size)
 {
     u_char *last = palloc(pool, size);
+    if (last == NULL) {
+        return NULL;
+    }
+
     bzero(last, size);
     return last;
 }
