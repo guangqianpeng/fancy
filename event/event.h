@@ -39,8 +39,8 @@ struct event {
 
 struct connection {
     int                 fd;
-    event               *read;
-    event               *write;
+    event               read;
+    event               write;
 
     void                *app;   // http, echo
     int                 app_count;
@@ -54,16 +54,22 @@ struct connection {
 };
 
 int event_init(mem_pool *p, int n_ev);  // n_events是epoll返回的最大事件数目
-int event_add(event *ev, int flag);
-int event_del(event *ev, int flag);
-int event_mod(event *ev, int flag);
-int event_conn_add(connection *conn);
-int event_conn_del(connection *conn);
+
+/* do not use
+ * int event_add(event *ev, int flag);
+ * int event_del(event *ev, int flag);
+ */
+
+int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag);
+int conn_disable_read(connection *conn, uint32_t epoll_flag);
+
+int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag);
+int conn_disable_write(connection *conn, uint32_t epoll_flag);
 
 /* -1   被信号中断
  * 0    超时(没有处理任何事件)
  * >0   处理掉事件数 */
-int event_process(timer_msec timeout, int post_events);
+int event_process(timer_msec timeout);
 
 void event_process_posted(list *events);
 #endif //FANCY_EVENT_H

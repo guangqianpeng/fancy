@@ -8,6 +8,8 @@
 
 #include "event.h"
 
+
+
 list        event_accept_post;
 list        event_other_post;
 
@@ -39,115 +41,14 @@ int event_init(mem_pool *p, int n_ev)
     return FCY_OK;
 }
 
-int event_add(event *ev, int flag)
-{
-    int                 op;
-    connection          *conn;
-    struct epoll_event  e_event;
-
-    assert(!ev->active);
-
-    conn = ev->conn;
-    e_event.data.ptr = conn;
-
-    /* 加入的事件为读事件 */
-    if (conn->read == ev) {
-        e_event.events = EPOLLIN | flag;
-
-        /* connection已经被监控 */
-        if (conn->write->active) {
-            e_event.events |= EPOLLOUT;
-            op = EPOLL_CTL_MOD;
-        }
-        else {
-            op = EPOLL_CTL_ADD;
-        }
-    }
-        /* 加入的事件为写事件 */
-    else if (conn->write == ev) {
-        e_event.events = EPOLLOUT | flag;
-
-        /* connection已经被监控 */
-        if (conn->read->active) {
-            e_event.events |= EPOLLIN;
-            op = EPOLL_CTL_MOD;
-        }
-        else {
-            op = EPOLL_CTL_ADD;
-        }
-    }
-    else {
-        err_quit("%s error at line %d\n", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
-    }
-
-    if (epoll_ctl(epollfd, op, conn->fd, &e_event) == -1) {
-        error_log("%s error at line %d", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
-    }
-
-    ev->active = 1;
-
-    return FCY_OK;
-}
-
-int event_del(event *ev, int flag)
-{
-    int                 op;
-    connection          *conn;
-    struct epoll_event  e_event;
-
-    assert(ev->active);
-
-    conn = ev->conn;
-    e_event.data.ptr = conn;
-
-    if (conn->read == ev) {
-        if (conn->write->active) {
-            e_event.events = EPOLLOUT | flag;
-            op = EPOLL_CTL_MOD;
-        }
-        else {
-            e_event.events = 0;
-            op = EPOLL_CTL_DEL;
-        }
-    }
-    else if (conn->write == ev) {
-        if (conn->read->active) {
-            e_event.events = EPOLLIN | flag;
-            op = EPOLL_CTL_MOD;
-        }
-        else {
-            e_event.events = 0;
-            op = EPOLL_CTL_DEL;
-        }
-    }
-    else {
-        err_quit("%s error at line %d\n", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
-    }
-
-    if (epoll_ctl(epollfd, op, conn->fd, &e_event) == -1) {
-        err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
-    }
-
-    if (op == EPOLL_CTL_DEL) {
-        conn->fd = -1;
-    }
-    ev->active = 0;
-
-    return FCY_OK;
-}
-
-int event_process(timer_msec timeout, int post_events)
+int event_process(timer_msec timeout)
 {
     int         n_ev, events;
     event       *revent, *wevent;
     connection  *conn;
     struct epoll_event *e_event;
 
-    n_ev = epoll_wait(epollfd, event_list, n_events, timeout);
+    n_ev = epoll_wait(epollfd, event_list, n_events, (int)timeout);
 
     if (n_ev == -1) {
         if (errno == EINTR) {
@@ -172,87 +73,104 @@ int event_process(timer_msec timeout, int post_events)
             events |= EPOLLIN | EPOLLOUT ;
         }
 
-        revent = conn->read;
+        revent = &conn->read;
         if (revent->active && (events & EPOLLIN)) {
-            if (post_events) {
-                if (revent->accept) {
-                    list_insert_head(&event_accept_post, &revent->l_node);
-                }
-                else {
-                    list_insert_head(&event_other_post, &revent->l_node);
-                }
-            }
-            else {
-                revent->handler(revent);
-            }
+            revent->handler(revent);
         }
 
-        wevent = conn->write;
+        wevent = &conn->write;
         if (wevent->active && (events & EPOLLOUT)) {
-            // TODO: 忽略过期事件
+            // 忽略过期事件
             if (conn->fd == -1) {
                 continue;
             }
-
-            if (post_events) {
-                list_insert_head(&event_other_post, &wevent->l_node);
-            }
-            else {
-                wevent->handler(revent);
-            }
+            wevent->handler(revent);
         }
     }
 
     return n_ev;
 }
 
-void event_process_posted(list *events)
+int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag)
 {
-    list_node   *x;
-    event       *ev;
+    assert(!conn->read->active);
 
-    while (!list_empty(events)) {
-        x = list_head(events);
+    struct epoll_event e_event = {
+            .data.ptr = conn,
+            .events = epoll_flag | EPOLLIN | EPOLLRDHUP | EPOLLPRI
+    };
 
-        ev = link_data(x, event, l_node);
-        ev->handler(ev);
-
-        list_remove(x);
+    // conn->fd has already registered
+    if (conn->write.active) {
+        e_event.events |=  EPOLLOUT;
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
     }
-}
-
-int event_conn_add(connection *conn)
-{
-    assert(!conn->read->active && !conn->write->active);
-
-    struct epoll_event e_event;
-
-    e_event.data.ptr = conn;
-    e_event.events = EPOLLPRI | EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-
-    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event) == -1) {
-        err_sys("%s error at line %d\n", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
+    else {
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
     }
-
-    conn->read->active = 1;
-    conn->write->active = 1;
-
+    conn->read.active = 1;
+    conn->read.handler = handler;
     return FCY_OK;
 }
 
-int event_conn_del(connection *conn)
+int conn_disable_read(connection *conn, uint32_t epoll_flag)
 {
-    assert(conn->read->active || conn->write->active);
+    assert(conn->read->active);
 
-    if (epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL) == -1) {
-        err_sys("%s error at line %d", __FUNCTION__, __LINE__);
-        return FCY_ERROR;
+    if (conn->write.active) {
+
+        struct epoll_event e_event = {
+                .data.ptr = conn,
+                .events = epoll_flag | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
+        };
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+    }
+    else {
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
     }
 
-    conn->fd = -1; // 过期
-    conn->read->active = 0;
-    conn->write->active = 0;
+    conn->read.active = 0;
+    return FCY_OK;
+}
 
+int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag)
+{
+    assert(!conn->write->active);
+
+    struct epoll_event e_event = {
+            .data.ptr = conn,
+            .events = epoll_flag | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
+    };
+
+    // conn->fd has already registered
+    if (conn->read.active) {
+        e_event.events |= EPOLLIN;
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+    }
+    else {
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
+    }
+
+    conn->write.active = 1;
+    conn->write.handler = handler;
+    return FCY_OK;
+}
+
+int conn_disable_write(connection *conn, uint32_t epoll_flag)
+{
+    assert(conn->write.active);
+
+    if (conn->read.active) {
+        struct epoll_event e_event = {
+                .data.ptr = conn,
+                .events = epoll_flag | EPOLLIN | EPOLLRDHUP | EPOLLPRI
+        };
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+    }
+    else {
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
+    }
+
+    conn->write.active = 0;
     return FCY_OK;
 }

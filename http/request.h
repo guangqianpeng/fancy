@@ -35,7 +35,8 @@
 #define HTTP_V11            1
 
 #define HTTP_POOL_SIZE      MEM_POOL_DEFAULT_SIZE
-#define HTTP_HEADER_SIZE    BUFFER_DEFAULT_SIZE
+#define HTTP_REQUEST_SIZE   BUFFER_DEFAULT_SIZE
+#define HTTP_RESPONSE_SIZE  BUFFER_DEFAULT_SIZE
 
 extern const char *status_code_out_str[];
 

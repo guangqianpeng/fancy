@@ -4,6 +4,8 @@ add_compile_options(-Wall -Werror)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/html)
 
+
+
 set(ERROR ../base/error.h ../base/error.c ../base/Signal.c ../base/base.h)
 set(PALLOC ../base/palloc.h ../base/palloc.c ${ERROR})
 set(BUFFER ../base/buffer.h ../base/buffer.c ${ERROR} ${PALLOC})
@@ -31,7 +33,7 @@ add_executable(test_array test_array.c ${ARRAY})
 
 add_executable(test_list test_list.c ${LIST})
 
-add_executable(echo ../app/echo.c ../app/app.c ${EVENT})
+add_executable(echo ../app/app.c ${EVENT})
 
 add_executable(echo_cli ../app/echo_cli.c ${EVENT})
 

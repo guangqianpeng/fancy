@@ -8,56 +8,16 @@
 #include "timer.h"
 
 /* TODO: 可配置参数 */
-int n_connections       = 256;
-int n_events            = 256;
-int request_per_conn    = 256;
+int n_connections       = 10240;
+int n_events            = 512;
+int request_per_conn    = 1024;
 int request_timeout     = 5000;
 int serv_port           = 9877;
 int single_process      = 1;
-int n_workers           = 4;
-int use_accept_mutex    = 1;
-int accept_dealy        = 20;
+int n_workers           = 3;
 
-
-static pthread_mutex_t  *accept_mutex;
-static int              listenfd;
-
-extern int              n_free_connections;
-static int              accept_mutex_held = 0;
-static int              disable_accept = 0;
-static event            *accept_event;
-static int              listenfd;
-
-static int init_accept_mutex();
-static int trylock_accept_mutex();
-static int unlock_accept_mutex();
-
-static int tcp_listen(int serv_port);
-static int init_and_add_accept_event(event_handler accept_handler);
-
-/* master运行 */
-int init_server()
-{
-    int         err;
-
-    /* 初始化所有参数 */
-    n_free_connections = n_connections;
-    // ...初始化其他参数
-    // ...
-
-
-    if (use_accept_mutex) {
-        err = init_accept_mutex();
-        if (err == FCY_ERROR) {
-            error_log("init_accept_mutex error");
-            return FCY_ERROR;
-        }
-    }
-
-    listenfd = tcp_listen(serv_port);
-
-    return (listenfd == FCY_ERROR ? FCY_ERROR : FCY_OK);
-}
+static int tcp_listen();
+static int init_and_add_accept_event(event_handler accept_handler_);
 
 int init_worker(event_handler accept_handler)
 {
@@ -98,139 +58,34 @@ void event_and_timer_process()
 
     while (1) {
 
-        if (use_accept_mutex) {
-            if (disable_accept > 0) {
-                --disable_accept;
-            } else {
-                // 抢锁并监听accept事件
-                if (trylock_accept_mutex() == FCY_ERROR) {
-                    error_log("trylock_accept_mutex error");
-                    return;
-                }
-
-                // 没抢到锁
-                if (!accept_mutex_held) {
-                    if (timeout == (timer_msec) -1 || timeout > accept_dealy) {
-                        timeout = (timer_msec) accept_dealy;
-                    }
-                } else {
-                    disable_accept = n_connections / 8 - n_free_connections;
-                }
-            }
-        }
-
-        n_ev = event_process(timeout, accept_mutex_held);
+        n_ev = event_process(timeout);
         if (n_ev == FCY_ERROR) {
             error_log("event_process error");
             return;
         }
 
-        event_process_posted(&event_accept_post);
-
-        if (accept_mutex_held) {
-            if (unlock_accept_mutex() == FCY_ERROR) {
-                error_log("unlock_accept_mutex error");
-                return;
-            }
-        }
-
         timer_expired_process();
-
-        event_process_posted(&event_other_post);
-
         timeout = timer_recent();
     }
 }
 
-static int init_accept_mutex()
-{
-    pthread_mutexattr_t     attr;
-
-    accept_mutex = mmap(NULL, sizeof(*accept_mutex), PROT_READ | PROT_WRITE, MAP_ANONYMOUS |MAP_SHARED, -1, 0);
-    if (accept_mutex == MAP_FAILED) {
-        error_log("mmap error %s", strerror(errno));
-        return FCY_ERROR;
-    }
-
-    /* 没有检查返回值， 调用确定返回0 */
-    (void) pthread_mutexattr_init(&attr);
-
-    if (pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) != 0) {
-        (void) pthread_mutexattr_destroy(&attr);
-        return FCY_ERROR;
-    }
-
-    (void) pthread_mutex_init(accept_mutex, &attr);
-    (void) pthread_mutexattr_destroy(&attr);
-
-    return FCY_OK;
-}
-
-static int trylock_accept_mutex()
-{
-    int err;
-
-    assert(!accept_mutex_held);
-
-    err = pthread_mutex_trylock(accept_mutex);
-    if (err == 0) {
-
-        /* accept采用水平触发 */
-        accept_event->conn->fd = listenfd;
-        if (event_add(accept_event, EPOLLERR) == FCY_ERROR) {
-            return FCY_ERROR;
-        }
-
-        accept_mutex_held = 1;
-        return FCY_OK;
-    }
-    else if (err == EBUSY) {
-        return FCY_OK;
-    }
-    else {
-        return FCY_ERROR;
-    }
-}
-
-static int unlock_accept_mutex()
-{
-    int err;
-
-    assert(accept_mutex_held);
-
-    err = pthread_mutex_unlock(accept_mutex);
-    if (err != 0) {
-        return FCY_ERROR;
-    }
-
-    err = event_del(accept_event, 0);
-    if (err == FCY_ERROR) {
-        return FCY_ERROR;
-    }
-
-    accept_mutex_held = 0;
-    return FCY_OK;
-}
-
-static int tcp_listen(int serv_port)
+static int tcp_listen()
 {
     int                 listenfd;
     struct sockaddr_in  servaddr;
     socklen_t           addrlen;
-    const int           sockopt = 1;
+    const int           on = 1;
+    const int           accept_defer = 10;
     int                 err;
 
-    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-    if (listenfd == -1) {
-        error_log("socket error %s", strerror(errno));
-        return FCY_ERROR;
-    }
+    listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    ABORT_ON(listenfd, -1);
 
-    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &sockopt, sizeof(sockopt));
-    if (err == -1) {
-        error_log("setsockopt error %s", strerror(errno));
-        return FCY_ERROR;
-    }
+    err = setsockopt(listenfd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on));
+    ABORT_ON(err, -1);
+
+    err = setsockopt(listenfd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &accept_defer, sizeof(accept_defer));
+    ABORT_ON(err, -1);
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family         = AF_INET;
@@ -239,16 +94,10 @@ static int tcp_listen(int serv_port)
 
     addrlen = sizeof(servaddr);
     err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);
-    if (err == -1) {
-        error_log("bind error %s", strerror(errno));
-        return FCY_ERROR;
-    }
+    ABORT_ON(err, -1);
 
     err = listen(listenfd, 1024);
-    if (err == -1) {
-        error_log("listen error %s", strerror(errno));
-        return FCY_ERROR;
-    }
+    ABORT_ON(err, -1);
 
     return listenfd;
 }
@@ -258,22 +107,14 @@ int init_and_add_accept_event(event_handler accept_handler)
     connection  *conn;
 
     conn = conn_pool_get();
-    if (conn == NULL) {
-        return FCY_ERROR;
-    }
+    ABORT_ON(conn, NULL);
 
-    conn->fd = listenfd;
-    conn->read->handler = accept_handler;
+    conn->fd = tcp_listen();
+    conn->read.handler = accept_handler;
 
-    /* 若不使用accept mutex，则每个worker监听端口 */
-    if (!use_accept_mutex) {
-        if (event_add(conn->read, EPOLLERR) == FCY_ERROR) {
-            conn_pool_free(conn);
-            return FCY_ERROR;
-        }
-    }
+    /* 水平触发 */
+    ABORT_ON(conn_enable_read(conn, accept_handler, 0), FCY_ERROR);
 
-    accept_event = conn->read;
-    accept_event->accept = 1;
+    conn->read.accept = 1;
     return FCY_OK;
 }

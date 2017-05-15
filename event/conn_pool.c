@@ -4,11 +4,7 @@
 
 #include "conn_pool.h"
 
-int                 n_free_connections;
-
 static connection   *conns;
-static event        *revents;
-static event        *wevents;
 static list         conn_list;
 
 static int conn_init(connection *conn);
@@ -17,23 +13,14 @@ static void event_set_field(event *ev);
 
 int conn_pool_init(mem_pool *p, int size)
 {
-    n_free_connections = size;
-
     list_init(&conn_list);
 
     conns = palloc(p, size * sizeof(connection));
-    revents = palloc(p, size * sizeof(event));
-    wevents = palloc(p, size * sizeof(event));
-
-    if (conns == NULL || revents == NULL || wevents == NULL) {
-        return FCY_ERROR;
-    }
+    ABORT_ON(conns, NULL);
 
     for (int i = size - 1; i >= 0; --i) {
-        conns[i].read = &revents[i];
-        conns[i].write = &wevents[i];
-        revents[i].conn = wevents[i].conn = &conns[i];
-
+        conns[i].read.conn = &conns[i];
+        conns[i].write.conn = &conns[i];
         list_insert_head(&conn_list, &conns[i].node);
     }
 
@@ -58,15 +45,14 @@ connection *conn_pool_get()
         return NULL;
     }
 
-    --n_free_connections;
     return conn;
 }
 
 void conn_pool_free(connection *conn)
 {
+    conn->fd = -1;
     conn_free(conn);
     list_insert_head(&conn_list, &conn->node);
-    ++n_free_connections;
 }
 
 static int conn_init(connection *conn)
@@ -86,8 +72,8 @@ static int conn_init(connection *conn)
     conn->app_count = 0;
     bzero(&conn->addr, sizeof(conn->addr));
 
-    event_set_field(conn->read);
-    event_set_field(conn->write);
+    event_set_field(&conn->read);
+    event_set_field(&conn->write);
 
     return FCY_OK;
 }

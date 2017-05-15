@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <sys/epoll.h>
 
 #include <signal.h>
 #include <assert.h>
@@ -39,5 +40,21 @@
 
 #define link_data(node, type, member) \
     (type*)((u_char*)node - offsetof(type, member))
+
+#define RETURN_ON(exp, err)   \
+do {    \
+    if (exp == err) {    \
+        err_sys("%s error at line %d", __FUNCTION__, __LINE__); \
+        return FCY_ERROR;   \
+    }   \
+} while(0)
+
+#define ABORT_ON(exp, err)    \
+do {    \
+    if (exp == err) {    \
+        err_sys("%s error at line %d", __FUNCTION__, __LINE__); \
+        abort();    \
+    }   \
+} while(0)
 
 #endif //FANCY_BASE_H

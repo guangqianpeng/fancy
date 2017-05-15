@@ -30,6 +30,7 @@ void error_log(const char *fmt, ...)
 
 void access_log(struct sockaddr_in *addr, const char *fmt, ...)
 {
+#ifndef NDEBUG
     va_list     ap;
 
     dprintf(STDOUT_FILENO, "%s %s:%hu ",  timestamp(), inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
@@ -40,6 +41,7 @@ void access_log(struct sockaddr_in *addr, const char *fmt, ...)
 
     dprintf(STDOUT_FILENO, "\n");
     return;
+#endif
 }
 
 /* Nonfatal error related to system call

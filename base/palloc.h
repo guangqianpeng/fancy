@@ -9,7 +9,7 @@
 
 #include "base.h"
 
-#define MEM_POOL_DEFAULT_SIZE   (16 * 1024)
+#define MEM_POOL_DEFAULT_SIZE   (128 * 1024)
 #define MEM_POOL_ALIGNMENT      sizeof(unsigned long)
 
 typedef struct mem_pool mem_pool;

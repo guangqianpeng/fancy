@@ -37,8 +37,8 @@ request *request_create(connection *c)
         return NULL;
     }
 
-    r->header_in = buffer_create(p, HTTP_HEADER_SIZE);
-    r->header_out = buffer_create(p, HTTP_HEADER_SIZE);
+    r->header_in = buffer_create(p, HTTP_REQUEST_SIZE);
+    r->header_out = buffer_create(p, HTTP_RESPONSE_SIZE);
     if (r->header_in == NULL ||
         r->header_out == NULL) {
         mem_pool_destroy(p);

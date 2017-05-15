@@ -23,24 +23,17 @@ static void sig_quit_handler(int signo);
 
 static void accept_handler(event *ev);
 static void read_handler(event *ev);
+static void parse_handler(event *ev);
 static void process_request_handler(event *ev);
 static void write_headers_handler(event *ev);
 static void write_body_handler(event *ev);
 static void finalize_request_handler(event *ev);
-static void empty_handler(event *ev);
 
 static void close_connection(connection *conn);
-
 
 int main()
 {
     int     err;
-
-    err = init_server();
-    if (err == FCY_ERROR) {
-        error_log("init server error");
-        exit(1);
-    }
 
     /* 单进程模式 */
     if (single_process) {
@@ -180,7 +173,6 @@ static void accept_handler(event *ev)
     struct sockaddr_in  *addr;
     socklen_t           len;
     connection          *conn;
-    int                 err;
 
     conn = conn_pool_get();
     if (conn == NULL) {
@@ -193,6 +185,7 @@ static void accept_handler(event *ev)
 
     inter:
     connfd = accept4(ev->conn->fd, addr, &len, SOCK_NONBLOCK);
+    assert(connfd != -1);
     if (connfd == -1) {
         switch (errno) {
             case EINTR:
@@ -209,18 +202,14 @@ static void accept_handler(event *ev)
     access_log(addr, "worker %d new connection", msg.worker_id);
 
     conn->fd = connfd;
-    conn->read->handler = read_handler;
-    conn->write->handler = empty_handler;
+    ABORT_ON(conn_enable_read(conn, read_handler, 0), FCY_ERROR);
 
-    err = event_conn_add(conn);
-    if (err == -1) {
-        error_log("worker %d event_conn_add error", msg.worker_id);
-        exit(1);
-    }
-
-    timer_add(conn->read, request_timeout);
+    timer_add(&conn->read, (timer_msec)request_timeout);
 
     ++msg.total_connection;
+
+    /* FIXME: should read handler here? */
+    read_handler(&conn->read);
 }
 
 static void read_handler(event *ev)
@@ -230,7 +219,6 @@ static void read_handler(event *ev)
     request     *rqst;
     buffer      *header_in;
     int         fd;
-    int         err;
 
     conn = ev->conn;
     rqst = conn->app;
@@ -238,10 +226,6 @@ static void read_handler(event *ev)
 
     /* 处理超时 */
     if (ev->timeout) {
-        if (rqst) {
-            request_destroy(rqst);
-        }
-
         access_log(&conn->addr, "worker %d timeout", msg.worker_id);
         close_connection(conn);
         return;
@@ -277,9 +261,6 @@ static void read_handler(event *ev)
                 goto eintr;
             }
             if (errno == EAGAIN) {
-                if (!ev->timer_set) {
-                    timer_add(ev, request_timeout);
-                }
                 return;
             }
             if (errno != ECONNRESET) {
@@ -292,7 +273,6 @@ static void read_handler(event *ev)
 
             /* 对端在没有发送完整请求的情况下关闭连接 */
             access_log(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
-            request_destroy(rqst);
             close_connection(conn);
             return;
 
@@ -301,6 +281,28 @@ static void read_handler(event *ev)
     }
 
     buffer_seek_end(header_in, (int)n);
+
+    /* 解析请求 */
+    parse_handler(ev);
+    return;
+
+    error:
+    rqst->keep_alive = 0;
+
+    ABORT_ON(conn_enable_write(conn,
+                               write_headers_handler,
+                               EPOLLET), FCY_ERROR);
+    write_headers_handler(&conn->write);
+}
+
+static void parse_handler(event *ev)
+{
+    connection  *conn;
+    request     *rqst;
+    int         err;
+
+    conn = ev->conn;
+    rqst = conn->app;
 
     /* 解析请求 */
     err = parse_request(rqst);
@@ -312,19 +314,20 @@ static void read_handler(event *ev)
             goto error;
 
         case FCY_AGAIN:
-            read_handler(ev);
             return;
 
         case FCY_OK:
 
-            assert(buffer_empty(header_in));
+            assert(buffer_empty(rqst->header_in));
             break;
 
         default:
-            assert(0);
+            /* never reach here */
+            abort();
     }
 
     /* 解析完毕 */
+    ABORT_ON(conn_disable_read(conn, 0), FCY_ERROR);
 
     if (ev->timer_set) {
         timer_del(ev);
@@ -336,16 +339,17 @@ static void read_handler(event *ev)
     }
 
     access_log(&conn->addr, "request %s", rqst->uri);
-    ev->handler = process_request_handler;
+
     process_request_handler(ev);
     return;
 
     error:
     rqst->keep_alive = 0;
-    ev->handler = empty_handler;
-    conn->write->handler = write_headers_handler;
-    write_headers_handler(conn->write);
-    return;
+
+    ABORT_ON(conn_enable_write(conn,
+                               write_headers_handler,
+                               EPOLLET), FCY_ERROR);
+    write_headers_handler(&conn->write);
 }
 
 static void process_request_handler(event *ev)
@@ -371,19 +375,20 @@ static void process_request_handler(event *ev)
         rqst->keep_alive = 0;
     }
 
-    ev->handler = empty_handler;
-    conn->write->handler = write_headers_handler;
-    write_headers_handler(conn->write);
+    ABORT_ON(conn_enable_write(conn,
+                               write_headers_handler,
+                               EPOLLET), FCY_ERROR);
+    write_headers_handler(&conn->write);
     return;
 }
 
 static void write_headers_handler(event *ev)
 {
-    connection  *conn;
-    request     *rqst;
-    buffer      *header_out;
-    const char  *status_str;
-    ssize_t     n;
+    connection *conn;
+    request *rqst;
+    buffer *header_out;
+    const char *status_str;
+    ssize_t n;
 
     conn = ev->conn;
     rqst = conn->app;
@@ -404,8 +409,7 @@ static void write_headers_handler(event *ev)
             buffer_write(header_out, "\r\nContent-Length: ", 18);
             n = sprintf((char *) header_out->data_end, "%ld", rqst->sbuf.st_size);
             buffer_seek_end(header_out, (int) n);
-        }
-        else {
+        } else {
             buffer_write(header_out, "text/html; charset=utf-8", 24);
             buffer_write(header_out, "\r\nContent-Length: ", 18);
             n = sprintf((char *) header_out->data_end, "%ld", strlen(status_str));
@@ -414,8 +418,7 @@ static void write_headers_handler(event *ev)
 
         if (rqst->keep_alive) {
             buffer_write(header_out, "\r\nConnection: keep-alive\r\n\r\n", 28);
-        }
-        else {
+        } else {
             buffer_write(header_out, "\r\nConnection: close\r\n\r\n", 23);
         }
 
@@ -424,37 +427,33 @@ static void write_headers_handler(event *ev)
         }
     }
 
-    while (!buffer_empty(header_out)) {
-        /* TODO: 按照muduo库作者陈硕的说法:
-         * 第二次write调用几乎肯定会返回EAGAIN, 因此不必写成循环
-         * 此处留作以后优化
-         * */
-        inter:
-        n = write(conn->fd, header_out->data_start, buffer_size(header_out));
-        if (n == -1) {
-            switch (errno) {
-                case EINTR:
-                    goto inter;
-                case EAGAIN:
-                    return;
-                case EPIPE:
-                case ECONNRESET:
-                    request_destroy(rqst);
-                    access_log(&conn->addr, "send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
-                    close_connection(conn);
-                    return;
-                default:
-                    access_log(&conn->addr, "write error: %s", strerror(errno));
-                    exit(1);
-            }
+    inter:
+    n = write(conn->fd, header_out->data_start, buffer_size(header_out));
+    if (n == -1) {
+        switch (errno) {
+            case EINTR:
+                goto inter;
+            case EAGAIN:
+                return;
+            case EPIPE:
+            case ECONNRESET:
+                access_log(&conn->addr, "send response head error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                close_connection(conn);
+                return;
+            default:
+                access_log(&conn->addr, "write error: %s", strerror(errno));
+                exit(1);
         }
-        buffer_seek_start(header_out, (int) n);
+    }
+    buffer_seek_start(header_out, (int)n);
+    if (!buffer_empty(header_out)) {
+        return;
     }
 
     if (rqst->send_fd > 0) {
         ev->handler = write_body_handler;
-    }
-    else {
+    } else {
+        ABORT_ON(conn_disable_write(conn, 0), FCY_ERROR);
         ev->handler = finalize_request_handler;
     }
 
@@ -463,39 +462,39 @@ static void write_headers_handler(event *ev)
 
 static void write_body_handler(event *ev)
 {
-    connection  *conn;
-    request     *rqst;
+    connection *conn;
+    request *rqst;
     struct stat *sbuf;
-    ssize_t     n;
+    ssize_t n;
 
     conn = ev->conn;
     rqst = conn->app;
     sbuf = &rqst->sbuf;
 
-    while(sbuf->st_size > 0) {
-        inter:
-        n = sendfile(conn->fd, rqst->send_fd, NULL, (size_t) sbuf->st_size);
-        if (n == -1) {
-            switch (errno) {
-                case EINTR:
-                    goto inter;
-                case EAGAIN:
-                    return;
-                case EPIPE:
-                case ECONNRESET:
-                    request_destroy(rqst);
-
-                    access_log(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
-                    close_connection(conn);
-                    return;
-                default:
-                    access_log(&conn->addr, "sendfile error %s", strerror(errno));
-                    exit(1);
-            }
+    inter:
+    n = sendfile(conn->fd, rqst->send_fd, NULL, (size_t) sbuf->st_size);
+    if (n == -1) {
+        switch (errno) {
+            case EINTR:
+                goto inter;
+            case EAGAIN:
+                return;
+            case EPIPE:
+            case ECONNRESET:
+                access_log(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                close_connection(conn);
+                return;
+            default:
+                access_log(&conn->addr, "sendfile error %s", strerror(errno));
+                exit(1);
         }
-        sbuf->st_size -= n;
+    }
+    sbuf->st_size -= n;
+    if (sbuf->st_size > 0) {
+        return;
     }
 
+    ABORT_ON(conn_disable_write(conn, 0), FCY_ERROR);
     ev->handler = finalize_request_handler;
     finalize_request_handler(ev);
 }
@@ -517,44 +516,36 @@ static void finalize_request_handler(event *ev)
         ++msg.ok_request;
     }
 
-    request_reset(rqst);
-
     if (!keep_alive || conn->app_count >= request_per_conn) {
         close_connection(conn);
         return;
     }
 
-    ev->handler = empty_handler;
-    conn->read->handler = read_handler;
+    ABORT_ON(conn_enable_read(conn,
+                              read_handler,
+                              EPOLLET), FCY_ERROR);
 
-    /* TODO: 此处到底需不需要 */
-    read_handler(conn->read);
-    return;
-}
+    timer_add(&conn->read, request_timeout);
 
-static void empty_handler(event *ev)
-{
+    if (buffer_empty(rqst->header_in)) {
+        request_reset(rqst);
+    }
+    else {
+        parse_handler(&conn->read);
+    }
 }
 
 static void close_connection(connection *conn)
 {
-    int                 fd;
-
-    fd = conn->fd;
-
-    if (event_conn_del(conn) == -1) {
-        access_log(&conn->addr, "event_conn_del error");
-        exit(1);
+    if (conn->app) {
+        request_destroy(conn->app);
     }
 
-    if (conn->read->timer_set) {
-        timer_del(conn->read);
+    if (conn->read.timer_set) {
+        timer_del(&conn->read);
     }
 
-    if (close(fd) == -1) {
-        access_log(&conn->addr, "close error");
-        exit(1);
-    }
+    ABORT_ON(close(conn->fd), -1);
 
     conn_pool_free(conn);
 
