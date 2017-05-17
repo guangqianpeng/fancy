@@ -7,14 +7,11 @@
 #include <sys/epoll.h>
 
 #include "event.h"
+#include "connection.h"
 
-
-
-list        event_accept_post;
-list        event_other_post;
+int epollfd = -1;
 
 static int n_events;
-static int epollfd = -1;
 static struct epoll_event *event_list;
 
 int event_init(mem_pool *p, int n_ev)
@@ -32,9 +29,6 @@ int event_init(mem_pool *p, int n_ev)
         error_log("%s error at line %d\n", __FUNCTION__, __LINE__);
         exit(1);
     }
-
-    list_init(&event_accept_post);
-    list_init(&event_other_post);
 
     n_events = n_ev;
 
@@ -87,90 +81,5 @@ int event_process(timer_msec timeout)
             wevent->handler(revent);
         }
     }
-
     return n_ev;
-}
-
-int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag)
-{
-    assert(!conn->read->active);
-
-    struct epoll_event e_event = {
-            .data.ptr = conn,
-            .events = epoll_flag | EPOLLIN | EPOLLRDHUP | EPOLLPRI
-    };
-
-    // conn->fd has already registered
-    if (conn->write.active) {
-        e_event.events |=  EPOLLOUT;
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
-    }
-    else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
-    }
-    conn->read.active = 1;
-    conn->read.handler = handler;
-    return FCY_OK;
-}
-
-int conn_disable_read(connection *conn, uint32_t epoll_flag)
-{
-    assert(conn->read->active);
-
-    if (conn->write.active) {
-
-        struct epoll_event e_event = {
-                .data.ptr = conn,
-                .events = epoll_flag | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
-        };
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
-    }
-    else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
-    }
-
-    conn->read.active = 0;
-    return FCY_OK;
-}
-
-int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag)
-{
-    assert(!conn->write->active);
-
-    struct epoll_event e_event = {
-            .data.ptr = conn,
-            .events = epoll_flag | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
-    };
-
-    // conn->fd has already registered
-    if (conn->read.active) {
-        e_event.events |= EPOLLIN;
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
-    }
-    else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
-    }
-
-    conn->write.active = 1;
-    conn->write.handler = handler;
-    return FCY_OK;
-}
-
-int conn_disable_write(connection *conn, uint32_t epoll_flag)
-{
-    assert(conn->write.active);
-
-    if (conn->read.active) {
-        struct epoll_event e_event = {
-                .data.ptr = conn,
-                .events = epoll_flag | EPOLLIN | EPOLLRDHUP | EPOLLPRI
-        };
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
-    }
-    else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
-    }
-
-    conn->write.active = 0;
-    return FCY_OK;
 }

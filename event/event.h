@@ -11,8 +11,7 @@
 #include "rbtree.h"
 #include "palloc.h"
 
-extern  list event_accept_post;
-extern  list event_other_post;
+extern int epollfd;
 
 typedef rbtree_key          timer_msec;
 typedef struct event        event;
@@ -22,54 +21,25 @@ typedef void (*event_handler)(event *);
 timer_msec current_msec();
 
 struct event {
-    unsigned        read;       // 应用层(http)可读, 例如一个完整的请求抵达
-    unsigned        write;      // 应用层可写
-    unsigned        accept;
-    unsigned        active;     // 是否在epoll_wait中
-    unsigned        timer_set;  // 是否在定时器中
-    unsigned        timeout;    // 是否为超时事件
+
+    unsigned        active:1;     // 是否在epoll_wait中
+    unsigned        timer_set:1;  // 是否在定时器中
+    unsigned        timeout:1;    // 是否为超时事件
 
     rbtree_node     rb_node;
-    list_node       l_node;
 
     event_handler   handler;
 
     connection      *conn;
 };
 
-struct connection {
-    int                 fd;
-    event               read;
-    event               write;
 
-    void                *app;   // http, echo
-    int                 app_count;
-
-    struct sockaddr_in  addr;
-
-    mem_pool            *pool;
-    buffer              *buf;
-
-    list_node           node;
-};
 
 int event_init(mem_pool *p, int n_ev);  // n_events是epoll返回的最大事件数目
-
-/* do not use
- * int event_add(event *ev, int flag);
- * int event_del(event *ev, int flag);
- */
-
-int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_read(connection *conn, uint32_t epoll_flag);
-
-int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_write(connection *conn, uint32_t epoll_flag);
 
 /* -1   被信号中断
  * 0    超时(没有处理任何事件)
  * >0   处理掉事件数 */
 int event_process(timer_msec timeout);
 
-void event_process_posted(list *events);
 #endif //FANCY_EVENT_H

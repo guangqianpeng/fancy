@@ -76,7 +76,7 @@ void timer_expired_process()
 
         rbtree_delete(&timer, node);
 
-        ev = link_data(node,event,rb_node);
+        ev = link_data(node, event, rb_node);
         ev->timer_set = 0;
         ev->timeout = 1;
 
