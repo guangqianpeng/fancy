@@ -3,6 +3,7 @@
 //
 
 #include <assert.h>
+#include "connection.h"
 #include "request.h"
 
 const char *status_code_out_str[] = {
@@ -93,7 +94,7 @@ void request_destroy(request *r)
 
     r->conn->app = NULL;
     if (r->send_fd > 0) {
-        close(r->send_fd);
+        ABORT_ON(close(r->send_fd), -1);
     }
 
     mem_pool_destroy(r->pool);

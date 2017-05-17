@@ -41,20 +41,18 @@
 extern const char *status_code_out_str[];
 
 typedef struct request          request;
-typedef struct request_line     request_line;
-typedef struct request_headers  request_headers;
 
 struct request {
+
     int             method;
     int             version;
-    int             keep_alive;
     long            cnt_len;
 
-    int             has_args;
-    int             has_host_header;
-    int             has_content_length_header;
-    int             is_static;
-
+    unsigned        keep_alive:1;
+    unsigned        has_args:1;
+    unsigned        has_host_header:1;
+    unsigned        has_content_length_header:1;
+    unsigned        is_static:1;
 
     char            *request_start;
     char            *uri_start;
@@ -82,12 +80,13 @@ struct request {
 
 request *request_create(connection *c);
 void request_destroy(request *r);
-void request_reset(request *r); /* avoid destroy */
+void request_reset(request *r); /* for keep_alive, avoid destroy */
 void request_print(request *r); /* debug */
 
 int parse_request(request *r);
 
 int check_request_header_filed(request *r);
+
 int process_request_static(request *r);
 
 #endif //FANCY_REQUEST_H
