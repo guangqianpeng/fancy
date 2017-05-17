@@ -2,10 +2,11 @@
 // Created by frank on 17-2-16.
 //
 
+#include "http.h"
 #include "base.h"
 #include "Signal.h"
 #include "timer.h"
-#include "conn_pool.h"
+#include "connection.h"
 #include "request.h"
 #include "app.h"
 
@@ -20,15 +21,6 @@ static struct {
 
 static void sig_empty_handler(int signo);
 static void sig_quit_handler(int signo);
-
-static void accept_handler(event *ev);
-static void read_handler(event *ev);
-static void parse_handler(event *ev);
-static void process_request_handler(event *ev);
-static void write_headers_handler(event *ev);
-static void write_body_handler(event *ev);
-static void finalize_request_handler(event *ev);
-
 static void close_connection(connection *conn);
 
 int main()
@@ -38,7 +30,7 @@ int main()
     /* 单进程模式 */
     if (single_process) {
 
-        err = init_worker(accept_handler);
+        err = init_worker(accept_h);
         if (err == FCY_ERROR) {
             error_log("init_worker error");
             exit(1);
@@ -77,7 +69,7 @@ int main()
                     exit(1);
                 }
 
-                err = init_worker(accept_handler);
+                err = init_worker(accept_h);
                 if (err == FCY_ERROR) {
                     error_log("worker %d init worker error", i);
                     exit(1);
@@ -151,7 +143,8 @@ int main()
     exit(0);
 }
 
-static void sig_quit_handler(int signo) {
+void sig_quit_handler(int signo)
+{
     ssize_t err;
 
     err = write(localfd[1], &msg, sizeof(msg));
@@ -163,18 +156,18 @@ static void sig_quit_handler(int signo) {
     exit(0);
 }
 
-static void sig_empty_handler(int signo)
+void sig_empty_handler(int signo)
 {
 }
 
-static void accept_handler(event *ev)
+void accept_h(event *ev)
 {
     int                 connfd;
     struct sockaddr_in  *addr;
     socklen_t           len;
     connection          *conn;
 
-    conn = conn_pool_get();
+    conn = conn_get();
     if (conn == NULL) {
         error_log("worker %d not enough free connections", msg.worker_id);
         return;
@@ -191,7 +184,7 @@ static void accept_handler(event *ev)
             case EINTR:
                 goto inter;
             case EAGAIN:
-                conn_pool_free(conn);
+                conn_free(conn);
                 return;
             default:
                 error_log("worker %d accept4 error: %s", msg.worker_id, strerror(errno));
@@ -202,17 +195,17 @@ static void accept_handler(event *ev)
     access_log(addr, "worker %d new connection", msg.worker_id);
 
     conn->fd = connfd;
-    ABORT_ON(conn_enable_read(conn, read_handler, 0), FCY_ERROR);
+    ABORT_ON(conn_enable_read(conn, read_request_h, EPOLLET), FCY_ERROR);
 
     timer_add(&conn->read, (timer_msec)request_timeout);
 
     ++msg.total_connection;
 
     /* FIXME: should read handler here? */
-    read_handler(&conn->read);
+    read_request_h(&conn->read);
 }
 
-static void read_handler(event *ev)
+void read_request_h(event *ev)
 {
     ssize_t     n;
     connection  *conn;
@@ -283,19 +276,19 @@ static void read_handler(event *ev)
     buffer_seek_end(header_in, (int)n);
 
     /* 解析请求 */
-    parse_handler(ev);
+    parse_request_h(ev);
     return;
 
     error:
     rqst->keep_alive = 0;
 
     ABORT_ON(conn_enable_write(conn,
-                               write_headers_handler,
+                               write_response_headers_h,
                                EPOLLET), FCY_ERROR);
-    write_headers_handler(&conn->write);
+    write_response_headers_h(&conn->write);
 }
 
-static void parse_handler(event *ev)
+void parse_request_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
@@ -307,6 +300,7 @@ static void parse_handler(event *ev)
     /* 解析请求 */
     err = parse_request(rqst);
     switch (err) {
+
         case FCY_ERROR:
             access_log(&conn->addr, "parse_request error %s", rqst->request_start);
             rqst->status_code = HTTP_R_BAD_REQUEST;
@@ -340,19 +334,19 @@ static void parse_handler(event *ev)
 
     access_log(&conn->addr, "request %s", rqst->uri);
 
-    process_request_handler(ev);
+    process_request_h(ev);
     return;
 
     error:
     rqst->keep_alive = 0;
 
     ABORT_ON(conn_enable_write(conn,
-                               write_headers_handler,
+                               write_response_headers_h,
                                EPOLLET), FCY_ERROR);
-    write_headers_handler(&conn->write);
+    write_response_headers_h(&conn->write);
 }
 
-static void process_request_handler(event *ev)
+void process_request_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
@@ -376,13 +370,13 @@ static void process_request_handler(event *ev)
     }
 
     ABORT_ON(conn_enable_write(conn,
-                               write_headers_handler,
+                               write_response_headers_h,
                                EPOLLET), FCY_ERROR);
-    write_headers_handler(&conn->write);
+    write_response_headers_h(&conn->write);
     return;
 }
 
-static void write_headers_handler(event *ev)
+void write_response_headers_h(event *ev)
 {
     connection *conn;
     request *rqst;
@@ -451,16 +445,16 @@ static void write_headers_handler(event *ev)
     }
 
     if (rqst->send_fd > 0) {
-        ev->handler = write_body_handler;
+        ev->handler = send_file_h;
     } else {
         ABORT_ON(conn_disable_write(conn, 0), FCY_ERROR);
-        ev->handler = finalize_request_handler;
+        ev->handler = finalize_request_h;
     }
 
     ev->handler(ev);
 }
 
-static void write_body_handler(event *ev)
+void send_file_h(event *ev)
 {
     connection *conn;
     request *rqst;
@@ -495,11 +489,11 @@ static void write_body_handler(event *ev)
     }
 
     ABORT_ON(conn_disable_write(conn, 0), FCY_ERROR);
-    ev->handler = finalize_request_handler;
-    finalize_request_handler(ev);
+    ev->handler = finalize_request_h;
+    finalize_request_h(ev);
 }
 
-static void finalize_request_handler(event *ev)
+void finalize_request_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
@@ -522,16 +516,16 @@ static void finalize_request_handler(event *ev)
     }
 
     ABORT_ON(conn_enable_read(conn,
-                              read_handler,
+                              read_request_h,
                               EPOLLET), FCY_ERROR);
 
-    timer_add(&conn->read, request_timeout);
+    timer_add(&conn->read, (timer_msec)request_timeout);
 
     if (buffer_empty(rqst->header_in)) {
         request_reset(rqst);
     }
     else {
-        parse_handler(&conn->read);
+        parse_request_h(&conn->read);
     }
 }
 
@@ -545,9 +539,10 @@ static void close_connection(connection *conn)
         timer_del(&conn->read);
     }
 
+    /* epoll will automaticly remove fd */
     ABORT_ON(close(conn->fd), -1);
 
-    conn_pool_free(conn);
+    conn_free(conn);
 
     access_log(&conn->addr, "worker %d close connection", msg.worker_id);
 }

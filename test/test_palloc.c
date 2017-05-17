@@ -32,6 +32,7 @@ static void test_once()
     if (pool == NULL) {
         exit(1);
     }
+    assert(align_ptr(pool, MEM_POOL_ALIGNMENT) == pool);
 
     alloc = 0;
 
@@ -43,12 +44,13 @@ static void test_once()
          * */
         bytes = bytes / MEM_POOL_ALIGNMENT * MEM_POOL_ALIGNMENT;
 
-        /* 返回的指针应该总是对齐的 */
         data = palloc(pool, bytes);
         if (data == NULL){
             exit(1);
         }
-        assert(((u_int64_t)data & ~(MEM_POOL_ALIGNMENT - 1)) == (u_int64_t)data);
+
+        /* 返回的指针应该总是对齐的 */
+        assert(align_ptr(data, MEM_POOL_ALIGNMENT) == data);
 
         alloc += bytes;
         assert(check_pool(pool, alloc));
@@ -67,13 +69,13 @@ static int check_pool(mem_pool *pool, size_t alloc)
     size = 0;
     for (p = pool; p != NULL; p = p->next) {
         if (p == pool) {
-            size += p->last - ((u_char*)p + sizeof(mem_pool));
+            size += p->last - align_ptr((u_char*)p + sizeof(mem_pool), MEM_POOL_ALIGNMENT);
         }
         else {
-            size += p->last - ((u_char*)p + offsetof(mem_pool, current));
+            size += p->last - align_ptr((u_char*)p + offsetof(mem_pool, current), MEM_POOL_ALIGNMENT);
         }
     }
-    // printf("real alloc = %lu, calcu alloc = %lu\n", size, alloc);
+    printf("real alloc = %lu, calcu alloc = %lu\n", size, alloc);
 
     return size == alloc;
 }

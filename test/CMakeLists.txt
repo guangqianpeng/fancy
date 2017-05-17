@@ -1,10 +1,6 @@
 add_compile_options(-Wall -Werror)
 
-# set(CMAKE_C_FLAGS -pg)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/html)
-
-
 
 set(ERROR ../base/error.h ../base/error.c ../base/Signal.c ../base/base.h)
 set(PALLOC ../base/palloc.h ../base/palloc.c ${ERROR})
@@ -13,7 +9,7 @@ set(ARRAY ../base/array.h ../base/array.c ${PALLOC} ${ERROR})
 set(RBTREE ../base/rbtree.h ../base/rbtree.c ${ERROR})
 set(LIST ../base/list.h ../base/list.c)
 set(EVENT
-        ../event/conn_pool.c ../event/conn_pool.h
+        ../event/connection.c ../event/connection.h
         ../event/event.c ../event/event.h
         ../event/timer.c ../event/timer.h
         ${BUFFER} ${ARRAY} ${RBTREE} ${LIST})
@@ -39,8 +35,6 @@ add_executable(echo_cli ../app/echo_cli.c ${EVENT})
 
 add_executable(test_process_request test_process_request.c ${PROCESS})
 
-add_executable(http ../app/http.c ../app/app.c ${REQUEST})
-
-target_link_libraries(http pthread)
-
-set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS} -pg)
+add_executable(http
+        ../app/http.c ../app/http.h
+        ../app/app.c  ../http/upstream.h ${REQUEST})

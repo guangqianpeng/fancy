@@ -4,12 +4,12 @@
 
 #include <sys/epoll.h>
 #include "app.h"
-#include "conn_pool.h"
+#include "connection.h"
 #include "timer.h"
 
 /* TODO: 可配置参数 */
 int n_connections       = 10240;
-int n_events            = 512;
+int n_events            = 1024;
 int request_per_conn    = 1024;
 int request_timeout     = 5000;
 int serv_port           = 9877;
@@ -50,6 +50,7 @@ int init_worker(event_handler accept_handler)
 
     return FCY_OK;
 }
+
 
 void event_and_timer_process()
 {
@@ -106,7 +107,7 @@ int init_and_add_accept_event(event_handler accept_handler)
 {
     connection  *conn;
 
-    conn = conn_pool_get();
+    conn = conn_get();
     ABORT_ON(conn, NULL);
 
     conn->fd = tcp_listen();
@@ -115,6 +116,5 @@ int init_and_add_accept_event(event_handler accept_handler)
     /* 水平触发 */
     ABORT_ON(conn_enable_read(conn, accept_handler, 0), FCY_ERROR);
 
-    conn->read.accept = 1;
     return FCY_OK;
 }

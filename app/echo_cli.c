@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "event.h"
-#include "conn_pool.h"
+#include "connection.h"
 
 int main(int argc, char **argv)
 {
