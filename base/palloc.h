@@ -12,6 +12,10 @@
 #define MEM_POOL_DEFAULT_SIZE   (128 * 1024)
 #define MEM_POOL_ALIGNMENT      sizeof(unsigned long)
 
+/* 向上取对齐指针 */
+#define align_ptr(ptr, alignment) \
+(typeof(ptr)) (((u_int64_t)ptr + (alignment - 1)) & ~(alignment - 1))
+
 typedef struct mem_pool mem_pool;
 
 struct mem_pool {

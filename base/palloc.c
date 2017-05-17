@@ -5,8 +5,6 @@
 #include <assert.h>
 #include "palloc.h"
 
-static void *align_ptr(void *ptr, size_t alignment);
-
 /* 追加一个新的空闲内存块 */
 static mem_pool *mem_pool_append(mem_pool *pool);
 
@@ -17,6 +15,7 @@ mem_pool *mem_pool_create(size_t size)
 
     val = posix_memalign((void**)&pool, MEM_POOL_ALIGNMENT, size);
     if (val == -1 || pool == NULL) {
+        assert(0);
         return NULL;
     }
 
@@ -80,19 +79,16 @@ void *pcalloc(mem_pool *pool, size_t size)
     return last;
 }
 
-static void *align_ptr(void *ptr, size_t alignment)
-{
-    return (void*) (((u_int64_t)ptr + (alignment - 1)) & ~(alignment - 1));
-}
-
 static mem_pool *mem_pool_append(mem_pool *pool)
 {
-    size_t   size;
-    mem_pool *new, *p;
+    size_t      size;
+    mem_pool    *new = NULL, *p;
+    int         val;
 
     size = pool->end - (u_char*)pool;
-    new = malloc(size);
-    if (new == NULL) {
+    val = posix_memalign((void**)&new, MEM_POOL_ALIGNMENT, size);
+    if (val == -1 || new == NULL) {
+        assert(0);
         return NULL;
     }
 
