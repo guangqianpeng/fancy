@@ -8,16 +8,20 @@
 #include "event.h"
 
 /* TODO: 参数应该是可配置的 */
-
 extern int n_connections;       // 并发连接数
 extern int n_events;            // 一次循环处理事件数
 extern int request_per_conn;    // 每个连接最多处理多少个请求
 extern int request_timeout;     // 请求超时的上限
+extern int upstream_timeout;    // 请求上游响应超时
 
 extern int serv_port;           // 端口号
 
 extern int single_process;      // 是否单进程
 extern int n_workers;           // 多进程下workers数目
+
+/* upstream 地址 */
+extern const char   *upstream_ip;
+extern uint16_t     upstream_port;
 
 int init_worker(event_handler accept_handler);
 

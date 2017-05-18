@@ -46,7 +46,8 @@ struct request {
 
     int             method;
     int             version;
-    long            cnt_len;
+    long            content_length;
+    long            rest_content_length;
 
     unsigned        keep_alive:1;
     unsigned        has_args:1;
@@ -85,8 +86,8 @@ void request_print(request *r); /* debug */
 
 int parse_request(request *r);
 
-int check_request_header_filed(request *r);
+int check_request_header_field(request *r);
 
-int process_request_static(request *r);
+int init_request_static(request *r);
 
 #endif //FANCY_REQUEST_H

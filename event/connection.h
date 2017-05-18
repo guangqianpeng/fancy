@@ -13,7 +13,7 @@ typedef struct connection peer_connection;
 /* call conn_get to get a connection */
 struct connection {
 
-    int                 fd;
+    int                 sockfd;
     event               read;
     event               write;
 
@@ -28,12 +28,13 @@ struct connection {
 };
 
 int conn_pool_init(mem_pool *p, int size);
+
 connection *conn_get();
 void conn_free(connection *conn);
 
 int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_read(connection *conn, uint32_t epoll_flag);
+int conn_disable_read(connection *conn);
 int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_write(connection *conn, uint32_t epoll_flag);
+int conn_disable_write(connection *conn);
 
 #endif //FANCY_CONN_POOL_H

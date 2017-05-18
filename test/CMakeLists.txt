@@ -37,4 +37,5 @@ add_executable(test_process_request test_process_request.c ${PROCESS})
 
 add_executable(http
         ../app/http.c ../app/http.h
-        ../app/app.c  ../http/upstream.h ${REQUEST})
+        ../app/app.c
+        ../http/upstream.c ${REQUEST})

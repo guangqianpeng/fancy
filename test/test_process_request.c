@@ -195,9 +195,9 @@ static void test_one_request(request *r, const char *data)
 
     assert(err == FCY_OK);
 
-    err = check_request_header_filed(r);
+    err = check_request_header_field(r);
     if (err == FCY_OK && r->is_static) {
-        err = process_request_static(r);
+        err = init_request_static(r);
     }
 
     request_print(r);

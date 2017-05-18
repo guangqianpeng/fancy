@@ -7,9 +7,9 @@
 
 const char *get_content_type(const char *suffix);
 
-int check_request_header_filed(request *r)
+int check_request_header_field(request *r)
 {
-    if (r->method != HTTP_M_GET) {
+    if (r->method != HTTP_M_GET && r->method != HTTP_M_POST) {
         r->status_code = HTTP_R_NOT_IMPLEMENTED;
         return FCY_ERROR;
     }
@@ -21,18 +21,17 @@ int check_request_header_filed(request *r)
     }
 
     /* POST请求必须有Content-Length字段, 且字段值>=0
-     * 然而post请求尚未实现，这段代码不会执行
      * */
     if (r->method == HTTP_M_POST) {
         if (!r->has_content_length_header) {
             r->status_code = HTTP_R_LENGTH_REQUIRED;
             return FCY_ERROR;
         }
-        if (r->cnt_len <= 0) {
+        if (r->content_length <= 0) {
             r->status_code = HTTP_R_BAD_REQUEST;
             return FCY_ERROR;
         }
-        if (r->cnt_len >= INT_MAX) {
+        if (r->content_length >= INT_MAX) {
             r->status_code = HTTP_R_PAYLOAD_TOO_LARGE;
             return FCY_ERROR;
         }
@@ -51,7 +50,7 @@ int check_request_header_filed(request *r)
     return FCY_OK;
 }
 
-int process_request_static(request *r)
+int init_request_static(request *r)
 {
     char            *relpath;
     struct stat     *sbuf;

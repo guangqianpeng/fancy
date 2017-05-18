@@ -8,6 +8,7 @@ static connection   *conns;
 static connection   *peers;
 static list         conn_list;
 
+static void conn_set_upstream_addr(int size);
 static void conn_init(connection *conn);
 static void event_set_field(event *ev);
 
@@ -30,6 +31,10 @@ int conn_pool_init(mem_pool *p, int size)
         peers[i].read.conn = &peers[i];
         peers[i].write.conn = &peers[i];
         peers[i].peer = &conns[i];
+    }
+
+    if (upstream_ip != NULL) {
+        conn_set_upstream_addr(size);
     }
 
     return FCY_OK;
@@ -57,18 +62,36 @@ connection *conn_get()
 
 void conn_free(connection *conn)
 {
-    conn->fd = -1;
-    conn->peer->fd = -1;
+    conn->sockfd = -1;
+    conn->peer->sockfd = -1;
 
     list_insert_head(&conn_list, &conn->node);
 }
 
+static void conn_set_upstream_addr(int size)
+{
+    assert(upstream_ip != NULL);
+
+    struct sockaddr_in upstream_addr;
+    int err;
+
+    err = inet_pton(AF_INET, upstream_ip, &upstream_addr.sin_addr);
+    ABORT_ON(err, 0);
+    ABORT_ON(err, -1);
+
+    upstream_addr.sin_family = AF_INET;
+    upstream_addr.sin_port = htons(upstream_port);
+
+    for (int i = 0; i < size; ++i) {
+        peers[i].addr = upstream_addr;
+    }
+}
+
 static void conn_init(connection *conn)
 {
-    conn->fd = -1;
+    conn->sockfd = -1;
     conn->app = NULL;
     conn->app_count = 0;
-    bzero(&conn->addr, sizeof(conn->addr));
 
     event_set_field(&conn->read);
     event_set_field(&conn->write);
@@ -94,17 +117,17 @@ int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_fla
     // conn->fd has already registered
     if (conn->write.active) {
         e_event.events |=  EPOLLOUT;
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->sockfd, &e_event), -1);
     }
     else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->sockfd, &e_event), -1);
     }
     conn->read.active = 1;
     conn->read.handler = handler;
     return FCY_OK;
 }
 
-int conn_disable_read(connection *conn, uint32_t epoll_flag)
+int conn_disable_read(connection *conn)
 {
     assert(conn->read.active);
 
@@ -112,12 +135,12 @@ int conn_disable_read(connection *conn, uint32_t epoll_flag)
 
         struct epoll_event e_event = {
                 .data.ptr = conn,
-                .events = epoll_flag | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
+                .events = EPOLLOUT | EPOLLRDHUP | EPOLLPRI
         };
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->sockfd, &e_event), -1);
     }
     else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->sockfd, NULL), -1);
     }
 
     conn->read.active = 0;
@@ -136,10 +159,10 @@ int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_fl
     // conn->fd has already registered
     if (conn->read.active) {
         e_event.events |= EPOLLIN;
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->sockfd, &e_event), -1);
     }
     else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_ADD, conn->sockfd, &e_event), -1);
     }
 
     conn->write.active = 1;
@@ -147,19 +170,19 @@ int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_fl
     return FCY_OK;
 }
 
-int conn_disable_write(connection *conn, uint32_t epoll_flag)
+int conn_disable_write(connection *conn)
 {
     assert(conn->write.active);
 
     if (conn->read.active) {
         struct epoll_event e_event = {
                 .data.ptr = conn,
-                .events = epoll_flag | EPOLLIN | EPOLLRDHUP | EPOLLPRI
+                .events =  EPOLLIN | EPOLLRDHUP | EPOLLPRI
         };
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->fd, &e_event), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->sockfd, &e_event), -1);
     }
     else {
-        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->fd, NULL), -1);
+        RETURN_ON(epoll_ctl(epollfd, EPOLL_CTL_DEL, conn->sockfd, NULL), -1);
     }
 
     conn->write.active = 0;

@@ -105,7 +105,7 @@ void request_print(request *r)
     printf("method: %d\n", r->method);
     printf("version: %d\n", r->version);
     printf("keep-alive: %d\n", r->keep_alive);
-    printf("content-length: %ld\n", r->cnt_len);
+    printf("content-length: %ld\n", r->content_length);
 
     printf("has_args: %d\n", r->has_args);
     printf("has_host_header: %d\n", r->has_host_header);
@@ -122,7 +122,7 @@ static void set_cork(connection *conn, int open)
 {
     int err;
 
-    err = setsockopt(conn->fd, IPPROTO_TCP, TCP_CORK, &open, sizeof(open));
+    err = setsockopt(conn->sockfd, IPPROTO_TCP, TCP_CORK, &open, sizeof(open));
     if (err == -1) {
         access_log(&conn->addr, "setsockopt error %s", strerror(errno));
     }

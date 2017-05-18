@@ -291,7 +291,7 @@ static int parse_request_headers(request *r)
                     }
                     else if (strncasecmp(r->last_header_name_start, "Content-Length", 14) == 0) {
                         r->has_content_length_header = 1;
-                        r->cnt_len = strtol(r->last_header_value_start, NULL, 0);
+                        r->content_length = strtol(r->last_header_value_start, NULL, 0);
                     }
 
                     state = (c == '\r' ? almost_done_ : space_before_value_);

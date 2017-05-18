@@ -11,7 +11,6 @@
 
 int epollfd = -1;
 
-static int n_events;
 static struct epoll_event *event_list;
 
 int event_init(mem_pool *p, int n_ev)
@@ -75,7 +74,7 @@ int event_process(timer_msec timeout)
         wevent = &conn->write;
         if (wevent->active && (events & EPOLLOUT)) {
             // 忽略过期事件
-            if (conn->fd == -1) {
+            if (conn->sockfd == -1) {
                 continue;
             }
             wevent->handler(revent);

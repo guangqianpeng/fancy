@@ -60,6 +60,11 @@ size_t buffer_size(buffer* b)
     return b->data_end - b->data_start;
 }
 
+size_t buffer_space(buffer* b)
+{
+    return b->end - b->data_end;
+}
+
 void *buffer_read(buffer *b)
 {
     return b->data_start;

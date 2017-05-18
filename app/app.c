@@ -12,9 +12,14 @@ int n_connections       = 10240;
 int n_events            = 1024;
 int request_per_conn    = 1024;
 int request_timeout     = 5000;
+int upstream_timeout    = 1000;
 int serv_port           = 9877;
 int single_process      = 1;
 int n_workers           = 3;
+
+/* upstream 地址 */
+const char   *upstream_ip;
+uint16_t     upstream_port;
 
 static int tcp_listen();
 static int init_and_add_accept_event(event_handler accept_handler_);
@@ -24,7 +29,7 @@ int init_worker(event_handler accept_handler)
     mem_pool    *pool;
     size_t      size;
 
-    size = n_connections * sizeof (connection)+ 2 * n_events * sizeof (event) + sizeof(mem_pool);
+    size = n_connections * sizeof (connection) + sizeof(mem_pool);
     pool = mem_pool_create(size);
 
     if (pool == NULL){
@@ -110,7 +115,7 @@ int init_and_add_accept_event(event_handler accept_handler)
     conn = conn_get();
     ABORT_ON(conn, NULL);
 
-    conn->fd = tcp_listen();
+    conn->sockfd = tcp_listen();
     conn->read.handler = accept_handler;
 
     /* 水平触发 */
