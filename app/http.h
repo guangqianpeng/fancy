@@ -20,8 +20,10 @@ void process_request_h(event *);
 /* 专门处理动态内容的 handler */
 void peer_connect_h(event *);
 void upstream_write_request_h(event *);
-void upstream_read_response_h(event *);
-void upstream_write_response_h(event *);
+void upstream_read_response_header_h(event *);
+void upstream_parse_response_h(event *);
+void upstream_read_response_body(event *ev);
+void write_response_all_h(event *);
 
 void write_response_headers_h(event *);
 

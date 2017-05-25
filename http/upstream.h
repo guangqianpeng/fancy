@@ -6,21 +6,18 @@
 #define FANCY_UPSTREAM_H
 
 #include "base.h"
-#include "request.h"
-#include "../event/connection.h"
+#include "http_parser.h"
+#include "connection.h"
 
 typedef struct upstream upstream;
 
 struct upstream {
-
-    request     *rqst;
-    connection  *conn;
-    buffer      *request;   /* 用于传给上游的 header & body */
-    buffer      *response;  /* 用于传给下游的 header & body */
+    long        content_length;
+    http_parser parser;
 };
 
-upstream *upstream_create(peer_connection *);
+upstream *upstream_create(peer_connection *, mem_pool *);
+int upstream_parse(upstream *, buffer *in);
 void upstream_destroy(upstream *);
-
 
 #endif //FANCY_UPSTREAM_H

@@ -1,9 +1,11 @@
 #include <ctype.h>
+#include "http_parser.h"
 #include "request.h"
 
 static int parse_request_line(request *r);
 static int parse_request_headers(request *r);
 static int parse_uri(request *r);
+static const char *get_content_type(const char *suffix);
 
 typedef int(*parse_handler)(request*);
 
@@ -13,6 +15,33 @@ static parse_handler handlers[] = {
     parse_uri,
     NULL,
 };
+
+static size_t index_name_len;
+static size_t index_name_suffix_len;
+static size_t *location_len;
+
+const static char *suffix_str[] = {
+        "html", "txt", "xml", "asp", "css",
+        "gif", "ico", "png", "jpg", "js",
+        "pdf", NULL,
+};
+static size_t suffix_str_len[sizeof(suffix_str) / sizeof(*suffix_str)];
+
+const static char *content_type_str[] = {
+        "text/html; charset=utf-8",
+        "text/plain; charset=utf-8",
+        "text/xml",
+        "text/asp",
+        "text/css",
+        "image/gif",
+        "image/x-icon",
+        "image/png",
+        "image/jpeg",
+        "application/javascript",
+        "application/pdf",
+        NULL,
+};
+
 
 int parse_request(request *r)
 {
@@ -77,18 +106,19 @@ static int parse_request_line(request *r)
                 goto error;
 
             case method_:
+
                 if (isupper(c)) {
                     break;
-                }/* method_end */
+                } /* method_end */
                 if (c == ' ') {
                     if (strncmp(r->request_start, "GET", 3) == 0) {
-                        r->method = HTTP_M_GET;
+                        r->method = HTTP_METHOD_GET;
                     }
                     else if (strncmp(r->request_start, "POST", 4) == 0) {
-                        r->method = HTTP_M_POST;
+                        r->method = HTTP_METHOD_POST;
                     }
                     else if (strncmp(r->request_start, "HEAD", 4) == 0) {
-                        r->method = HTTP_M_HEAD;
+                        r->method = HTTP_METHOD_HEAD;
                     }
                     else {
                         goto error;
@@ -174,13 +204,13 @@ static int parse_request_line(request *r)
             case version_HTTP_slash_1_dot_:
                 if (c == '0') {
                     r->version = HTTP_V10;
-                    r->keep_alive = 0;
+                    r->should_keep_alive = 0;
                     state = space_after_version_;
                     break;
                 }
                 if (c == '1') {
                     r->version = HTTP_V11;
-                    r->keep_alive = 1;
+                    r->should_keep_alive = 1;
                     state = space_after_version_;
                     break;
                 }
@@ -282,11 +312,14 @@ static int parse_request_headers(request *r)
                         r->has_host_header = 1;
                     }
                     else if (strncasecmp(r->last_header_name_start, "Connection", 10) == 0) {
+                        r->has_connection_header = 1;
                         if (strncasecmp(r->last_header_value_start, "keep-alive", 10) == 0) {
-                            r->keep_alive = 1;
+                            r->should_keep_alive = 1;
+                            r->keep_alive_value_start = r->last_header_value_start;
+                            r->keep_alive_value_end  = r->keep_alive_value_start + 10;
                         }
                         else {
-                            r->keep_alive = 0;
+                            r->should_keep_alive = 0;
                         }
                     }
                     else if (strncasecmp(r->last_header_name_start, "Content-Length", 14) == 0) {
@@ -362,11 +395,15 @@ static int parse_uri(request *r)
         switch (state) {
             case start_:
                 if (c == '/') {
-                    u = r->uri = palloc(r->pool, r->uri_end - r->uri_start + 11);
+                    u = r->uri = pcalloc(r->pool, r->uri_end - r->uri_start + 32);
                     if (r->uri == NULL) {
                         goto error;
                     }
+
+                    strcpy(u, root);
+                    u += strlen(root);
                     *u++ = '/';
+
                     state = after_slash_;
                     break;
                 }
@@ -449,28 +486,51 @@ static int parse_uri(request *r)
     }
 
     done:
-    // 文件后缀
-    if (last_dot) {
-        r->suffix = last_dot + 1;
+    for (int i = 0; locations[i] != NULL; ++i) {
+        if (strncmp(r->uri_start, locations[i], location_len[i]) == 0) {
+            r->is_static = 1;
+            break;
+        }
     }
 
-        // 访问文件夹, 结尾无'/'
-    if (!last_dot && !r->has_args && *(u - 1) != '/') {
-        strcpy(u, "/index.html");
-        u += 11;
-        r->suffix = u - 4;
-    }
-        // 访问的文件夹但结尾没有'/'
-    else if (*(u - 1) == '/') {
-        strcpy(u, "index.html");
-        u += 10;
-        r->suffix = u - 4;
-    }
+    if (r->is_static)
+    {
+        char *suffix = NULL;
+        /* 访问文件夹，结尾补index_name */
+        if (*(u - 1) == '/') {
+            strcpy(u, index_name);
+            u += index_name_len;
+            suffix = u - index_name_suffix_len;
+        }
+        /* 访问文件 */
+        else if (last_dot) {
+            suffix = last_dot + 1;
+        }
 
-    *u = '\0';
+        /* 设置content-type */
+        r->content_type = get_content_type(suffix);
+        if (r->content_type == NULL) {
+            r->content_type = content_type_str[0];
+        }
+    }
     return FCY_OK;
 
     error:
     r->parse_state = error_;
     return FCY_ERROR;
+}
+
+static const char *get_content_type(const char *suffix)
+{
+    if (suffix == NULL) {
+        return NULL;
+    }
+
+    for (int i = 0; suffix_str[i] != NULL ; ++i) {
+        if (strncasecmp(suffix, suffix_str[i], suffix_str_len[i]) == 0) {
+            return content_type_str[i];
+        }
+    }
+
+    return NULL;
 }

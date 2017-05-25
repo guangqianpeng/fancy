@@ -3,23 +3,37 @@
 //
 
 #include <sys/epoll.h>
+
 #include "app.h"
+#include "Signal.h"
 #include "connection.h"
 #include "timer.h"
+#include "../http/request.h"
 
 /* TODO: 可配置参数 */
 int n_connections       = 10240;
 int n_events            = 1024;
-int request_per_conn    = 1024;
+int request_per_conn    = 1000;
 int request_timeout     = 5000;
-int upstream_timeout    = 1000;
+int upstream_timeout    = 3000;
 int serv_port           = 9877;
 int single_process      = 1;
 int n_workers           = 3;
+int accept_defer        = 10;
 
 /* upstream 地址 */
-const char   *upstream_ip;
-uint16_t     upstream_port;
+int         use_upstream = 1;
+const char  *upstream_ip = "127.0.0.1";
+uint16_t    upstream_port = 9877;
+
+/* 静态文件匹配地址 */
+const char *locations[] = {
+        //"/static/",
+        "/fuck/",
+        NULL
+};
+const char *index_name = "index.html";
+const char *root = ".";
 
 static int tcp_listen();
 static int init_and_add_accept_event(event_handler accept_handler_);
@@ -48,10 +62,17 @@ int init_worker(event_handler accept_handler)
 
     timer_init();
 
+    if (request_init(pool) == FCY_ERROR) {
+        mem_pool_destroy(pool);
+        return FCY_ERROR;
+    }
+
     if (init_and_add_accept_event(accept_handler) == FCY_ERROR) {
         error_log("add_aceept_event error");
         return FCY_ERROR;
     }
+
+    Signal(SIGPIPE, SIG_IGN);
 
     return FCY_OK;
 }
@@ -81,7 +102,6 @@ static int tcp_listen()
     struct sockaddr_in  servaddr;
     socklen_t           addrlen;
     const int           on = 1;
-    const int           accept_defer = 10;
     int                 err;
 
     listenfd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);

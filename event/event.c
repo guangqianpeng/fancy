@@ -77,7 +77,7 @@ int event_process(timer_msec timeout)
             if (conn->sockfd == -1) {
                 continue;
             }
-            wevent->handler(revent);
+            wevent->handler(wevent);
         }
     }
     return n_ev;

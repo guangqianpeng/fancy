@@ -77,11 +77,6 @@ void *buffer_seek_start(buffer *b, int offset)
     assert(b->data_start <= b->data_end);
     assert(b->data_start >= b->start);
 
-    if (b->data_start == b->data_end) {
-        b->data_start = b->data_end = b->start;
-        *b->data_end = '\0';
-    }
-
     return b->data_start;
 }
 

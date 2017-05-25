@@ -37,4 +37,54 @@ int conn_disable_read(connection *conn);
 int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag);
 int conn_disable_write(connection *conn);
 
+int conn_read(connection *conn, buffer *in);
+int conn_write(connection *conn, buffer *out);
+int conn_send_file(connection *conn, int fd, struct stat *st);
+
+#define FCY_READ(conn, in, error_handler) \
+do {    \
+    int err = conn_read(conn, in); \
+    switch(err) {    \
+        case FCY_AGAIN: \
+            return; \
+        case FCY_ERROR: \
+            error_handler; \
+            return; \
+        default:    \
+            break;  \
+    }   \
+} while(0)  \
+
+#define FCY_WRITE(conn, out, error_handler) \
+do {    \
+    int err = conn_write(conn, out); \
+    switch(err) {    \
+        case FCY_AGAIN: \
+            return; \
+        case FCY_ERROR: \
+            error_handler; \
+            return; \
+        default:    \
+            if (!buffer_empty(out)) {    \
+                return; \
+            }  \
+    }   \
+} while(0)  \
+
+#define FCY_SEND_FILE(conn, fd, st, error_handler)   \
+do {    \
+    int err = conn_send_file(conn, fd, st); \
+    switch(err) {    \
+        case FCY_AGAIN: \
+            return; \
+        case FCY_ERROR: \
+            error_handler; \
+            return; \
+        default:    \
+            if (st->st_size > 0) {  \
+                return; \
+            }  \
+    }   \
+} while(0)  \
+
 #endif //FANCY_CONN_POOL_H

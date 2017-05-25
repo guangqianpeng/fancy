@@ -3,6 +3,7 @@
 //
 
 #include "connection.h"
+#include "../app/app.h"
 
 static connection   *conns;
 static connection   *peers;
@@ -33,7 +34,7 @@ int conn_pool_init(mem_pool *p, int size)
         peers[i].peer = &conns[i];
     }
 
-    if (upstream_ip != NULL) {
+    if (use_upstream) {
         conn_set_upstream_addr(size);
     }
 
@@ -186,5 +187,86 @@ int conn_disable_write(connection *conn)
     }
 
     conn->write.active = 0;
+    return FCY_OK;
+}
+
+int conn_read(connection *conn, buffer *in)
+{
+    int n;
+
+    inter:
+    n = (int)read(conn->sockfd, in->data_end, buffer_space(in));
+    switch(n) {
+        case -1:
+        {
+            switch (errno) {
+                case EINTR:
+                    goto inter;
+                case EAGAIN:
+                    return FCY_AGAIN;
+                case ECONNRESET:
+                    break;
+                default:
+                    access_log(&conn->addr, "read error");
+                    exit(1);
+            }
+        }
+        case 0:
+            access_log(&conn->addr, "read %s", n == 0 ? "FIN" : "RESET");
+            return FCY_ERROR;
+
+        default:
+            buffer_seek_end(in, n);
+            return FCY_OK;
+    }
+}
+
+int conn_write(connection *conn, buffer *out)
+{
+    int n;
+
+    inter:
+    n = (int)write(conn->sockfd, out->data_start, buffer_size(out));
+    if (n == -1) {
+        switch (errno) {
+            case EINTR:
+                goto inter;
+            case EAGAIN:
+                return FCY_AGAIN;
+            case EPIPE:
+            case ECONNRESET:
+                access_log(&conn->addr, "write error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                return FCY_ERROR;
+            default:
+                access_log(&conn->addr, "write error: %s", strerror(errno));
+                exit(1);
+        }
+    }
+    buffer_seek_start(out, n);
+    return FCY_OK;
+}
+
+int conn_send_file(connection *conn, int fd, struct stat *st)
+{
+    ssize_t n;
+
+    inter:
+    n = sendfile(conn->sockfd, fd, NULL, INT_MAX);
+    if (n == -1) {
+        switch (errno) {
+            case EINTR:
+                goto inter;
+            case EAGAIN:
+                return FCY_AGAIN;
+            case EPIPE:
+            case ECONNRESET:
+                access_log(&conn->addr, "sendfile error %s", errno == EPIPE ? "EPIPE" : "ERESET");
+                return FCY_ERROR;
+            default:
+                access_log(&conn->addr, "sendfile error %s", strerror(errno));
+                exit(1);
+        }
+    }
+    st->st_size -= n;
     return FCY_OK;
 }

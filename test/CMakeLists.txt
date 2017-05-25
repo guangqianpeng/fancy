@@ -14,11 +14,15 @@ set(EVENT
         ../event/timer.c ../event/timer.h
         ${BUFFER} ${ARRAY} ${RBTREE} ${LIST})
 
-set(PARSE ../http/parse_request.c
+set(PARSE ../http/http_parser.c
+        ../http/http_parser.h
         ../http/request.h ${EVENT})
 set(PROCESS ../http/process_request.c
         ../http/request.c
-        ../http/request.h ${EVENT} ${PARSE})
+        ../http/request.h
+        ../http/http_parser.h
+        ../http/http_parser.c
+        ${EVENT} ${PARSE})
 set(REQUEST ${PROCESS})
 
 add_executable(test_palloc test_palloc.c ${PALLOC})
