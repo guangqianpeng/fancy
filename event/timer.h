@@ -10,7 +10,7 @@
 void timer_init();
 void timer_add(event *ev, timer_msec timeout);
 void timer_del(event *ev);
-timer_msec timer_recent();
 void timer_expired_process();
+void event_and_timer_process();
 
 #endif //FANCY_TIMER_H

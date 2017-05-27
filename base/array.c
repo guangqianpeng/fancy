@@ -8,13 +8,11 @@ array *array_create(mem_pool *pool, size_t capacity, size_t elem_size)
 {
     array *a = palloc(pool, sizeof(array));
     if (a == NULL) {
-        err_msg("%s error at line %d", __FUNCTION__, __LINE__);
         return NULL;
     }
 
     a->elems = palloc(pool, capacity * elem_size);
     if (a->elems == NULL) {
-        err_msg("%s error at line %d", __FUNCTION__, __LINE__);
         return NULL;
     }
 
@@ -59,7 +57,6 @@ void *array_alloc(array *a)
     else {
         new_elems = palloc(a->pool, 2 * a->capacity * a->elem_size);
         if (new_elems == NULL) {
-            err_msg("%s error at line %d", __FUNCTION__, __LINE__);
             return NULL;
         }
 

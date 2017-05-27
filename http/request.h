@@ -12,7 +12,7 @@
 #define HTTP_POOL_SIZE              MEM_POOL_DEFAULT_SIZE
 #define HTTP_REQUEST_SIZE           BUFFER_DEFAULT_SIZE
 #define HTTP_RESPONSE_SIZE          BUFFER_DEFAULT_SIZE
-#define HTTP_MAX_CONTENT_LENGTH     20480
+#define HTTP_MAX_CONTENT_LENGTH     4000 * 1000
 
 typedef struct request  request;
 

@@ -19,13 +19,11 @@ int event_init(mem_pool *p, int n_ev)
 
     event_list = palloc(p, n_ev * sizeof(struct epoll_event));
     if (event_list == NULL) {
-        error_log("%s error at line %d\n", __FUNCTION__, __LINE__);
         return FCY_ERROR;
     }
 
     epollfd = epoll_create1(0);
     if (epollfd == -1) {
-        error_log("%s error at line %d\n", __FUNCTION__, __LINE__);
         exit(1);
     }
 
@@ -45,10 +43,9 @@ int event_process(timer_msec timeout)
 
     if (n_ev == -1) {
         if (errno == EINTR) {
-            error_log("epoll_wait EINTR");
             return 0;
         }
-        error_log("epoll_wait error: %s", strerror(errno));
+        LOG_SYSERR("epoll wait error");
         return FCY_ERROR;
     }
     else if (n_ev == 0) {

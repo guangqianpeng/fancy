@@ -51,7 +51,7 @@ int request_init(mem_pool *pool)
     index_name_len = strlen(index_name);
     dot = strrchr(index_name, '.');
     if (dot == NULL) {
-        error_log("index name must have suffix");
+        fprintf(stderr, "index name must have suffix");
         return FCY_ERROR;
     }
     index_name_suffix_len = index_name_len - (dot - index_name) - 1;
@@ -63,7 +63,10 @@ int request_init(mem_pool *pool)
     --n_location;
 
     location_len = palloc(pool, n_location);
-    RETURN_ON(location_len, NULL);
+    if (location_len == NULL) {
+        fprintf(stderr, "palloc failed");
+        return FCY_ERROR;
+    }
 
     for (int i = 0; i < n_location; ++i) {
         location_len[i] = strlen(locations[i]);
@@ -159,7 +162,7 @@ void request_destroy(request *r)
 
     r->conn->app = NULL;
     if (r->send_fd > 0) {
-        ABORT_ON(close(r->send_fd), -1);
+        CHECK(close(r->send_fd));
     }
 
     mem_pool_destroy(r->pool);
@@ -179,7 +182,9 @@ int request_create_body_in(request *r)
 
     if (r->body_in == NULL) {
         body_in = r->body_in = buffer_create(r->pool, cnt_len);
-        RETURN_ON(body_in, NULL);
+        if (body_in == NULL) {
+            return FCY_ERROR;
+        }
     }
     else {
         assert(buffer_empty(body_in));
@@ -205,7 +210,9 @@ int request_create_body_out(request *r, size_t cnt_len)
 
     if (body_out == NULL) {
         body_out = r->body_out = buffer_create(r->pool, cnt_len);
-        RETURN_ON(body_out, NULL);
+        if (body_out == NULL) {
+            return FCY_ERROR;
+        }
     }
     else {
         assert(buffer_empty(body_out));
@@ -222,14 +229,123 @@ int request_parse(request *r)
     return parser_execute(&r->parser, r->header_in, r->pool);
 }
 
+int check_request_header(request *r)
+{
+    http_parser *p= &r->parser;
+
+    if (p->method != METHOD_GET && p->method != METHOD_POST) {
+        r->status_code = STATUS_NOT_IMPLEMENTED;
+        return FCY_ERROR;
+    }
+
+    /* HTTP/1.1必须有host字段 */
+    if (p->version == HTTP_V11 && !r->has_host_header) {
+        r->status_code = STATUS_BAD_REQUEST;
+        return FCY_ERROR;
+    }
+
+    /* HTTP/1.1 默认开启keep alive*/
+    if (p->version == HTTP_V11 && !r->has_connection_header) {
+        r->should_keep_alive = 1;
+    }
+
+
+    /* POST请求必须有Content-Length字段, 且字段值>=0
+     * */
+    if (p->method == METHOD_POST) {
+        if (!r->has_content_length_header) {
+            r->status_code = STATUS_LENGTH_REQUIRED;
+            return FCY_ERROR;
+        }
+        if (r->content_length <= 0) {
+            r->status_code = STATUS_BAD_REQUEST;
+            return FCY_ERROR;
+        }
+        if (r->content_length >= INT_MAX) {
+            r->status_code = STATUS_PAYLOAD_TOO_LARGE;
+            return FCY_ERROR;
+        }
+    }
+
+    /* status code未知 */
+    return FCY_OK;
+}
+
+int open_static_file(request *r)
+{
+    char            *path;
+    struct stat     *sbuf;
+    int             err, f_flag;
+
+    assert(r->is_static);
+
+    path = r->host_uri;
+    sbuf = &r->sbuf;
+
+    /* 测试文件 */
+    err = stat(path, sbuf);
+    if (err == -1) {
+        r->status_code = STATUS_NOT_FOUND;
+        return FCY_ERROR;
+    }
+
+    if (!S_ISREG(sbuf->st_mode) || !(S_IRUSR & sbuf->st_mode)) {
+        r->status_code = STATUS_FORBIDDEN;
+        return FCY_ERROR;
+    }
+
+    /* 打开文件会阻塞！！ */
+    int fd = open(path, O_RDONLY);
+    if (fd == -1) {
+        r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
+        return FCY_ERROR;
+    }
+
+    f_flag = fcntl(fd, F_GETFL, 0);
+    if (f_flag == -1) {
+        r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
+        LOG_SYSERR("fcntl failed");
+        return FCY_ERROR;
+    }
+
+    err = fcntl(fd, F_SETFL, f_flag | O_NONBLOCK);
+    if (err == -1) {
+        r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
+        LOG_SYSERR("fcntl failed");
+        return FCY_ERROR;
+    }
+
+    r->send_fd = fd;
+    r->status_code = STATUS_OK;
+    return FCY_OK;
+}
+
+/* 动态类型请求不支持keep-alive */
+void set_conn_header_closed(request *r)
+{
+    buffer  *in;
+    char    *beg, *end;
+
+    in = r->header_in;
+    beg = r->keep_alive_value_start;
+    end = r->keep_alive_value_end;
+
+    assert(strncmp((char*)in->data_end - 4, "\r\n\r\n", 4) == 0);
+
+    if (!r->has_connection_header) {
+        in->data_end -= 2;
+        buffer_write(in, "Connection:close\r\n\r\n", 20);
+        r->has_connection_header = 1;
+    }
+    else if (beg != NULL) {
+        assert(end - beg == 10); // keep_alive
+        strncpy(beg, "close     ", end - beg);
+    }
+}
+
 static void request_set_cork(connection *conn, int open)
 {
-    int err;
-
-    err = setsockopt(conn->sockfd, IPPROTO_TCP, TCP_CORK, &open, sizeof(open));
-    if (err == -1) {
-        access_log(&conn->addr, "setsockopt error %s", strerror(errno));
-    }
+    CHECK(setsockopt(conn->sockfd, IPPROTO_TCP, TCP_CORK, &open, sizeof(open)));
 }
 
 static void request_set_parser(request *r)

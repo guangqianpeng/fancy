@@ -11,27 +11,27 @@
 #define HTTP_PARSE_RESPONSE     1
 
 /* request method */
-#define HTTP_METHOD_GET          0
-#define HTTP_METHOD_HEAD         1
-#define HTTP_METHOD_POST         2
-#define HTTP_METHOD_OPTIONS      3
-#define HTTP_METHOD_DELETE       4
-#define HTTP_METHOD_TRACE        5
-#define HTTP_METHOD_CONNECT      6
+#define METHOD_GET          0
+#define METHOD_HEAD         1
+#define METHOD_POST         2
+#define METHOD_OPTIONS      3
+#define METHOD_DELETE       4
+#define METHOD_TRACE        5
+#define METHOD_CONNECT      6
 extern const char *method_strs[];
 
 /* status code */
-#define HTTP_STATUS_OK                               0
-#define HTTP_STATUS_BAD_REQUEST                      1
-#define HTTP_STATUS_FORBIDDEN                        2
-#define HTTP_STATUS_NOT_FOUND                        3
-#define HTTP_STATUS_REQUEST_TIME_OUT                 4
-#define HTTP_STATUS_LENGTH_REQUIRED                  5
-#define HTTP_STATUS_PAYLOAD_TOO_LARGE                6
-#define HTTP_STATUS_URI_TOO_LONG                     7
-#define HTTP_STATUS_REQUEST_HEADER_FIELD_TOO_LARGE   8
-#define HTTP_STATUS_INTARNAL_SEARVE_ERROR            9
-#define HTTP_STATUS_NOT_IMPLEMENTED                  10
+#define STATUS_OK                               0
+#define STATUS_BAD_REQUEST                      1
+#define STATUS_FORBIDDEN                        2
+#define STATUS_NOT_FOUND                        3
+#define STATUS_REQUEST_TIME_OUT                 4
+#define STATUS_LENGTH_REQUIRED                  5
+#define STATUS_PAYLOAD_TOO_LARGE                6
+#define STATUS_URI_TOO_LONG                     7
+#define STATUS_REQUEST_HEADER_FIELD_TOO_LARGE   8
+#define STATUS_INTARNAL_SEARVE_ERROR            9
+#define STATUS_NOT_IMPLEMENTED                  10
 extern const char *status_code_out_str[];
 
 #define HTTP_V10                    0

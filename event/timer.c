@@ -10,6 +10,9 @@
 static rbtree      timer;
 static rbtree_node sentinel;
 
+static timer_msec timer_recent();
+static timer_msec current_msec();
+
 void timer_init()
 {
     rbtree_init(&timer, &sentinel);
@@ -40,26 +43,6 @@ void timer_del(event *ev)
     ev->timeout = 0;
 }
 
-timer_msec timer_recent()
-{
-    rbtree_node *recent;
-    timer_msec  current;
-
-    /* 计时器为空, 表示不会有任何事件发生 */
-    if (rbtree_empty(&timer)) {
-        return TIMER_INFINITE;
-    }
-
-    recent = rbtree_min(&timer);
-    current = current_msec();
-    if (current < recent->key) {    /* 没有事件发生，返回最近事件的时间差值 */
-        return recent->key - current;
-    }
-
-    /* 有事件发生 */
-    return 0;
-}
-
 void timer_expired_process()
 {
     timer_msec      current;
@@ -84,13 +67,48 @@ void timer_expired_process()
     }
 }
 
-timer_msec current_msec()
+void event_and_timer_process()
+{
+    timer_msec  timeout = (timer_msec)-1;
+    int         n_ev;
+
+    while (1) {
+
+        n_ev = event_process(timeout);
+        if (n_ev == FCY_ERROR) {
+            return;
+        }
+
+        timer_expired_process();
+        timeout = timer_recent();
+    }
+}
+
+static timer_msec timer_recent()
+{
+    rbtree_node *recent;
+    timer_msec  current;
+
+    /* 计时器为空, 表示不会有任何事件发生 */
+    if (rbtree_empty(&timer)) {
+        return TIMER_INFINITE;
+    }
+
+    recent = rbtree_min(&timer);
+    current = current_msec();
+    if (current < recent->key) {    /* 没有事件发生，返回最近事件的时间差值 */
+        return recent->key - current;
+    }
+
+    /* 有事件发生 */
+    return 0;
+}
+
+static timer_msec current_msec()
 {
     struct timeval now;
 
-    if (gettimeofday(&now, NULL) == -1) {
-        err_sys("gettimeofday error");
-    }
+    CHECK(gettimeofday(&now, NULL));
 
     return (timer_msec)now.tv_sec * 1000 + now.tv_usec / 1000;
 }

@@ -73,7 +73,6 @@ enum {
     name_,
     space_before_value_,
     value_,
-    space_after_value_,
     header_almost_done_,
     all_headers_almost_done,
     all_done_,
@@ -151,13 +150,13 @@ static int parse_request_line(http_parser *ps, buffer *in)
             case start_:
                 /* method_start_ */
                 switch(c) {
-                    case 'G': ps->method = HTTP_METHOD_GET; break;
-                    case 'H': ps->method = HTTP_METHOD_HEAD; break;
-                    case 'P': ps->method = HTTP_METHOD_POST; break;
-                    case 'O': ps->method = HTTP_METHOD_OPTIONS; break;
-                    case 'D': ps->method = HTTP_METHOD_DELETE; break;
-                    case 'T': ps->method = HTTP_METHOD_TRACE; break;
-                    case 'C': ps->method = HTTP_METHOD_CONNECT; break;
+                    case 'G': ps->method = METHOD_GET; break;
+                    case 'H': ps->method = METHOD_HEAD; break;
+                    case 'P': ps->method = METHOD_POST; break;
+                    case 'O': ps->method = METHOD_OPTIONS; break;
+                    case 'D': ps->method = METHOD_DELETE; break;
+                    case 'T': ps->method = METHOD_TRACE; break;
+                    case 'C': ps->method = METHOD_CONNECT; break;
                     default:
                         goto error;
                     }
@@ -346,26 +345,16 @@ static int parse_headers(http_parser *ps, buffer *in)
                 goto error;
 
             case value_:
-                if (c == '\r' || c == ' ') {
+                if (c == '\r') {
 
                     CB_2(ps->header_cb, ps->user,
                          ps->last_header_name_start,
                          ps->last_header_value_start);
 
-                    state = (c == '\r' ? header_almost_done_ : space_before_value_);
+                    state = header_almost_done_;
                     break;
                 }
                 if (!iscntrl(c)) {
-                    break;
-                }
-                goto error;
-
-            case space_after_value_:
-                if (c == ' ') {
-                    break;
-                }
-                if (c == '\r') {
-                    state = header_almost_done_;
                     break;
                 }
                 goto error;

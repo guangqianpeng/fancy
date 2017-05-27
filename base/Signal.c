@@ -30,7 +30,8 @@ Sigfunc *Signal(int signo, Sigfunc *func)	/* for our signal() function */
 {
     Sigfunc	*sigfunc;
 
-    if ( (sigfunc = my_signal(signo, func)) == SIG_ERR)
-        err_sys("signal error");
+    if ( (sigfunc = my_signal(signo, func)) == SIG_ERR) {
+        perror("signal error");
+    }
     return (sigfunc);
 }

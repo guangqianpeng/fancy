@@ -31,17 +31,19 @@ int conn_pool_init(mem_pool *p, int size);
 
 connection *conn_get();
 void conn_free(connection *conn);
+char *conn_str(connection *conn);
 
-int conn_enable_read(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_read(connection *conn);
-int conn_enable_write(connection *conn, event_handler handler, uint32_t epoll_flag);
-int conn_disable_write(connection *conn);
+void conn_enable_accept(connection *, event_handler);
+void conn_enable_read(connection *, event_handler);
+void conn_disable_read(connection *);
+void conn_enable_write(connection *, event_handler);
+void conn_disable_write(connection *);
 
 int conn_read(connection *conn, buffer *in);
 int conn_write(connection *conn, buffer *out);
 int conn_send_file(connection *conn, int fd, struct stat *st);
 
-#define FCY_READ(conn, in, error_handler) \
+#define CONN_READ(conn, in, error_handler) \
 do {    \
     int err = conn_read(conn, in); \
     switch(err) {    \
@@ -55,7 +57,7 @@ do {    \
     }   \
 } while(0)  \
 
-#define FCY_WRITE(conn, out, error_handler) \
+#define CONN_WRITE(conn, out, error_handler) \
 do {    \
     int err = conn_write(conn, out); \
     switch(err) {    \
@@ -71,7 +73,7 @@ do {    \
     }   \
 } while(0)  \
 
-#define FCY_SEND_FILE(conn, fd, st, error_handler)   \
+#define CONN_SEND_FILE(conn, fd, st, error_handler)   \
 do {    \
     int err = conn_send_file(conn, fd, st); \
     switch(err) {    \

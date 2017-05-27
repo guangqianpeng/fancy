@@ -18,8 +18,6 @@ typedef struct event        event;
 typedef struct connection   connection;
 typedef void (*event_handler)(event *);
 
-timer_msec current_msec();
-
 struct event {
 
     unsigned        active:1;     // 是否在epoll_wait中
@@ -32,8 +30,6 @@ struct event {
 
     connection      *conn;
 };
-
-
 
 int event_init(mem_pool *p, int n_ev);  // n_events是epoll返回的最大事件数目
 
