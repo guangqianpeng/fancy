@@ -2,7 +2,7 @@
 // Created by frank on 17-5-24.
 //
 
-#include <buffer.h>
+#include "buffer.h"
 
 #ifndef FANCY_PARSE_HEADERS_H
 #define FANCY_PARSE_HEADERS_H
@@ -18,7 +18,7 @@
 #define METHOD_DELETE       4
 #define METHOD_TRACE        5
 #define METHOD_CONNECT      6
-extern const char *method_strs[];
+extern const char *method_str[];
 
 /* status code */
 #define STATUS_OK                               0

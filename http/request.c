@@ -10,7 +10,7 @@
 static size_t index_name_len;
 static size_t index_name_suffix_len;
 static size_t *location_len;
-static size_t root_len;
+size_t root_len;
 
 const static char *suffix_str[] = {
         "html", "txt", "xml", "asp", "css",

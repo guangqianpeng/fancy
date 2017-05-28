@@ -197,8 +197,7 @@ int conn_read(connection *conn, buffer *in)
                     return FCY_ERROR;
             }
         }
-        case 0:
-            LOG_DEBUG("%s get fin", conn_str(conn));
+        case 0://FIN
             return FCY_ERROR;
 
         default:

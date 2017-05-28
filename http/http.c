@@ -10,13 +10,8 @@
 #include "request.h"
 #include "upstream.h"
 
-#define DISABLE_READ_AND_RESPONSE(conn, status_code) \
-do {    \
-    CHECK_DISABLE_READ(conn);    \
-    response_and_close_on(conn, status_code);   \
-} while(0)
-
 /* 通用的handler */
+static void accept_h(event *);
 static void read_request_headers_h(event *);
 static void parse_request_h(event *);
 static void read_request_body(event *);
@@ -27,7 +22,7 @@ static void peer_connect_h(event *);
 static void upstream_write_request_h(event *);
 static void upstream_read_response_header_h(event *);
 static void upstream_parse_response_h(event *);
-static void upstream_read_response_body(event *ev);
+static void upstream_read_response_body(event *);
 static void write_response_all_h(event *);
 
 static void write_response_headers_h(event *);
@@ -41,7 +36,22 @@ static void close_connection(connection *conn);
 
 static int tcp_listen();
 
-void accept_h(event *ev)
+int accept_init()
+{
+    connection  *conn;
+
+    conn = conn_get();
+    if (conn == NULL) {
+        return FCY_ERROR;
+    }
+
+    conn->sockfd = tcp_listen();
+    conn_enable_accept(conn, accept_h);
+
+    return FCY_OK;
+}
+
+static void accept_h(event *ev)
 {
     int                 connfd;
     struct sockaddr_in  *addr;
@@ -74,11 +84,11 @@ void accept_h(event *ev)
 
     conn->sockfd = connfd;
 
-    LOG_DEBUG("%s up",conn_str(conn));
-
     conn_enable_read(conn, read_request_headers_h);
 
     timer_add(&conn->read, (timer_msec)request_timeout);
+
+    LOG_DEBUG("%s [up]", conn_str(conn));
 
     ++msg.total_connection;
 
@@ -243,11 +253,9 @@ done:
     }
 
     if (conn->app_count >= request_per_conn) {
-        LOG_DEBUG("%s too many requests", conn_str(conn));
+        LOG_WARN("%s too many requests", conn_str(conn));
         rqst->should_keep_alive = 0;
     }
-
-    LOG_DEBUG("%s request %s", conn_str(conn), rqst->host_uri);
 
     process_request_h(ev);
 
@@ -280,6 +288,9 @@ static void process_request_h(event *ev)
             return;
         }
 
+        LOG_DEBUG("%s request \"%s\" %ld bytes",
+                  conn_str(conn), rqst->host_uri + root_len, rqst->sbuf.st_size);
+
         conn_enable_write(conn, write_response_headers_h);
         write_response_headers_h(&conn->write);
         return;
@@ -288,6 +299,9 @@ static void process_request_h(event *ev)
         /* 动态类型请求
          * 不支持keep-alive
          * */
+        LOG_DEBUG("%s upstream request \"%s\"",
+                  conn_str(conn), rqst->host_uri + root_len);
+
         rqst->should_keep_alive = 0;
         set_conn_header_closed(rqst);
         peer_connect_h(&peer->write);
@@ -379,7 +393,7 @@ static void upstream_write_request_h(event *ev)
 
         CHECK(getsockopt(peer->sockfd, SOL_SOCKET, SO_ERROR, &conn_err, &err_len));
         if (conn_err != 0) {
-            LOG_ERROR("peer connect error: %s", strerror(conn_err));
+            LOG_ERROR("%s upstream connect error: %s", conn_str(conn), strerror(conn_err));
             conn_disable_write(peer);
             response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
             return;
@@ -665,7 +679,7 @@ static void finalize_request_h(event *ev)
     rqst = conn->app;
     keep_alive = rqst->should_keep_alive;
 
-    LOG_DEBUG("%s response %s",
+    LOG_DEBUG("%s response \"%s\"",
              conn_str(conn), status_code_out_str[rqst->status_code]);
 
     ++msg.total_request;
@@ -716,7 +730,7 @@ static void close_connection(connection *conn)
 
     conn_free(conn);
 
-    LOG_DEBUG("%s down", conn_str(conn));
+    LOG_DEBUG("%s [down]", conn_str(conn));
 }
 
 static int tcp_listen()
@@ -755,19 +769,4 @@ static int tcp_listen()
     }
 
     return listenfd;
-}
-
-int init_and_add_accept_event(event_handler accept_handler)
-{
-    connection  *conn;
-
-    conn = conn_get();
-    if (conn == NULL) {
-        return FCY_ERROR;
-    }
-
-    conn->sockfd = tcp_listen();
-    conn_enable_accept(conn, accept_handler);
-
-    return FCY_OK;
 }

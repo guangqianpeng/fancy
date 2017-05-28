@@ -16,7 +16,7 @@ int n_workers           = 3;
 int accept_defer        = 3;
 
 /* upstream */
-int         use_upstream = 1;
+int         use_upstream = 0;
 const char  *upstream_ip = "127.0.0.1";
 uint16_t    upstream_port = 9878;
 
@@ -33,4 +33,3 @@ Message     msg;
 
 int         log_on = 1;
 int         log_level = LOG_LEVEL_DEBUG;
-int         log_fd = STDOUT_FILENO;

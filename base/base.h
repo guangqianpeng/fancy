@@ -80,7 +80,6 @@ extern uint16_t     upstream_port;
 
 extern int          log_on;
 extern int          log_level;
-extern int          log_fd;
 
 /* 每个进程各一份 */
 typedef struct Message Message;

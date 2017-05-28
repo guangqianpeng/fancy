@@ -27,7 +27,7 @@ do {    \
     }   \
 } while(0)  \
 
-const char *method_strs[] = {
+const char *method_str[] = {
         "GET",
         "HEAD",
         "POST",
@@ -166,7 +166,7 @@ static int parse_request_line(http_parser *ps, buffer *in)
 
             case method_:
             {
-                const char *matcher = method_strs[ps->method];
+                const char *matcher = method_str[ps->method];
 
                 if (matcher[ps->index] != '\0') {
                     if (matcher[ps->index] == c) {
@@ -411,13 +411,13 @@ static int parse_uri(http_parser *ps, mem_pool *pool)
         switch (state) {
             case start_:
                 if (c == '/') {
-                    u = host_uri = pcalloc(pool, ps->uri_end - ps->uri_start + 32);
+                    u = host_uri = pcalloc(pool, ps->uri_end - ps->uri_start + root_len + 1);
                     if (host_uri == NULL) {
                         goto error;
                     }
 
                     strcpy(u, root);
-                    u += strlen(root);
+                    u += root_len;
                     *u++ = '/';
 
                     state = after_slash_;

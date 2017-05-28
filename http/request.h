@@ -14,6 +14,8 @@
 #define HTTP_RESPONSE_SIZE          BUFFER_DEFAULT_SIZE
 #define HTTP_MAX_CONTENT_LENGTH     4000 * 1000
 
+size_t root_len;
+
 typedef struct request  request;
 
 struct request {

@@ -13,8 +13,6 @@
 #define LOG_LEVEL_ERROR     3
 #define LOG_LEVEL_FATAL     4
 
-struct connection;
-
 void log_init(const char *file_name);
 
 /* private, do not use  */
@@ -23,17 +21,18 @@ void log_base(const char *file,
               int level,
               int to_abort,
               const char *fmt, ...);
-/* private, do not use */
 void log_sys(const char *file,
              int line,
              int to_abort,
              const char *fmt, ...);
 
+/* private, do not use  */
 #define LOG_BASE(level, to_abort, fmt, ...) if (log_on) \
 log_base(__FILE__, __LINE__, level, to_abort, fmt, ##__VA_ARGS__)
 #define LOG_SYS(to_abort, fmt, ...) if (log_on) \
 log_sys(__FILE__, __LINE__, to_abort, fmt, ##__VA_ARGS__)
 
+/* public  */
 #define LOG_DEBUG(fmt, ...)     if(log_level <= LOG_LEVEL_DEBUG) \
 LOG_BASE(LOG_LEVEL_DEBUG, 0, fmt, ##__VA_ARGS__)
 #define LOG_INFO(fmt, ...)      if(log_level <= LOG_LEVEL_INFO) \

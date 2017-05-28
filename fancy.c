@@ -13,7 +13,7 @@ static int localfd[2];
 
 static void sig_empty_handler(int signo);
 static void sig_quit_handler(int signo);
-static int init_worker(event_handler accept_handler);
+static int init_worker();
 static void run_single_process();
 
 static Message total;
@@ -30,7 +30,6 @@ int main()
     /* 多进程模式 */
     CHECK(socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, localfd));
 
-
     for (int i = 1; i <= n_workers; ++i) {
         err = fork();
         switch (err) {
@@ -39,17 +38,16 @@ int main()
                 exit(1);
 
             case 0:
-
                 msg.worker_id = i;
                 CHECK(close(localfd[0]));
 
-                err = init_worker(accept_h);
+                err = init_worker();
                 if (err == FCY_ERROR) {
                     LOG_ERROR("init worker error");
                     exit(1);
                 }
 
-                LOG_INFO("worker %d listening port %d", i, serv_port);
+                LOG_INFO("listening port %d", serv_port);
 
                 Signal(SIGINT, sig_quit_handler);
 
@@ -113,7 +111,7 @@ int main()
 
 static void run_single_process()
 {
-    int err = init_worker(accept_h);
+    int err = init_worker();
     if (err == FCY_ERROR) {
         LOG_ERROR("init worker error");
         exit(1);
@@ -128,7 +126,7 @@ static void run_single_process()
     exit(1);
 }
 
-static int init_worker(event_handler accept_handler)
+static int init_worker()
 {
     mem_pool    *pool;
     size_t      size;
@@ -157,7 +155,7 @@ static int init_worker(event_handler accept_handler)
         return FCY_ERROR;
     }
 
-    if (init_and_add_accept_event(accept_handler) == FCY_ERROR) {
+    if (accept_init() == FCY_ERROR) {
         return FCY_ERROR;
     }
 

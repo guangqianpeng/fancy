@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include "log.h"
 
-#define MAXLINE     1024
+#define MAXLINE     256
 
 const static char *log_level_str[] = {
         "[DEBUG]",
@@ -15,6 +15,8 @@ const static char *log_level_str[] = {
         "[ERROR]",
         "[FATAL]"
 };
+
+static int log_fd = STDOUT_FILENO;
 
 static int timestamp(char *);
 
@@ -41,12 +43,10 @@ void log_base(const char *file,
     i += sprintf(data + i, " %s ", log_level_str[level]);
 
     va_start(ap, fmt);
-    i += vsnprintf(data + i,MAXLINE - i - 32, fmt, ap);
+    vsnprintf(data + i, MAXLINE - i, fmt, ap);
     va_end(ap);
 
-    snprintf(data + i, MAXLINE - i, " - %s:%d", strrchr(file, '/') + 1, line);
-
-    dprintf(log_fd, "%s\n", data);
+    dprintf(log_fd, "%s - %s:%d\n", data, strrchr(file, '/') + 1, line);
 
     if (to_abort) {
         abort();
@@ -64,16 +64,13 @@ void log_sys(const char *file,
 
     i += timestamp(data);
     i += sprintf(data + i, " %d", getpid());
-    i += sprintf(data + i, " %s ", "SYSERROR");
+    i += sprintf(data + i, " %s ", to_abort ? "[SYSFA]":"[SYSER]");
 
     va_start(ap, fmt);
-    i += vsnprintf(data + i,MAXLINE - i - 32, fmt, ap);
+    vsnprintf(data + i, MAXLINE - i, fmt, ap);
     va_end(ap);
 
-    i += snprintf(data + i, MAXLINE - i, ": %s", strerror(errno));
-    snprintf(data + i, MAXLINE - i, " - %s:%d", strrchr(file, '/') + 1, line);
-
-    dprintf(log_fd, "%s\n", data);
+    dprintf(log_fd, "%s: %s - %s:%d\n", data, strerror(errno), strrchr(file, '/') + 1, line);
 
     if (to_abort) {
         abort();
