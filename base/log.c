@@ -22,9 +22,10 @@ static int timestamp(char *);
 
 void log_init(const char *file_name)
 {
-    int fd = open(file_name, O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
-    if (fd == -1) {
-        fprintf(stderr, "open log file %s error", file_name);
+    log_fd = open(file_name, O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+    if (log_fd == -1) {
+        fprintf(stderr, "open log file %s error: %s",
+                file_name, strerror(errno));
     }
 }
 
