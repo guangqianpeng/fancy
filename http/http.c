@@ -4,6 +4,7 @@
 
 #include "http.h"
 #include "base.h"
+#include "log.h"
 #include "Signal.h"
 #include "timer.h"
 #include "connection.h"
@@ -60,7 +61,7 @@ static void accept_h(event *ev)
 
     conn = conn_get();
     if (conn == NULL) {
-        LOG_WARN("not enough idle connections, current %d", n_connections);
+        LOG_WARN("not enough idle connections, current %d", worker_connections);
         return;
     }
 
@@ -89,8 +90,6 @@ static void accept_h(event *ev)
     timer_add(&conn->read, (timer_msec)request_timeout);
 
     LOG_DEBUG("%s [up]", conn_str(conn));
-
-    ++msg.total_connection;
 
     /* defer option is set,
      * so there should have data
@@ -123,7 +122,8 @@ static void read_request_headers_h(event *ev)
 
     /* 对端发送请求超时 */
     if (ev->timeout) {
-        LOG_WARN("%s request timeout", conn_str(conn));
+        LOG_WARN("%s request timeout (%dms)",
+                 conn_str(conn), request_timeout);
         conn_disable_read(conn);
         response_and_close(conn, STATUS_REQUEST_TIME_OUT);
         return;
@@ -252,7 +252,7 @@ done:
         header_in->data_start = header_in->start;
     }
 
-    if (conn->app_count >= request_per_conn) {
+    if (conn->app_count >= keep_alive_requests) {
         LOG_WARN("%s too many requests", conn_str(conn));
         rqst->should_keep_alive = 0;
     }
@@ -289,18 +289,20 @@ static void process_request_h(event *ev)
         }
 
         LOG_DEBUG("%s request \"%s\" %ld bytes",
-                  conn_str(conn), rqst->host_uri + root_len, rqst->sbuf.st_size);
+                  conn_str(conn), rqst->host_uri, rqst->sbuf.st_size);
 
         conn_enable_write(conn, write_response_headers_h);
         write_response_headers_h(&conn->write);
         return;
     }
-    else if (use_upstream) {
+    else if (rqst->status_code == STATUS_OK) {
         /* 动态类型请求
          * 不支持keep-alive
          * */
-        LOG_DEBUG("%s upstream request \"%s\"",
-                  conn_str(conn), rqst->host_uri + root_len);
+        LOG_DEBUG("%s upstream request \"%.*s\"",
+                  conn_str(conn),
+                  rqst->parser.uri_end - rqst->parser.uri_start,
+                  rqst->parser.uri_start);
 
         rqst->should_keep_alive = 0;
         set_conn_header_closed(rqst);
@@ -308,7 +310,7 @@ static void process_request_h(event *ev)
         return;
     }
     else {
-        response_and_close(conn, STATUS_NOT_FOUND);
+        response_and_close(conn, rqst->status_code);
         return;
     }
 }
@@ -447,7 +449,8 @@ static void upstream_read_response_header_h(event *ev)
     in = rqst->header_out;
 
     if (ev->timeout) {
-        LOG_WARN("%s upstream response timeout", conn_str(conn));
+        LOG_WARN("%s upstream response timeout (%dms)",
+                 conn_str(conn), upstream_timeout);
         conn_disable_read(peer);
         response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
         return;
@@ -682,12 +685,7 @@ static void finalize_request_h(event *ev)
     LOG_DEBUG("%s response \"%s\"",
              conn_str(conn), status_code_out_str[rqst->status_code]);
 
-    ++msg.total_request;
-    if (rqst->status_code == STATUS_OK) {
-        ++msg.ok_request;
-    }
-
-    if (!keep_alive || conn->app_count >= request_per_conn) {
+    if (!keep_alive || conn->app_count >= keep_alive_requests) {
         close_connection(conn);
         return;
     }
@@ -753,7 +751,7 @@ static int tcp_listen()
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family         = AF_INET;
     servaddr.sin_addr.s_addr    = htonl(INADDR_ANY);
-    servaddr.sin_port           = htons((uint16_t)serv_port);
+    servaddr.sin_port           = htons((uint16_t)listen_on);
 
     addrlen = sizeof(servaddr);
     err = bind(listenfd, (struct sockaddr*)&servaddr, addrlen);

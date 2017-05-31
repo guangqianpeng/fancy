@@ -4,28 +4,6 @@
 
 #include <ctype.h>
 #include "http_parser.h"
-#include "request.h"
-
-#define CB_0(func, user) \
-do {    \
-    if (func != NULL) { \
-        func(user); \
-    }   \
-} while(0)  \
-
-#define CB_1(func, user, data) \
-do {    \
-    if (func != NULL) { \
-        func(user, data); \
-    }   \
-} while(0)  \
-
-#define CB_2(func, user, data1, data2) \
-do {    \
-    if (func != NULL) { \
-        func(user, data1, data2); \
-    }   \
-} while(0)  \
 
 const char *method_str[] = {
         "GET",
@@ -80,26 +58,26 @@ enum {
     error_,
 };
 
-static int parse_request(http_parser *ps, buffer *in, mem_pool *pool);
+static int parse_request(http_parser *ps, buffer *in);
 static int parse_request_line(http_parser *ps, buffer *in);
-static int parse_uri(http_parser *ps, mem_pool *pool);
+static int parse_uri(http_parser *ps);
 
 static int parse_response(http_parser *ps, buffer *in);
 static int parse_response_line(http_parser *ps, buffer *in);
 
 static int parse_headers(http_parser *ps, buffer *in);
 
-int parser_execute(http_parser *ps, buffer *in, mem_pool *pool)
+int parser_execute(http_parser *ps, buffer *in)
 {
     if (ps->type == HTTP_PARSE_REQUEST) {
-        return parse_request(ps, in, pool);
+        return parse_request(ps, in);
     }
     else {
         return parse_response(ps, in);
     }
 }
 
-static int parse_request(http_parser *ps, buffer *in, mem_pool *pool)
+static int parse_request(http_parser *ps, buffer *in)
 {
     assert(ps->state != error_);
 
@@ -133,7 +111,7 @@ static int parse_request(http_parser *ps, buffer *in, mem_pool *pool)
     }
 
     assert(ps->state == all_done_);
-    return parse_uri(ps, pool);
+    return parse_uri(ps);
 }
 
 static int parse_request_line(http_parser *ps, buffer *in)
@@ -347,10 +325,11 @@ static int parse_headers(http_parser *ps, buffer *in)
             case value_:
                 if (c == '\r') {
 
-                    CB_2(ps->header_cb, ps->user,
-                         ps->last_header_name_start,
-                         ps->last_header_value_start);
-
+                    if (ps->header_cb != NULL) {
+                        ps->header_cb(ps->user,
+                                      ps->last_header_name_start,
+                                      ps->last_header_value_start);
+                    }
                     state = header_almost_done_;
                     break;
                 }
@@ -392,17 +371,17 @@ static int parse_headers(http_parser *ps, buffer *in)
     return FCY_ERROR;
 }
 
-static int parse_uri(http_parser *ps, mem_pool *pool)
+static int parse_uri(http_parser *ps)
 {
     int     hex1, hex2;
-    char    c, *p, *u, *host_uri = NULL, *last_dot = NULL;
+    char    host_uri[ps->uri_end - ps->uri_start + 1];
+    char    c, *p, *u = host_uri , *last_dot = NULL;
     enum { /* local */
         start_ = 0,
         after_slash_,
         quote_,
         args_,
     } state = start_;
-    u = ps->uri_start;
 
     /* 注意，此时uri已经读完了，不需要考虑FCY_AGAIN的情况 */
     for (p = ps->uri_start; p != ps->uri_end; ++p) {
@@ -411,15 +390,7 @@ static int parse_uri(http_parser *ps, mem_pool *pool)
         switch (state) {
             case start_:
                 if (c == '/') {
-                    u = host_uri = pcalloc(pool, ps->uri_end - ps->uri_start + root_len + 1);
-                    if (host_uri == NULL) {
-                        goto error;
-                    }
-
-                    strcpy(u, root);
-                    u += root_len;
                     *u++ = '/';
-
                     state = after_slash_;
                     break;
                 }
@@ -503,11 +474,9 @@ static int parse_uri(http_parser *ps, mem_pool *pool)
     }
 
     done:
-    if (last_dot != NULL) {
-        CB_2(ps->uri_cb, ps->user, host_uri, last_dot + 1);
-    }
-    else {
-        CB_2(ps->uri_cb, ps->user, host_uri, u);
+    *u = '\0';
+    if (ps->uri_cb != NULL) {
+        ps->uri_cb(ps->user, host_uri, u - host_uri, last_dot);
     }
     return FCY_OK;
 

@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/fancy.dir/fancy.c.o CMakeFiles/fancy.dir/config.c.o  -o bin/fancy lib/libbase.a lib/libevent.a lib/libhttp.a lib/libbase.a 

@@ -3,34 +3,45 @@
 //
 
 #include "base.h"
+#include "log.h"
 #include "Signal.h"
 #include "timer.h"
 #include "connection.h"
 #include "request.h"
 #include "http.h"
+#include "config.h"
 
-static int localfd[2];
-
-static void sig_empty_handler(int signo);
-static void sig_quit_handler(int signo);
-static int init_worker();
+static int          localfd[2];
+static mem_pool     *pool;
+static int init_pool();
+static int worker_init();
 static void run_single_process();
-
-static Message total;
 
 int main()
 {
     int     err;
 
+    if (init_pool() == FCY_ERROR) {
+        fprintf(stderr, "init pool error");
+        exit(1);
+    }
+
+    config("fancy.conf", pool);
+
+    if (log_init(log_path) == FCY_ERROR) {
+        fprintf(stderr, "init log error");
+        exit(1);
+    }
+
     /* 单进程模式 */
-    if (single_process) {
+    if (!master_process) {
         run_single_process();
     }
 
     /* 多进程模式 */
     CHECK(socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, localfd));
 
-    for (int i = 1; i <= n_workers; ++i) {
+    for (int i = 1; i <= worker_processes; ++i) {
         err = fork();
         switch (err) {
             case -1:
@@ -38,18 +49,15 @@ int main()
                 exit(1);
 
             case 0:
-                msg.worker_id = i;
                 CHECK(close(localfd[0]));
 
-                err = init_worker();
+                err = worker_init();
                 if (err == FCY_ERROR) {
                     LOG_ERROR("init worker error");
                     exit(1);
                 }
 
-                LOG_INFO("listening port %d", serv_port);
-
-                Signal(SIGINT, sig_quit_handler);
+                LOG_INFO("listening port %d", listen_on);
 
                 event_and_timer_process();
 
@@ -60,13 +68,13 @@ int main()
         }
     }
 
-    Signal(SIGINT, sig_empty_handler);
-
     CHECK(close(localfd[1]));
 
-    for (int i = 1; i <= n_workers; ++i) {
+    int ret;
+    for (int i = 1; i <= worker_processes; ++i) {
         inter_wait:
-        switch (wait(NULL)) {
+
+        switch (ret = wait(NULL)) {
             case -1:
                 if (errno == EINTR) {
                     goto inter_wait;
@@ -77,73 +85,55 @@ int main()
                 }
 
             default:
-            inter_read:
-                if (read(localfd[0], &msg, sizeof(msg)) != sizeof(msg)) {
-                    if (errno == EINTR) {
-                        goto inter_read;
-                    }
-                    else if (errno == EAGAIN) {
-                        LOG_ERROR("master got bad worker");
-                    }
-                    else {
-                        LOG_ERROR("master read error %s", strerror(errno));
-                        exit(1);
-                    }
-                }
-
-                total.total_connection += msg.total_connection;
-                total.total_request += msg.total_request;
-                total.ok_request += msg.ok_request;
-
-                LOG_ERROR("worker %d quit:"
-                                  "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
-                          msg.worker_id, msg.total_connection, msg.ok_request, msg.total_request - msg.ok_request);
-
+                LOG_INFO("worker %d quit", ret);
                 break;
         }
     }
 
-    LOG_INFO("master quit normally:"
-                      "\n\tconnection=%d\n\tok_request=%d\n\tother_request=%d",
-              total.total_connection, total.ok_request, total.total_request - total.ok_request);
-    exit(0);
+    LOG_INFO("master quit");
 }
 
 static void run_single_process()
 {
-    int err = init_worker();
-    if (err == FCY_ERROR) {
-        LOG_ERROR("init worker error");
+    if (worker_init() == FCY_ERROR) {
+        fprintf(stderr, "init worker error");
         exit(1);
     }
 
-    LOG_INFO("listening port %d", serv_port);
-
-    Signal(SIGINT, sig_quit_handler);
+    LOG_INFO("listening port %d", listen_on);
 
     event_and_timer_process();
 
     exit(1);
 }
 
-static int init_worker()
+static int init_pool()
 {
-    mem_pool    *pool;
+    size_t size = 102400 * sizeof (connection) + sizeof(mem_pool);
+    pool = mem_pool_create(size);
+    if (pool == NULL) {
+        return FCY_ERROR;
+    }
+    return FCY_OK;
+}
+
+static int worker_init()
+{
     size_t      size;
 
-    size = n_connections * sizeof (connection) + sizeof(mem_pool);
+    size = worker_connections * sizeof (connection) + sizeof(mem_pool);
     pool = mem_pool_create(size);
 
     if (pool == NULL){
         return FCY_ERROR;
     }
 
-    if (conn_pool_init(pool, n_connections) == FCY_ERROR) {
+    if (conn_pool_init(pool, worker_connections) == FCY_ERROR) {
         mem_pool_destroy(pool);
         return FCY_ERROR;
     }
 
-    if (event_init(pool, n_events) == FCY_ERROR) {
+    if (event_init(pool, epoll_events) == FCY_ERROR) {
         mem_pool_destroy(pool);
         return FCY_ERROR;
     }
@@ -162,21 +152,4 @@ static int init_worker()
     Signal(SIGPIPE, SIG_IGN);
 
     return FCY_OK;
-}
-
-static void sig_quit_handler(int signo)
-{
-    ssize_t err;
-
-    err = write(localfd[1], &msg, sizeof(msg));
-    if (err != sizeof(msg)) {
-        err = write(STDERR_FILENO, "worker write failed\n", 20);
-        (void)err;
-    }
-
-    exit(0);
-}
-
-static void sig_empty_handler(int signo)
-{
 }

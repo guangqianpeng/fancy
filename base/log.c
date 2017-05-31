@@ -16,17 +16,28 @@ const static char *log_level_str[] = {
         "[FATAL]"
 };
 
-static int log_fd = STDOUT_FILENO;
+static int log_fd = -1;
 
 static int timestamp(char *);
 
-void log_init(const char *file_name)
+int log_init(const char *file_name)
 {
-    log_fd = open(file_name, O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
-    if (log_fd == -1) {
-        fprintf(stderr, "open log file %s error: %s",
-                file_name, strerror(errno));
+    if (strcmp(file_name, "stdout") == 0) {
+        log_fd = STDOUT_FILENO;
     }
+    else if (strcmp(file_name, "stderr") == 0) {
+        log_fd = STDERR_FILENO;
+    }
+    else {
+        log_fd = open(file_name, O_APPEND | O_WRONLY |O_CREAT, S_IRUSR | S_IWUSR);
+        if (log_fd == -1) {
+            fprintf(stderr, "open log file %s error: %s",
+                    file_name, strerror(errno));
+            return FCY_ERROR;
+        }
+        LOG_DEBUG("log file at %s", file_name);
+    }
+    return FCY_OK;
 }
 
 void log_base(const char *file,
@@ -40,15 +51,18 @@ void log_base(const char *file,
     va_list     ap;
 
     i += timestamp(data);
-    i += sprintf(data + i, " %d", getpid());
+    i += sprintf(data + i, " [%d]", getpid());
     i += sprintf(data + i, " %s ", log_level_str[level]);
 
     va_start(ap, fmt);
     vsnprintf(data + i, MAXLINE - i, fmt, ap);
     va_end(ap);
 
-    dprintf(log_fd, "%s - %s:%d\n", data, strrchr(file, '/') + 1, line);
-
+    int err = dprintf(log_fd, "%s - %s:%d\n",
+            data, strrchr(file, '/') + 1, line);
+    if (err == -1) {
+        fprintf(stderr, "log failed");
+    }
     if (to_abort) {
         abort();
     }
@@ -64,14 +78,15 @@ void log_sys(const char *file,
     va_list     ap;
 
     i += timestamp(data);
-    i += sprintf(data + i, " %d", getpid());
+    i += sprintf(data + i, " [%d]", getpid());
     i += sprintf(data + i, " %s ", to_abort ? "[SYSFA]":"[SYSER]");
 
     va_start(ap, fmt);
     vsnprintf(data + i, MAXLINE - i, fmt, ap);
     va_end(ap);
 
-    dprintf(log_fd, "%s: %s - %s:%d\n", data, strerror(errno), strrchr(file, '/') + 1, line);
+    dprintf(log_fd, "%s: %s - %s:%d\n",
+            data, strerror(errno), strrchr(file, '/') + 1, line);
 
     if (to_abort) {
         abort();

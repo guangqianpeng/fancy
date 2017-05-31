@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <sys/epoll.h>
 
+#include "log.h"
 #include "event.h"
 #include "connection.h"
 
@@ -27,7 +28,7 @@ int event_init(mem_pool *p, int n_ev)
         exit(1);
     }
 
-    n_events = n_ev;
+    epoll_events = n_ev;
 
     return FCY_OK;
 }
@@ -39,7 +40,7 @@ int event_process(timer_msec timeout)
     connection  *conn;
     struct epoll_event *e_event;
 
-    n_ev = epoll_wait(epollfd, event_list, n_events, (int)timeout);
+    n_ev = epoll_wait(epollfd, event_list, epoll_events, (int)timeout);
 
     if (n_ev == -1) {
         if (errno == EINTR) {

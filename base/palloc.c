@@ -3,6 +3,7 @@
 //
 
 #include <assert.h>
+#include "base.h"
 #include "palloc.h"
 
 /* 追加一个新的空闲内存块 */

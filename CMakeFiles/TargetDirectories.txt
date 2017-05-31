@@ -1,0 +1,12 @@
+/home/frank/ClionProjects/fancy/CMakeFiles/rebuild_cache.dir
+/home/frank/ClionProjects/fancy/CMakeFiles/edit_cache.dir
+/home/frank/ClionProjects/fancy/CMakeFiles/fancy.dir
+/home/frank/ClionProjects/fancy/base/CMakeFiles/rebuild_cache.dir
+/home/frank/ClionProjects/fancy/base/CMakeFiles/edit_cache.dir
+/home/frank/ClionProjects/fancy/base/CMakeFiles/base.dir
+/home/frank/ClionProjects/fancy/event/CMakeFiles/edit_cache.dir
+/home/frank/ClionProjects/fancy/event/CMakeFiles/rebuild_cache.dir
+/home/frank/ClionProjects/fancy/event/CMakeFiles/event.dir
+/home/frank/ClionProjects/fancy/http/CMakeFiles/rebuild_cache.dir
+/home/frank/ClionProjects/fancy/http/CMakeFiles/edit_cache.dir
+/home/frank/ClionProjects/fancy/http/CMakeFiles/http.dir

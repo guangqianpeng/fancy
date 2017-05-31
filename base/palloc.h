@@ -7,7 +7,7 @@
 #ifndef FANCY_MEM_POOL_H
 #define FANCY_MEM_POOL_H
 
-#include "base.h"
+#include <sys/types.h>
 
 #define MEM_POOL_DEFAULT_SIZE   (128 * 1024)
 #define MEM_POOL_ALIGNMENT      sizeof(unsigned long)

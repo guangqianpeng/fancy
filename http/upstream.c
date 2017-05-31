@@ -30,7 +30,7 @@ void upstream_destroy(upstream *u)
 
 int upstream_parse(upstream *u, buffer *in)
 {
-    return parser_execute(&u->parser, in, NULL);
+    return parser_execute(&u->parser, in);
 }
 
 static void upstream_set_parser(upstream *r)

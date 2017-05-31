@@ -1,4 +1,4 @@
-# Fancy: High Perfermence Web Server
+ Fancy: High Perfermence Web Server
 
 Fancy is an event-driven(epoll) high-performance Web server. The principle is similar to Nginx and can be viewed as a simplified version of Nginx. Fancy is being developed and currently only supports GET method and static page access.
 

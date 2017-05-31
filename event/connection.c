@@ -2,6 +2,7 @@
 // Created by frank on 17-2-12.
 //
 
+#include "log.h"
 #include "connection.h"
 
 
@@ -9,7 +10,6 @@ static connection   *conns;
 static connection   *peers;
 static list         conn_list;
 
-static void conn_set_upstream_addr(int size);
 static void conn_init(connection *conn);
 static void event_set_field(event *ev);
 
@@ -36,10 +36,6 @@ int conn_pool_init(mem_pool *p, int size)
         peers[i].read.conn = &peers[i];
         peers[i].write.conn = &peers[i];
         peers[i].peer = &conns[i];
-    }
-
-    if (use_upstream) {
-        conn_set_upstream_addr(size);
     }
 
     return FCY_OK;
@@ -246,28 +242,6 @@ int conn_send_file(connection *conn, int fd, struct stat *st)
     }
     st->st_size -= n;
     return FCY_OK;
-}
-
-
-static void conn_set_upstream_addr(int size)
-{
-    assert(upstream_ip != NULL);
-
-    struct sockaddr_in upstream_addr;
-    int err;
-
-    err = inet_pton(AF_INET, upstream_ip, &upstream_addr.sin_addr);
-    if (err == 0) {
-        LOG_FATAL("invalid network address %s", upstream_ip);
-    }
-    assert(err == 1);
-
-    upstream_addr.sin_family = AF_INET;
-    upstream_addr.sin_port = htons(upstream_port);
-
-    for (int i = 0; i < size; ++i) {
-        peers[i].addr = upstream_addr;
-    }
 }
 
 static void conn_init(connection *conn)

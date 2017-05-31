@@ -3,21 +3,18 @@
 //
 
 #include <assert.h>
+
+#include "log.h"
+#include "base.h"
 #include "http_parser.h"
 #include "connection.h"
 #include "request.h"
-
-static size_t index_name_len;
-static size_t index_name_suffix_len;
-static size_t *location_len;
-size_t root_len;
 
 const static char *suffix_str[] = {
         "html", "txt", "xml", "asp", "css",
         "gif", "ico", "png", "jpg", "js",
         "pdf", NULL,
 };
-static size_t suffix_str_len[sizeof(suffix_str) / sizeof(*suffix_str)];
 
 const static char *content_type_str[] = {
         "text/html; charset=utf-8",
@@ -39,47 +36,12 @@ static void request_set_parser(request *r);
 static void request_set_conn(request *r, connection *c);
 
 static void request_on_header(void *user, char *name, char *value);
-static void request_on_uri(void *user, char *host_uri, char *suffix);
+static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix);
 static const char *get_content_type(const char *suffix);
+
 
 int request_init(mem_pool *pool)
 {
-    const char *dot;
-    size_t     n_location = 0;
-
-    /* index name */
-    index_name_len = strlen(index_name);
-    dot = strrchr(index_name, '.');
-    if (dot == NULL) {
-        fprintf(stderr, "index name must have suffix");
-        return FCY_ERROR;
-    }
-    index_name_suffix_len = index_name_len - (dot - index_name) - 1;
-
-
-    /* locations */
-    while (locations[n_location++] != NULL)
-        ;
-    --n_location;
-
-    location_len = palloc(pool, n_location);
-    if (location_len == NULL) {
-        fprintf(stderr, "palloc failed");
-        return FCY_ERROR;
-    }
-
-    for (int i = 0; i < n_location; ++i) {
-        location_len[i] = strlen(locations[i]);
-    }
-
-    /* content type */
-    for (int i = 0; suffix_str[i] != NULL; ++i) {
-        suffix_str_len[i] = strlen(suffix_str[i]);
-    }
-
-    /* root */
-    root_len = strlen(root);
-
     return FCY_OK;
 }
 
@@ -226,7 +188,7 @@ int request_create_body_out(request *r, size_t cnt_len)
 
 int request_parse(request *r)
 {
-    return parser_execute(&r->parser, r->header_in, r->pool);
+    return parser_execute(&r->parser, r->header_in);
 }
 
 int check_request_header(request *r)
@@ -273,20 +235,44 @@ int check_request_header(request *r)
 
 int open_static_file(request *r)
 {
-    char            *path;
-    struct stat     *sbuf;
-    int             err, f_flag;
+    location        *loc = r->loc;
+    char            *path = r->host_uri;
+    struct stat     *sbuf = &r->sbuf;
+    int             err;
 
     assert(r->is_static);
 
-    path = r->host_uri;
-    sbuf = &r->sbuf;
-
-    /* 测试文件 */
-    err = stat(path, sbuf);
-    if (err == -1) {
+    if (loc == NULL) {
         r->status_code = STATUS_NOT_FOUND;
         return FCY_ERROR;
+    }
+
+    /* 测试文件 */
+    char *path_end = path + r->host_uri_len;
+    if (r->suffix == NULL && path[r->host_uri_len - 1] == '/') {
+
+        int found = 0;
+        for (int i = 0; loc->s.index[i] != NULL; ++i) {
+            strcpy(path_end, loc->s.index[i]);
+            err = fstatat(loc->s.root_dirfd, path + 1, sbuf, 0);
+            if (err != -1) {
+                found = 1;
+                r->suffix = strchr(loc->s.index[i], '.');
+                break;
+            }
+        }
+
+        if (!found) {
+            r->status_code = STATUS_NOT_FOUND;
+            return FCY_ERROR;
+        }
+    }
+    else {
+        err = fstatat(loc->s.root_dirfd, path + 1, sbuf, 0);
+        if (err == -1) {
+            r->status_code = STATUS_NOT_FOUND;
+            return FCY_ERROR;
+        }
     }
 
     if (!S_ISREG(sbuf->st_mode) || !(S_IRUSR & sbuf->st_mode)) {
@@ -295,34 +281,24 @@ int open_static_file(request *r)
     }
 
     /* 打开文件会阻塞！！ */
-    int fd = open(path, O_RDONLY);
+    int fd = openat(loc->s.root_dirfd, path + 1, O_RDONLY);
     if (fd == -1) {
         r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;
     }
 
-    f_flag = fcntl(fd, F_GETFL, 0);
-    if (f_flag == -1) {
-        r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
-        LOG_SYSERR("fcntl failed");
-        return FCY_ERROR;
-    }
-
-    err = fcntl(fd, F_SETFL, f_flag | O_NONBLOCK);
-    if (err == -1) {
-        r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
-        LOG_SYSERR("fcntl failed");
-        return FCY_ERROR;
-    }
+    assert(r->content_type == NULL);
+    r->content_type = get_content_type(r->suffix);
 
     r->send_fd = fd;
     r->status_code = STATUS_OK;
     return FCY_OK;
 }
 
-/* 动态类型请求不支持keep-alive */
 void set_conn_header_closed(request *r)
 {
+    /* 动态类型请求不支持keep-alive */
+
     buffer  *in;
     char    *beg, *end;
 
@@ -387,45 +363,64 @@ static void request_on_header(void *user, char *name, char *value)
     }
 }
 
-static void request_on_uri(void *user, char *host_uri, char *suffix)
+static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
 {
     request *r = user;
-    r->host_uri = host_uri;
+    location *loc = NULL;
 
-    for (int i = 0; locations[i] != NULL; ++i) {
-        if (strncmp(host_uri + root_len, locations[i], location_len[i]) == 0) {
-            r->is_static = 1;
+    for (size_t i = 0; i < locations->size; ++i) {
+        loc = array_at(locations, i);
+        if (strcmp_stop(uri, loc->prefix) == 0) {
+
+            if (!loc->use_proxy) {
+                r->is_static = 1;
+            }
+            else {
+                r->conn->peer->addr = loc->proxy_pass;
+            }
             break;
         }
     }
 
-    if (r->is_static)
-    {
-        /* 无后缀且访问文件夹，结尾补index_name */
-        if (*suffix == '\0' && *(suffix - 1) == '/') {
-            strcpy(suffix, index_name);
-            suffix += index_name_len - index_name_suffix_len;
-        }
+    if (loc == NULL) {
+        r->status_code = STATUS_NOT_FOUND;
+        return;
+    }
 
-        /* 设置content-type */
-        r->content_type = get_content_type(suffix);
-        if (r->content_type == NULL) {
-            r->content_type = content_type_str[0];
+    if (r->is_static) {
+        r->loc = loc;
+        r->host_uri_len = uri_len;
+        r->host_uri = palloc(r->pool, uri_len + 32);
+        strcpy(r->host_uri, uri);
+        if (suffix != NULL) {
+            r->suffix = r->host_uri + (suffix - uri);
         }
     }
 }
 
 static const char *get_content_type(const char *suffix)
 {
-    if (suffix == NULL) {
-        return NULL;
-    }
-
-    for (int i = 0; suffix_str[i] != NULL ; ++i) {
-        if (strncasecmp(suffix, suffix_str[i], suffix_str_len[i]) == 0) {
-            return content_type_str[i];
+    if (suffix != NULL) {
+        assert(*suffix == '.');
+        ++suffix;
+        for (int i = 0; suffix_str[i] != NULL; ++i) {
+            if (strcmp_stop(suffix, suffix_str[i]) == 0) {
+                return content_type_str[i];
+            }
         }
     }
+    return content_type_str[0];
+}
 
-    return NULL;
+int strcmp_stop(const char *data, const char *stop)
+{
+    while (*data == *stop) {
+        ++data;
+        ++stop;
+
+        if (*stop == '\0') {
+            return 0;
+        }
+    }
+    return *data - *stop;
 }

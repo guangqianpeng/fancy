@@ -2,6 +2,9 @@
 // Created by frank on 17-2-10.
 //
 
+#include <stddef.h>
+#include <string.h>
+#include <assert.h>
 #include "array.h"
 
 array *array_create(mem_pool *pool, size_t capacity, size_t elem_size)
@@ -76,4 +79,10 @@ void *array_alloc(array *a)
     }
 
     return next;
+}
+
+void *array_at(array *a, size_t i)
+{
+    assert(i < a->size);
+    return (u_char*)a->elems + i * a->elem_size;
 }
