@@ -12,6 +12,7 @@
 #define HTTP_POOL_SIZE              MEM_POOL_DEFAULT_SIZE
 #define HTTP_REQUEST_SIZE           BUFFER_DEFAULT_SIZE
 #define HTTP_RESPONSE_SIZE          BUFFER_DEFAULT_SIZE
+#define HTTP_CHUNK_SIZE             1000 * 1000
 #define HTTP_MAX_CONTENT_LENGTH     4000 * 1000
 
 
@@ -26,9 +27,14 @@ struct request {
     unsigned        has_host_header:1;
     unsigned        has_content_length_header:1;
     unsigned        is_static:1;
+    unsigned        is_chunked:1;
 
     char            *keep_alive_value_start;
     char            *keep_alive_value_end;
+
+    char            *host_header_start;
+    char            *host_value_start;
+    char            *host_value_end;
 
     /* 处理过的uri， 仅对静态请求有意义 */
     location        *loc;
@@ -66,9 +72,12 @@ struct location {
             char    *root;
 #define MAX_INDEX 10
             char    *index[MAX_INDEX];
-        } s;
-
-        struct sockaddr_in  proxy_pass;
+        };
+        struct {
+            char    *proxy_pass_str;
+            size_t  proxy_pass_len;
+            struct sockaddr_in proxy_pass;
+        };
     };
 };
 
@@ -86,6 +95,7 @@ int request_parse(request *r);
 int check_request_header(request *r);
 int open_static_file(request *r);
 void set_conn_header_closed(request *r);
+void set_proxy_pass_host(request *r);
 
 int strcmp_stop(const char *data, const char *stop);
 

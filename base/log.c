@@ -29,13 +29,12 @@ int log_init(const char *file_name)
         log_fd = STDERR_FILENO;
     }
     else {
-        log_fd = open(file_name, O_APPEND | O_WRONLY |O_CREAT, S_IRUSR | S_IWUSR);
+        log_fd = open(file_name, O_TRUNC | O_WRONLY |O_CREAT, S_IRUSR | S_IWUSR);
         if (log_fd == -1) {
             fprintf(stderr, "open log file %s error: %s",
                     file_name, strerror(errno));
             return FCY_ERROR;
         }
-        LOG_DEBUG("log file at %s", file_name);
     }
     return FCY_OK;
 }

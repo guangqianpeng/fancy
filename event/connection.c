@@ -202,6 +202,12 @@ int conn_read(connection *conn, buffer *in)
     }
 }
 
+int conn_read_chunked(connection *conn, buffer *in)
+{
+
+    return FCY_ERROR;
+}
+
 int conn_write(connection *conn, buffer *out)
 {
     int n;

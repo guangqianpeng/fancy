@@ -44,6 +44,7 @@ struct conf_block {
 };
 
 /* main conf */
+int         daemonize           = -1;
 int         master_process      = -1;
 int         worker_processes    = -1;
 int         log_level = -1;
@@ -64,6 +65,7 @@ int accept_defer        = -1;
 array    *locations;
 
 static conf_block conf_main_block[] = {
+        {"daemonize", 9, config_bool, &daemonize},
         {"master_process", 14, config_bool, &master_process},
         {"worker_processes", 16, config_num_positive, &worker_processes},
         {"log_level", 9, config_log_level, &log_level},
@@ -100,26 +102,27 @@ static conf_block conf_location_block[] = {
         {NULL},
 };
 
-void config(const char *path, mem_pool *p)
+void config(const char *path)
 {
-    pool = p;
+    pool = mem_pool_create(2048);
     locations = array_create(pool, 4, sizeof(location));
+
     struct stat sbuf;
     if (stat(path, &sbuf) == -1) {
         perror("config stat error");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     char file[sbuf.st_size + 1];
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
         perror("open error");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if (read(fd, file, (size_t)sbuf.st_size) != sbuf.st_size) {
         perror("read error");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     file[sbuf.st_size] = '\0';
@@ -127,7 +130,7 @@ void config(const char *path, mem_pool *p)
     CHECK(close(fd));
     config_main(file, NULL);
 
-    for (size_t i = 0; i < locations->size; ++i) {
+    /*for (size_t i = 0; i < locations->size; ++i) {
         location *loc = array_at(locations, i);
         if (loc->use_proxy) {
             printf("proxy_pass %s:%hu\n", inet_ntoa(loc->proxy_pass.sin_addr), ntohs(loc->proxy_pass.sin_port));
@@ -140,7 +143,7 @@ void config(const char *path, mem_pool *p)
             }
             printf("\n");
         }
-    }
+    }*/
 }
 
 static const char *config_main(const char *s, void *d)
@@ -159,7 +162,7 @@ static const char *config_main(const char *s, void *d)
         }
         if (b[i].str == NULL) {
             fprintf(stderr, "unknown config %s", s);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     return s;
@@ -182,7 +185,7 @@ static const char *config_events(const char *s, void *d)
         }
         if (b[i].str == NULL) {
             fprintf(stderr, "unknown config %s", s);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     return expect(s, '}');
@@ -205,7 +208,7 @@ static const char *config_server(const char *s, void *d)
         }
         if (b[i].str == NULL) {
             fprintf(stderr, "unknown config %s", s);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     return expect(s, '}');
@@ -232,7 +235,7 @@ static const char *config_location(const char *s, void *d)
 
         if (b[i].str == NULL) {
             fprintf(stderr, "unknown config %s", s);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
     }
     return expect(s, '}');
@@ -357,8 +360,9 @@ static const char *config_proxy_pass(const char *s, void *d)
 {
     location            *loc = d;
     struct sockaddr_in  *addr = &loc->proxy_pass;
+    const char          *temp_s;
 
-    s = first_not_space(s);
+    temp_s = s = first_not_space(s);
 
     addr->sin_family = AF_INET;
 
@@ -388,11 +392,20 @@ static const char *config_proxy_pass(const char *s, void *d)
         ++s;
     }
 
+    loc->proxy_pass_len = s - temp_s;
+    loc->proxy_pass_str = pcalloc(pool, s - temp_s + 1);
+    if (loc->proxy_pass_str == NULL) {
+        fprintf(stderr, "palloc failed");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(loc->proxy_pass_str, temp_s, s - temp_s);
+
+
     return expect(s, ';');
 
     error:
     fprintf(stderr, "invalid proxy_pass %s", s);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 static const char *config_root(const char *s, void *d)
@@ -400,13 +413,13 @@ static const char *config_root(const char *s, void *d)
     location *loc = d;
     int      dirfd;
 
-    s = config_str_semicolons(s, &loc->s.root);
-    dirfd = open(loc->s.root, O_DIRECTORY | O_RDONLY);
+    s = config_str_semicolons(s, &loc->root);
+    dirfd = open(loc->root, O_DIRECTORY | O_RDONLY);
     if (dirfd == -1) {
         perror("open error");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-    loc->s.root_dirfd = dirfd;
+    loc->root_dirfd = dirfd;
 
     return expect(s, ';');
 }
@@ -421,15 +434,15 @@ static const char *config_index(const char *s, void *d)
         if (!isalnum(*s)) {
             break;
         }
-        s = config_str_semicolons(s, &loc->s.index[i]);
+        s = config_str_semicolons(s, &loc->index[i]);
     }
 
     if (i == MAX_INDEX) {
         fprintf(stderr, "config error: too many index %s", s);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    loc->s.index[i] = NULL;
+    loc->index[i] = NULL;
 
     return expect(s, ';');
 }
@@ -444,7 +457,7 @@ static const char *config_comment(const char *s, void *d)
 static void config_error(const char *expect, const char *see)
 {
     fprintf(stderr, "config error: %s\nbut see %s", expect, see);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 static const char *first_not_space(const char *s)
@@ -460,7 +473,7 @@ static const char *expect(const char *s, char ch)
         ++s;
     if (*s != ch) {
         fprintf(stderr, "config error: missing \"%c\" before %s", ch, s);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     else {
         return s + 1;

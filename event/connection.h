@@ -40,6 +40,7 @@ void conn_enable_write(connection *, event_handler);
 void conn_disable_write(connection *);
 
 int conn_read(connection *conn, buffer *in);
+int conn_read_chunked(connection *conn, buffer *in);
 int conn_write(connection *conn, buffer *out);
 int conn_send_file(connection *conn, int fd, struct stat *st);
 

@@ -57,6 +57,7 @@ __END_DECLS
                             __assert_perror_fail (errnum, __FILE__, __LINE__, __func__);})
 
 /* TODO: 参数应该是可配置的 */
+extern int          daemonize;
 extern int          master_process;      // 是否单进程
 extern int          worker_processes;    // 多进程下workers数目
 extern const char   *log_path;
@@ -69,17 +70,10 @@ extern int listen_on;           // 端口号
 extern int request_timeout;     // 请求超时的上限
 extern int upstream_timeout;    // 请求上游响应超时
 extern int keep_alive_requests;    // 每个连接最多处理多少个请求
-
 extern int accept_defer;
 
-//extern const char *locations[];      // 静态文件匹配的文件地址
 extern const char *index_name;         // 索引文件名称
 extern const char *root;               // 根目录
-
-/* upstream 地址 */
-extern int          use_proxy;
-extern const char  *proxy_ip;
-extern uint16_t     proxy_port;
 
 extern array       *locations;
 

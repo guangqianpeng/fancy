@@ -16,5 +16,7 @@ add_subdirectory(./base)
 add_subdirectory(./event)
 add_subdirectory(./http)
 
-add_executable(fancy fancy.c config.c)
+aux_source_directory(. SRC)
+
+add_executable(fancy ${SRC})
 target_link_libraries(fancy base event http)

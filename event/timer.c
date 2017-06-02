@@ -69,19 +69,14 @@ void timer_expired_process()
 
 void event_and_timer_process()
 {
-    timer_msec  timeout = (timer_msec)-1;
     int         n_ev;
 
-    while (1) {
-
-        n_ev = event_process(timeout);
-        if (n_ev == FCY_ERROR) {
-            return;
-        }
-
-        timer_expired_process();
-        timeout = timer_recent();
+    n_ev = event_process(timer_recent());
+    if (n_ev == FCY_ERROR) {
+        return;
     }
+
+    timer_expired_process();
 }
 
 static timer_msec timer_recent()

@@ -10,146 +10,123 @@
 #include "request.h"
 #include "http.h"
 #include "config.h"
+#include "cycle.h"
 
-static int          localfd[2];
-static mem_pool     *pool;
-static int init_pool();
-static int worker_init();
-static void run_single_process();
+int pid_fd;
+static int open_and_lock_pid_file(const char *path);
+static int write_and_lock_pid_file();
 
-int main()
+int main(int argc, char **argv)
 {
-    int     err;
+    int signal_process = 0;
+    int sig_quit = 0;
+    int sig_reload = 0;
 
-    if (init_pool() == FCY_ERROR) {
-        fprintf(stderr, "init pool error");
-        exit(1);
+    int opt;
+    while ((opt = getopt(argc, argv, "s:")) != -1) {
+        switch (opt) {
+            case 's':
+                signal_process = 1;
+                if (strcmp(optarg, "reload") == 0) {
+                    sig_reload = 1;
+                }
+                else if (strcmp(optarg, "quit") == 0) {
+                    sig_quit = 1;
+                }
+                else {
+                    fprintf(stderr, "Usage: %s [-s quit]\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            default: /* '?' */
+                fprintf(stderr, "Usage: %s [-s quit]\n", argv[0]);
+                exit(EXIT_FAILURE);
+        }
     }
 
-    config("fancy.conf", pool);
+    if (signal_process) {
+        if (sig_reload) {
+            run_signal_process(SIGHUP);
+        }
+        else if (sig_quit) {
+            run_signal_process(SIGQUIT);
+        }
+        exit(EXIT_SUCCESS);
+    }
+
+    if (open_and_lock_pid_file(FANCY_PID_FILE) == FCY_ERROR) {
+        fprintf(stderr, "fancy already running");
+        exit(EXIT_FAILURE);
+    }
+
+    config(FANCY_CONFIG_FILE);
 
     if (log_init(log_path) == FCY_ERROR) {
         fprintf(stderr, "init log error");
-        exit(1);
+        exit(EXIT_FAILURE);
+    }
+
+    if (daemonize) {
+        if (daemon(1, 0) == -1) {
+            LOG_SYSERR("daemonize error");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (write_and_lock_pid_file() == FCY_ERROR) {
+        LOG_ERROR("create pid file error");
+        exit(EXIT_FAILURE);
     }
 
     /* 单进程模式 */
     if (!master_process) {
         run_single_process();
+        LOG_INFO("quit");
     }
-
-    /* 多进程模式 */
-    CHECK(socketpair(AF_UNIX, SOCK_DGRAM | SOCK_NONBLOCK, 0, localfd));
-
-    for (int i = 1; i <= worker_processes; ++i) {
-        err = fork();
-        switch (err) {
-            case -1:
-                LOG_SYSERR("fork error");
-                exit(1);
-
-            case 0:
-                CHECK(close(localfd[0]));
-
-                err = worker_init();
-                if (err == FCY_ERROR) {
-                    LOG_ERROR("init worker error");
-                    exit(1);
-                }
-
-                LOG_INFO("listening port %d", listen_on);
-
-                event_and_timer_process();
-
-                exit(1);
-
-            default:
-                break;
-        }
+    else {
+        run_master_process();
+        LOG_INFO("master exit success");
     }
-
-    CHECK(close(localfd[1]));
-
-    int ret;
-    for (int i = 1; i <= worker_processes; ++i) {
-        inter_wait:
-
-        switch (ret = wait(NULL)) {
-            case -1:
-                if (errno == EINTR) {
-                    goto inter_wait;
-                }
-                else {
-                    LOG_ERROR("wait error");
-                    exit(1);
-                }
-
-            default:
-                LOG_INFO("worker %d quit", ret);
-                break;
-        }
-    }
-
-    LOG_INFO("master quit");
 }
 
-static void run_single_process()
+static int open_and_lock_pid_file(const char *path)
 {
-    if (worker_init() == FCY_ERROR) {
-        fprintf(stderr, "init worker error");
-        exit(1);
+    pid_fd = open(path, O_RDWR | O_CREAT ,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (pid_fd == -1) {
+        perror("open pid file error");
+        exit(EXIT_FAILURE);
     }
 
-    LOG_INFO("listening port %d", listen_on);
-
-    event_and_timer_process();
-
-    exit(1);
-}
-
-static int init_pool()
-{
-    size_t size = 102400 * sizeof (connection) + sizeof(mem_pool);
-    pool = mem_pool_create(size);
-    if (pool == NULL) {
-        return FCY_ERROR;
+    if (lockf(pid_fd, F_TLOCK, 0) == -1) {
+        if (errno == EAGAIN || errno == EACCES) {
+            CHECK(close(pid_fd));
+            return FCY_ERROR;
+        }
+        fprintf(stderr, "can not lock file %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
     return FCY_OK;
 }
 
-static int worker_init()
+static int write_and_lock_pid_file()
 {
-    size_t      size;
-
-    size = worker_connections * sizeof (connection) + sizeof(mem_pool);
-    pool = mem_pool_create(size);
-
-    if (pool == NULL){
-        return FCY_ERROR;
+    if (lockf(pid_fd, F_TLOCK, 0) == -1) {
+        if (errno == EAGAIN || errno == EACCES) {
+            CHECK(close(pid_fd));
+            return FCY_ERROR;
+        }
+        fprintf(stderr, "can not lock file %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
-    if (conn_pool_init(pool, worker_connections) == FCY_ERROR) {
-        mem_pool_destroy(pool);
+    CHECK(ftruncate(pid_fd, 0));
+
+    if (dprintf(pid_fd, "%d", getpid()) == -1) {
+        LOG_ERROR("dprintf error");
+        CHECK(close(pid_fd));
         return FCY_ERROR;
     }
-
-    if (event_init(pool, epoll_events) == FCY_ERROR) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    timer_init();
-
-    if (request_init(pool) == FCY_ERROR) {
-        mem_pool_destroy(pool);
-        return FCY_ERROR;
-    }
-
-    if (accept_init() == FCY_ERROR) {
-        return FCY_ERROR;
-    }
-
-    Signal(SIGPIPE, SIG_IGN);
 
     return FCY_OK;
 }

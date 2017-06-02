@@ -460,8 +460,6 @@ static int parse_uri(http_parser *ps)
                 switch (c) {
                     case '#':
                         goto done;
-                    case '/':
-                        goto error;
                     default:
                         *u++ = c;
                         break;

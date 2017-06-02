@@ -133,17 +133,17 @@ void request_destroy(request *r)
 int request_create_body_in(request *r)
 {
     buffer *header_in, *body_in;
-    size_t cnt_len, body_read;
+    size_t size, body_read;
 
     header_in = r->header_in;
     body_in = r->body_in;
-    cnt_len = (size_t)r->content_length;
+    size = r->is_chunked ? HTTP_CHUNK_SIZE : (size_t)r->content_length;
     body_read = buffer_size(header_in);
 
-    assert(cnt_len > 0);
+    assert(size > 0);
 
     if (r->body_in == NULL) {
-        body_in = r->body_in = buffer_create(r->pool, cnt_len);
+        body_in = r->body_in = buffer_create(r->pool, size);
         if (body_in == NULL) {
             return FCY_ERROR;
         }
@@ -252,12 +252,12 @@ int open_static_file(request *r)
     if (r->suffix == NULL && path[r->host_uri_len - 1] == '/') {
 
         int found = 0;
-        for (int i = 0; loc->s.index[i] != NULL; ++i) {
-            strcpy(path_end, loc->s.index[i]);
-            err = fstatat(loc->s.root_dirfd, path + 1, sbuf, 0);
+        for (int i = 0; loc->index[i] != NULL; ++i) {
+            strcpy(path_end, loc->index[i]);
+            err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
             if (err != -1) {
                 found = 1;
-                r->suffix = strchr(loc->s.index[i], '.');
+                r->suffix = strchr(loc->index[i], '.');
                 break;
             }
         }
@@ -268,7 +268,7 @@ int open_static_file(request *r)
         }
     }
     else {
-        err = fstatat(loc->s.root_dirfd, path + 1, sbuf, 0);
+        err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
         if (err == -1) {
             r->status_code = STATUS_NOT_FOUND;
             return FCY_ERROR;
@@ -281,7 +281,7 @@ int open_static_file(request *r)
     }
 
     /* 打开文件会阻塞！！ */
-    int fd = openat(loc->s.root_dirfd, path + 1, O_RDONLY);
+    int fd = openat(loc->root_dirfd, path + 1, O_RDONLY);
     if (fd == -1) {
         r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;
@@ -298,7 +298,6 @@ int open_static_file(request *r)
 void set_conn_header_closed(request *r)
 {
     /* 动态类型请求不支持keep-alive */
-
     buffer  *in;
     char    *beg, *end;
 
@@ -306,18 +305,54 @@ void set_conn_header_closed(request *r)
     beg = r->keep_alive_value_start;
     end = r->keep_alive_value_end;
 
-    assert(strncmp((char*)in->data_end - 4, "\r\n\r\n", 4) == 0);
+    /* in has complete headers */
+    assert(strcmp_stop((char*)in->data_end - 4, "\r\n\r\n") == 0);
 
     if (!r->has_connection_header) {
         in->data_end -= 2;
         buffer_write(in, "Connection:close\r\n\r\n", 20);
-        r->has_connection_header = 1;
     }
     else if (beg != NULL) {
         assert(end - beg == 10); // keep_alive
         strncpy(beg, "close     ", end - beg);
     }
 }
+
+void set_proxy_pass_host(request *r)
+{
+    buffer      *in;
+    char        *beg, *end;
+    location    *loc;
+
+    in = r->header_in;
+    beg = r->host_value_start;
+    end = r->host_value_end;
+    loc = r->loc;
+
+    assert(strcmp_stop((char*)in->data_end - 4, "\r\n\r\n") == 0);
+    assert(loc->use_proxy);
+
+    if (r->has_host_header) {
+        assert(beg!= NULL && end != NULL);
+        if (end - beg >= loc->proxy_pass_len) {
+            strncpy(beg, loc->proxy_pass_str, loc->proxy_pass_len);
+            beg += loc->proxy_pass_len;
+            memset(beg, ' ', end - beg);
+            return;
+        } else {
+            /* ...\r\n
+             * Host: abcde\r\n
+             * */
+            memset(r->host_header_start, ' ', end + 2 - r->host_header_start);
+        }
+    }
+
+    in->data_end -= 2;
+    buffer_write(in, "Host:", 5);
+    buffer_write(in, loc->proxy_pass_str, loc->proxy_pass_len);
+    buffer_write(in, "\r\n\r\n", 4);
+}
+
 
 static void request_set_cork(connection *conn, int open)
 {
@@ -345,6 +380,11 @@ static void request_on_header(void *user, char *name, char *value)
     request *r = user;
     if (strncasecmp(name, "Host", 4) == 0) {
         r->has_host_header = 1;
+        r->host_value_start = value;
+        while (!isspace(*value) && *value != '\r')
+            ++value;
+        r->host_value_end = value;
+        r->host_header_start = name;
     }
     else if (strncasecmp(name, "Connection", 10) == 0) {
         r->has_connection_header = 1;
@@ -361,6 +401,11 @@ static void request_on_header(void *user, char *name, char *value)
         r->has_content_length_header = 1;
         r->content_length = strtol(value, NULL, 0);
     }
+    else if (strncasecmp(name, "Transfer-Encoding", 17) == 0) {
+        if (strncasecmp(value, "chunked", 7) == 0) {
+            r->is_chunked = 1;
+        }
+    }
 }
 
 static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
@@ -371,7 +416,7 @@ static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
     for (size_t i = 0; i < locations->size; ++i) {
         loc = array_at(locations, i);
         if (strcmp_stop(uri, loc->prefix) == 0) {
-
+            r->loc = loc;
             if (!loc->use_proxy) {
                 r->is_static = 1;
             }
@@ -388,7 +433,6 @@ static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
     }
 
     if (r->is_static) {
-        r->loc = loc;
         r->host_uri_len = uri_len;
         r->host_uri = palloc(r->pool, uri_len + 32);
         strcpy(r->host_uri, uri);

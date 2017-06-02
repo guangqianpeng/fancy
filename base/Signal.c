@@ -26,12 +26,10 @@ Sigfunc *my_signal(int signo, Sigfunc *func)
 }
 /* end signal */
 
-Sigfunc *Signal(int signo, Sigfunc *func)	/* for our signal() function */
+int Signal(int signo, Sigfunc *func)	/* for our signal() function */
 {
-    Sigfunc	*sigfunc;
-
-    if ( (sigfunc = my_signal(signo, func)) == SIG_ERR) {
-        perror("signal error");
+    if ( my_signal(signo, func) == SIG_ERR) {
+        return FCY_ERROR;
     }
-    return (sigfunc);
+    return FCY_OK;
 }

@@ -193,7 +193,7 @@ static void parse_request_h(event *ev)
     }
 
     /* 初始化request body相关的内容 */
-    if (rqst->content_length > 0) {
+    if (rqst->content_length > 0 || rqst->is_chunked) {
         err = request_create_body_in(rqst);
         if (err == FCY_ERROR) {
             LOG_FATAL("request create body failed, run out of memory");
@@ -237,6 +237,9 @@ static void read_request_body(event *ev)
 
     /* 读http request body */
     CONN_READ(conn, body_in, close_connection(conn));
+    if (buffer_size(body_in) < rqst->content_length) {
+        return;
+    }
 
     /* 整个http请求解析和读取完毕，包括body */
 done:
@@ -296,9 +299,6 @@ static void process_request_h(event *ev)
         return;
     }
     else if (rqst->status_code == STATUS_OK) {
-        /* 动态类型请求
-         * 不支持keep-alive
-         * */
         LOG_DEBUG("%s upstream request \"%.*s\"",
                   conn_str(conn),
                   rqst->parser.uri_end - rqst->parser.uri_start,
@@ -306,6 +306,7 @@ static void process_request_h(event *ev)
 
         rqst->should_keep_alive = 0;
         set_conn_header_closed(rqst);
+        set_proxy_pass_host(rqst);
         peer_connect_h(&peer->write);
         return;
     }
@@ -552,6 +553,9 @@ static void upstream_read_response_body(event *ev)
 
     /* FIXME: internal server error  */
     CONN_READ(peer, body_out, close_connection(conn));
+    if (buffer_size(body_out) < upstm->content_length) {
+        return;
+    }
 
     done:
     if (ev->timer_set) {
@@ -584,6 +588,7 @@ static void write_response_all_h(event *ev)
     CONN_WRITE(conn, header_out,
               close_connection(conn));
     if (body_out != NULL) {
+        LOG_DEBUG("%d", buffer_size(body_out));
         CONN_WRITE(conn, body_out,
                   close_connection(conn));
     }

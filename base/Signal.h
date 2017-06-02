@@ -8,6 +8,6 @@
 #include "base.h"
 
 typedef	void	Sigfunc(int);
-Sigfunc *Signal(int signo, Sigfunc *func);
+int Signal(int signo, Sigfunc *func);
 
 #endif //FANCY_SIGNAL_H
