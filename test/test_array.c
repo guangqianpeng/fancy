@@ -4,7 +4,7 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "../base/array.h"
+#include "array.h"
 
 static void print_array(array *a);
 
@@ -65,9 +65,10 @@ int main()
     assert(a->size == 26);
     assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->next->last);
 
-    /* destroy无效 */
+    /* destroy只回收第一块的头部 */
     array_destroy(a);
     assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->next->last);
+    assert((u_char*)a == pool->last);
 
     print_array(a);
 
@@ -78,6 +79,15 @@ int main()
     array_destroy(a);
     assert((u_char*)a->elems + a->capacity * a->elem_size - a->pool->last ==
                    sizeof(array) + sizeof(long));
+
+    /*
+     * resize
+     * */
+    a = array_create(pool, 1, sizeof(long));
+    array_resize(a, 50);
+    assert(a->size == 50);
+    assert(a->capacity == 50);
+
     printf("OK");
 }
 

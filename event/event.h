@@ -5,7 +5,6 @@
 #ifndef FANCY_EVENT_H
 #define FANCY_EVENT_H
 
-#include "base.h"
 #include "buffer.h"
 #include "list.h"
 #include "rbtree.h"

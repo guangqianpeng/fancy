@@ -6,14 +6,14 @@
 #define FANCY_REQUEST_H
 
 #include "base.h"
+#include "buffer.h"
 #include "event.h"
 #include "http_parser.h"
+#include "chunk_reader.h"
 
-#define HTTP_POOL_SIZE              MEM_POOL_DEFAULT_SIZE
-#define HTTP_REQUEST_SIZE           BUFFER_DEFAULT_SIZE
-#define HTTP_RESPONSE_SIZE          BUFFER_DEFAULT_SIZE
-#define HTTP_CHUNK_SIZE             1000 * 1000
-#define HTTP_MAX_CONTENT_LENGTH     4000 * 1000
+#define HTTP_POOL_SIZE              (4096 * 1024)
+#define HTTP_BUFFER_SIZE            BUFFER_INIT_SIZE
+#define HTTP_MAX_CONTENT_LENGTH     (4000 * 1000)
 
 
 typedef struct request  request;
@@ -28,19 +28,15 @@ struct request {
     unsigned        has_content_length_header:1;
     unsigned        is_static:1;
     unsigned        is_chunked:1;
+    unsigned        chunk_inited:1; /* 第一次处理chunk data */
 
-    char            *keep_alive_value_start;
-    char            *keep_alive_value_end;
+    fcy_str         uri;
+    fcy_str         suffix;
+    fcy_str         host;
+    fcy_str         connection;
+    array           *headers;   /* 其余的header */
 
-    char            *host_header_start;
-    char            *host_value_start;
-    char            *host_value_end;
-
-    /* 处理过的uri， 仅对静态请求有意义 */
     location        *loc;
-    char            *suffix;
-    char            *host_uri;
-    size_t          host_uri_len;
 
     connection      *conn;
 
@@ -62,20 +58,19 @@ struct request {
 
 struct location {
 
-    const char  *prefix;
+    fcy_str     prefix;
     unsigned    use_proxy:1;
 
     union
     {
         struct {
             int     root_dirfd;
-            char    *root;
+            fcy_str root;
 #define MAX_INDEX 10
-            char    *index[MAX_INDEX];
+            fcy_str index[MAX_INDEX];
         };
         struct {
-            char    *proxy_pass_str;
-            size_t  proxy_pass_len;
+            fcy_str proxy_pass_str;
             struct sockaddr_in proxy_pass;
         };
     };
@@ -85,18 +80,15 @@ struct location {
 int request_init(mem_pool *pool);
 
 request *request_create(connection *c);
-int request_create_body_in(request *r);
-int request_create_body_out(request *r, size_t cnt_len);
 void request_destroy(request *r);
 void request_reset(request *r); /* for keep_alive, avoid destroy */
 int request_parse(request *r);
+void request_headers_htop(request *, buffer *);
+
+int request_read_chunked(request *r);
 
 /* process function */
 int check_request_header(request *r);
 int open_static_file(request *r);
-void set_conn_header_closed(request *r);
-void set_proxy_pass_host(request *r);
-
-int strcmp_stop(const char *data, const char *stop);
 
 #endif //FANCY_REQUEST_H

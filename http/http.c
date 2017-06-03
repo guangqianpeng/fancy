@@ -151,53 +151,43 @@ static void parse_request_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
-    buffer      *in;
     int         err;
 
     conn = ev->conn;
     rqst = conn->app;
-    in = rqst->header_in;
 
     /* 解析请求 */
     err = request_parse(rqst);
     switch (err) {
 
         case FCY_ERROR:
-            LOG_INFO("%s request parse error, %s",
-                     conn_str(conn), rqst->header_in->start);
+            LOG_INFO("%s request parse error, \"%s\"",
+                     conn_str(conn), buffer_peek(rqst->header_in));
             conn_disable_read(conn);
             response_and_close(conn, STATUS_BAD_REQUEST);
             return;
 
         case FCY_AGAIN:
-            /* read buffer满 */
-            if (buffer_full(in)) {
-                LOG_INFO("%s request too long %s",
-                         conn_str(conn), rqst->header_in->start);
-                conn_disable_read(conn);
-                response_and_close(conn, STATUS_REQUEST_HEADER_FIELD_TOO_LARGE);
-            }
             return;
 
         default:
             break;
     }
 
+    buffer_retrieve(rqst->header_in, rqst->parser.where);
+
     /* content 过长 */
     if (rqst->content_length > HTTP_MAX_CONTENT_LENGTH) {
-        LOG_INFO("%s content-length too long, %d bytes",
+        LOG_WARN("%s content-length too long, %d bytes",
                  conn_str(conn), rqst->content_length);
         conn_disable_read(conn);
         response_and_close(conn, STATUS_REQUEST_HEADER_FIELD_TOO_LARGE);
         return;
     }
 
-    /* 初始化request body相关的内容 */
-    if (rqst->content_length > 0 || rqst->is_chunked) {
-        err = request_create_body_in(rqst);
-        if (err == FCY_ERROR) {
-            LOG_FATAL("request create body failed, run out of memory");
-        }
+    /* 转移多读的body */
+    if (!buffer_empty(rqst->header_in)) {
+        buffer_transfer(rqst->body_in, rqst->header_in);
     }
 
     conn->read.handler = read_request_body;
@@ -209,23 +199,12 @@ static void read_request_body(event *ev)
 {
     connection  *conn;
     request     *rqst;
-    buffer      *header_in;
     buffer      *body_in;
+    size_t      readable;
 
     conn = ev->conn;
     rqst = conn->app;
-    header_in = rqst->header_in;
     body_in = rqst->body_in;
-
-    /* no request body */
-    if (rqst->content_length == 0) {
-        goto done;
-    }
-
-    /* already read done */
-    if (buffer_full(body_in)) {
-        goto done;
-    }
 
     /* 对端发送body超时 */
     if (ev->timeout) {
@@ -235,24 +214,35 @@ static void read_request_body(event *ev)
         return;
     }
 
-    /* 读http request body */
-    CONN_READ(conn, body_in, close_connection(conn));
-    if (buffer_size(body_in) < rqst->content_length) {
-        return;
+    /* content-length */
+    if (rqst->has_content_length_header) {
+        readable = buffer_readable_bytes(body_in);
+        if (readable >= rqst->content_length) {
+            goto done;
+        }
+        CONN_READ(conn, body_in, close_connection(conn));
+        if (buffer_readable_bytes(body_in) < rqst->content_length) {
+            return;
+        }
+    }
+    else if (rqst->is_chunked) {
+        LOG_ERROR("CHUNKED");
+        pause();
     }
 
-    /* 整个http请求解析和读取完毕，包括body */
+    /* 整个http请求解析和读取完毕 */
 done:
+    readable = buffer_readable_bytes(body_in);
+    if (readable > rqst->content_length) {
+        LOG_WARN("%s read extra request body", conn_str(conn));
+        /* trunc */
+        buffer_unwrite(body_in, readable - rqst->content_length);
+    }
+
     conn_disable_read(conn);
 
     if (ev->timer_set) {
         timer_del(ev);
-    }
-
-    if (!rqst->is_static) {
-        /* 复原header_in, 发送给上游 */
-        header_in->data_end = header_in->data_start;
-        header_in->data_start = header_in->start;
     }
 
     if (conn->app_count >= keep_alive_requests) {
@@ -292,21 +282,17 @@ static void process_request_h(event *ev)
         }
 
         LOG_DEBUG("%s request \"%s\" %ld bytes",
-                  conn_str(conn), rqst->host_uri, rqst->sbuf.st_size);
+                  conn_str(conn), rqst->uri.data, rqst->sbuf.st_size);
 
         conn_enable_write(conn, write_response_headers_h);
         write_response_headers_h(&conn->write);
         return;
     }
     else if (rqst->status_code == STATUS_OK) {
-        LOG_DEBUG("%s upstream request \"%.*s\"",
-                  conn_str(conn),
-                  rqst->parser.uri_end - rqst->parser.uri_start,
-                  rqst->parser.uri_start);
+        LOG_DEBUG("%s upstream %s \"%s\"",
+                  conn_str(conn), method_str[rqst->parser.method].data, rqst->uri.data);
 
         rqst->should_keep_alive = 0;
-        set_conn_header_closed(rqst);
-        set_proxy_pass_host(rqst);
         peer_connect_h(&peer->write);
         return;
     }
@@ -366,8 +352,8 @@ static void upstream_write_request_h(event *ev)
     peer_connection *peer;
     request         *rqst;
     upstream        *upstm;
-    buffer          *header_in;
-    buffer          *body_in;
+    buffer          *header_out;
+    buffer          *body_out;
 
     int conn_err;
 
@@ -392,6 +378,7 @@ static void upstream_write_request_h(event *ev)
          *   1. 检查connect调用是否成功
          *   2. 若成功则创建upstream
          *   3. 关闭connect超时
+         *   4. 写头部
          * */
 
         CHECK(getsockopt(peer->sockfd, SOL_SOCKET, SO_ERROR, &conn_err, &err_len));
@@ -415,14 +402,15 @@ static void upstream_write_request_h(event *ev)
     }
 
     /* write request buffer to upstream */
-    header_in = rqst->header_in;
-    body_in = rqst->body_in;
+    header_out = upstm->header_out;
+    body_out = rqst->body_in;
 
+    request_headers_htop(rqst, header_out);
     /* TODO: use writev instead */
-    CONN_WRITE(peer, header_in,
+    CONN_WRITE(peer, header_out,
               close_connection(conn));
-    if (body_in != NULL) {
-        CONN_WRITE(peer, body_in,
+    if (body_out != NULL) {
+        CONN_WRITE(peer, body_out,
                   close_connection(conn));
     }
 
@@ -441,13 +429,13 @@ static void upstream_read_response_header_h(event *ev)
 {
     connection  *conn;
     connection  *peer;
-    request     *rqst;
-    buffer      *in;
+    upstream    *upstm;
+    buffer      *b;
 
     peer = ev->conn;
     conn = peer->peer;
-    rqst = conn->app;
-    in = rqst->header_out;
+    upstm = peer->app;
+    b = upstm->header_in;
 
     if (ev->timeout) {
         LOG_WARN("%s upstream response timeout (%dms)",
@@ -458,7 +446,7 @@ static void upstream_read_response_header_h(event *ev)
     }
 
     /* 读 upstream http response */
-    CONN_READ(peer, in, close_connection(conn));
+    CONN_READ(peer, b, close_connection(conn));
 
     upstream_parse_response_h(ev);
     return;
@@ -470,34 +458,31 @@ static void upstream_parse_response_h(event *ev)
     connection  *peer;
     upstream    *upstm;
     request     *rqst;
-    buffer      *out;
+    buffer      *b;
     int         err;
 
     peer = ev->conn;
     conn = peer->peer;
     upstm = peer->app;
     rqst = conn->app;
-    out = rqst->header_out;
+    b = upstm->header_in;
 
-    err = upstream_parse(upstm, rqst->header_out);
+    err = upstream_parse(upstm);
     switch (err) {
         case FCY_ERROR:
             LOG_WARN("%s parse upstream response error %s",
-                     conn_str(conn), rqst->header_out->data_start);
+                     conn_str(conn), buffer_peek(rqst->header_out));
             conn_disable_read(peer);
             response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
 
         case FCY_AGAIN:
-            /* read buffer满 */
-            if (out->data_end == out->end) {
-                conn_disable_read(peer);
-                response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
-            }
             return;
 
         default:
             break;
     }
+
+    buffer_retrieve(b, upstm->parser.where);
 
     if (upstm->content_length > HTTP_MAX_CONTENT_LENGTH) {
         conn_disable_read(peer);
@@ -507,12 +492,9 @@ static void upstream_parse_response_h(event *ev)
         return;
     }
 
-    if (upstm->content_length > 0) {
-        err = request_create_body_out(rqst, (size_t)upstm->content_length);
-        if (err == FCY_ERROR) {
-            LOG_FATAL("%s request create body failed, run out of memory",
-                      conn_str(conn));
-        }
+    if (!buffer_empty(b)) {
+        upstm->avoid_read_body = 1;
+        buffer_transfer(upstm->body_in, b);
     }
 
     peer->read.handler = upstream_read_response_body;
@@ -525,46 +507,58 @@ static void upstream_read_response_body(event *ev)
     connection  *conn;
     connection  *peer;
     upstream    *upstm;
-    request     *rqst;
-    buffer      *header_out;
-    buffer      *body_out;
+    buffer      *b;
 
     peer = ev->conn;
     conn = peer->peer;
     upstm = peer->app;
-    rqst = conn->app;
-    header_out = rqst->header_out;
-    body_out = rqst->body_out;
-
-    if (upstm->content_length == 0) {
-        goto done;
-    }
-
-    if (buffer_full(body_out)) {
-        goto done;
-    }
+    b = upstm->body_in;
 
     if (ev->timeout) {
         LOG_WARN("%s upstream response timeout", conn_str(conn));
-        conn_disable_read(peer);
-        response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
-        return;
+        goto error;
     }
 
-    /* FIXME: internal server error  */
-    CONN_READ(peer, body_out, close_connection(conn));
-    if (buffer_size(body_out) < upstm->content_length) {
-        return;
+    if (upstm->has_content_length_header) {
+        assert(buffer_readable_bytes(b) <= upstm->content_length);
+        if (buffer_readable_bytes(b) == upstm->content_length) {
+            goto done;
+        }
+        CONN_READ(conn, b, close_connection(conn));
+        if (buffer_readable_bytes(b) < upstm->content_length) {
+            return;
+        }
     }
+    else if (upstm->is_chunked) {
+        if (upstm->avoid_read_body) {
+            upstm->avoid_read_body = 0;
+        }
+        else {
+            CONN_READ(peer, b, close_connection(conn));
+        }
+        switch(upstream_read_chunked(upstm)) {
+            case FCY_ERROR:
+                LOG_ERROR("upstream_read_chunked error");
+                goto error;
+            case FCY_AGAIN:
+                return;
+            default:
+                goto done;
+        }
+    }
+    else {
+        goto done;
+    }
+
+    error:
+    conn_disable_read(peer);
+    response_and_close(conn, STATUS_INTARNAL_SEARVE_ERROR);
+    return;
 
     done:
     if (ev->timer_set) {
         timer_del(ev);
     }
-
-    /* 复原header_out, 发送给下游 */
-    header_out->data_end = header_out->data_start;
-    header_out->data_start = header_out->start;
 
     conn_disable_read(peer);
     conn_enable_write(conn, write_response_all_h);
@@ -576,19 +570,21 @@ static void write_response_all_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
+    upstream    *uptm;
     buffer      *header_out;
     buffer      *body_out;
 
     conn = ev->conn;
     rqst = conn->app;
+    uptm = conn->peer->app;
     header_out = rqst->header_out;
-    body_out = rqst->body_out;
+    body_out = uptm->body_in;
 
     /* TODO: use writev instead */
+    upstream_headers_htop(uptm, header_out);
     CONN_WRITE(conn, header_out,
               close_connection(conn));
     if (body_out != NULL) {
-        LOG_DEBUG("%d", buffer_size(body_out));
         CONN_WRITE(conn, body_out,
                   close_connection(conn));
     }
@@ -600,50 +596,49 @@ static void write_response_all_h(event *ev)
 
 static void write_response_headers_h(event *ev)
 {
-    connection *conn;
-    request *rqst;
-    buffer *header_out;
-    const char *status_str;
-    int n;
+    connection  *conn;
+    request     *rqst;
+    buffer      *b;
+    fcy_str     *status_str;
+    int         n;
 
     conn = ev->conn;
     rqst = conn->app;
-    header_out = rqst->header_out;
-    status_str = status_code_out_str[rqst->status_code];
+    b = rqst->header_out;
+    status_str = &status_code_out_str[rqst->status_code];
 
     /* 写header_out */
-    if (buffer_empty(header_out)) {
+    if (buffer_empty(b)) {
         /* response line */
-        buffer_write(header_out, "HTTP/1.1 ", 9);
-        buffer_write(header_out, status_str, strlen(status_str));
-        buffer_write(header_out, "\r\nServer: Fancy", 15);
-        buffer_write(header_out, "\r\nContent-Type: ", 16);
+        buffer_append_literal(b, "HTTP/1.1 ");
+        buffer_append_str(b, status_str);
+        buffer_append_literal(b, "\r\nServer: fancy beta");
+        buffer_append_literal(b, "\r\nContent-Type: ");
 
         if (rqst->status_code == STATUS_OK) {
-            buffer_write(header_out, rqst->content_type,
+            buffer_append(b, rqst->content_type,
                          strlen(rqst->content_type));
-            buffer_write(header_out, "\r\nContent-Length: ", 18);
-            n = sprintf((char *) header_out->data_end, "%ld", rqst->sbuf.st_size);
-            buffer_seek_end(header_out, (int) n);
+            buffer_append_literal(b, "\r\nContent-Length: ");
+            n = sprintf(buffer_begin_write(b), "%ld", rqst->sbuf.st_size);
+            buffer_has_writen(b, (size_t)n);
         } else {
-            buffer_write(header_out, "text/html; charset=utf-8", 24);
-            buffer_write(header_out, "\r\nContent-Length: ", 18);
-            n = sprintf((char *) header_out->data_end, "%ld", strlen(status_str));
-            buffer_seek_end(header_out, (int) n);
+            buffer_append_literal(b, "text/html; charset=utf-8");
+            buffer_append_crlf(b);
+            buffer_append_str(b, status_str);
         }
 
         if (rqst->should_keep_alive) {
-            buffer_write(header_out, "\r\nConnection: keep-alive\r\n\r\n", 28);
+            buffer_append_literal(b, "\r\nConnection: keep-alive\r\n\r\n");
         } else {
-            buffer_write(header_out, "\r\nConnection: close\r\n\r\n", 23);
+            buffer_append_literal(b, "\r\nConnection: close\r\n\r\n");
         }
 
         if (rqst->status_code != STATUS_OK) {
-            buffer_write(header_out, status_str, strlen(status_str));
+            buffer_append_str(b, status_str);
         }
     }
 
-    CONN_WRITE(conn, header_out,
+    CONN_WRITE(conn, b,
               close_connection(conn));
 
     if (rqst->send_fd > 0) {
@@ -681,14 +676,24 @@ static void finalize_request_h(event *ev)
 {
     connection  *conn;
     request     *rqst;
+    upstream    *upstm;
     int         keep_alive;
 
     conn = ev->conn;
     rqst = conn->app;
+    upstm = conn->peer->app;
     keep_alive = rqst->should_keep_alive;
 
-    LOG_DEBUG("%s response \"%s\"",
-             conn_str(conn), status_code_out_str[rqst->status_code]);
+
+    if (rqst->is_static || rqst->status_code != STATUS_OK) {
+        LOG_DEBUG("%s response \"%s\"",
+                  conn_str(conn), status_code_out_str[rqst->status_code].data);
+    }
+    else {
+        LOG_DEBUG("%s response \"%s\"",
+                  conn_str(conn), upstm->parser.response_line.data);
+    }
+
 
     if (!keep_alive || conn->app_count >= keep_alive_requests) {
         close_connection(conn);

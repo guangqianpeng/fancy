@@ -2,8 +2,8 @@
 // Created by frank on 17-2-12.
 //
 
-#include <stdio.h>
 #include <stdarg.h>
+#include "base.h"
 #include "log.h"
 
 #define MAXLINE     256
@@ -20,19 +20,19 @@ static int log_fd = -1;
 
 static int timestamp(char *);
 
-int log_init(const char *file_name)
+int log_init(fcy_str *file_name)
 {
-    if (strcmp(file_name, "stdout") == 0) {
+    if (strcmp(file_name->data, "stdout") == 0) {
         log_fd = STDOUT_FILENO;
     }
-    else if (strcmp(file_name, "stderr") == 0) {
+    else if (strcmp(file_name->data, "stderr") == 0) {
         log_fd = STDERR_FILENO;
     }
     else {
-        log_fd = open(file_name, O_TRUNC | O_WRONLY |O_CREAT, S_IRUSR | S_IWUSR);
+        log_fd = open(file_name->data, O_TRUNC | O_WRONLY |O_CREAT, S_IRUSR | S_IWUSR);
         if (log_fd == -1) {
             fprintf(stderr, "open log file %s error: %s",
-                    file_name, strerror(errno));
+                    file_name->data, strerror(errno));
             return FCY_ERROR;
         }
     }

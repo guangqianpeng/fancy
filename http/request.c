@@ -35,9 +35,9 @@ static void request_set_cork(connection *conn, int open);
 static void request_set_parser(request *r);
 static void request_set_conn(request *r, connection *c);
 
-static void request_on_header(void *user, char *name, char *value);
-static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix);
-static const char *get_content_type(const char *suffix);
+static void request_on_header(void *user, fcy_str *name, fcy_str *value);
+static void request_on_uri(void *user, fcy_str *uri, fcy_str *suffix);
+static const char *get_content_type(fcy_str *suffix);
 
 
 int request_init(mem_pool *pool)
@@ -61,10 +61,20 @@ request *request_create(connection *c)
         return NULL;
     }
 
-    r->header_in = buffer_create(p, HTTP_REQUEST_SIZE);
-    r->header_out = buffer_create(p, HTTP_RESPONSE_SIZE);
-    if (r->header_in == NULL ||
-        r->header_out == NULL) {
+    r->header_in = buffer_create(p, HTTP_BUFFER_SIZE);
+    r->header_out = buffer_create(p, HTTP_BUFFER_SIZE);
+    r->body_in = buffer_create(p, HTTP_BUFFER_SIZE);
+    r->body_out = buffer_create(p, HTTP_BUFFER_SIZE);
+    if (r->header_in == NULL
+        || r->header_out == NULL
+        || r->body_in == NULL
+        || r->body_out == NULL) {
+        mem_pool_destroy(p);
+        return NULL;
+    }
+
+    r->headers = array_create(p, 10, sizeof(keyval));
+    if (r->headers == NULL) {
         mem_pool_destroy(p);
         return NULL;
     }
@@ -91,15 +101,15 @@ void request_reset(request *r)
     buffer *header_out = r->header_out;
     buffer *body_in = r->body_in;
     buffer *body_out = r->body_out;
+    array  *headers = r->headers;
 
-    buffer_reset(header_in);
-    buffer_reset(header_out);
-    if (body_in != NULL) {
-        buffer_reset(body_in);
-    }
-    if (body_out != NULL) {
-        buffer_reset(body_out);
-    }
+    assert(buffer_empty(header_in));
+    assert(buffer_empty(header_out));
+    assert(buffer_empty(body_in));
+    assert(buffer_empty(body_out));
+
+
+    headers->size = 0;
 
     connection *conn = r->conn;
     ++conn->app_count;
@@ -112,6 +122,7 @@ void request_reset(request *r)
     r->header_out = header_out;
     r->body_in = body_in;
     r->body_out = body_out;
+    r->headers = headers;
     r->conn = conn;
     r->pool = pool;
     request_set_parser(r);
@@ -130,70 +141,71 @@ void request_destroy(request *r)
     mem_pool_destroy(r->pool);
 }
 
-int request_create_body_in(request *r)
-{
-    buffer *header_in, *body_in;
-    size_t size, body_read;
-
-    header_in = r->header_in;
-    body_in = r->body_in;
-    size = r->is_chunked ? HTTP_CHUNK_SIZE : (size_t)r->content_length;
-    body_read = buffer_size(header_in);
-
-    assert(size > 0);
-
-    if (r->body_in == NULL) {
-        body_in = r->body_in = buffer_create(r->pool, size);
-        if (body_in == NULL) {
-            return FCY_ERROR;
-        }
-    }
-    else {
-        assert(buffer_empty(body_in));
-    }
-
-    memcpy(body_in->start, header_in->data_start, body_read);
-
-    body_in->data_end += body_read;
-
-    return FCY_OK;
-}
-
-int request_create_body_out(request *r, size_t cnt_len)
-{
-    buffer *header_out, *body_out;
-    size_t body_read;
-
-    header_out = r->header_out;
-    body_out = r->body_out;
-    body_read = buffer_size(header_out);
-
-    assert(cnt_len > 0);
-
-    if (body_out == NULL) {
-        body_out = r->body_out = buffer_create(r->pool, cnt_len);
-        if (body_out == NULL) {
-            return FCY_ERROR;
-        }
-    }
-    else {
-        assert(buffer_empty(body_out));
-    }
-
-    memcpy(body_out->start, header_out->data_start, body_read);
-    body_out->data_end += body_read;
-
-    return FCY_OK;
-}
-
 int request_parse(request *r)
 {
-    return parser_execute(&r->parser, r->header_in);
+    buffer  *b = r->header_in;
+    char *beg = buffer_peek(b);
+    char *end = buffer_begin_write(b);
+    return parser_execute(&r->parser, beg, end);
+}
+
+void request_headers_htop(request *r, buffer *b)
+{
+    assert(buffer_empty(b));
+
+    http_parser *p = &r->parser;
+    location    *loc = r->loc;
+
+    /* line */
+    buffer_append_str(b, &method_str[p->method]);
+    buffer_append_space(b);
+    buffer_append_str(b, &r->uri);
+    buffer_append_space(b);
+    buffer_append_literal(b, "HTTP/1.1\r\n");
+
+    /* host */
+    buffer_append_literal(b, "Host: ");
+    if (loc->use_proxy) {
+        buffer_append_str(b, &loc->proxy_pass_str);
+    }
+    else {
+        buffer_append_str(b, &r->host);
+    }
+
+    /* connection */
+    buffer_append_literal(b, "\r\nConnection: ");
+    if (r->should_keep_alive) {
+        buffer_append_literal(b, "keep-alive\r\n");
+    }
+    else {
+        buffer_append_literal(b, "close\r\n");
+    }
+
+    /* other headers */
+    for (size_t i = 0; i < r->headers->size; ++i) {
+        keyval *kv = array_at(r->headers, i);
+        buffer_append_str(b, &kv->key);
+        buffer_append_literal(b, ": ");
+        buffer_append_str(b, &kv->value);
+        buffer_append_crlf(b);
+    }
+    buffer_append_crlf(b);
+}
+
+int request_read_chunked(request *r)
+{
+    // TODO
+    return FCY_ERROR;
 }
 
 int check_request_header(request *r)
 {
     http_parser *p= &r->parser;
+
+    if (r->loc == NULL) {
+        r->status_code = STATUS_NOT_FOUND;
+        return FCY_ERROR;
+    }
 
     if (p->method != METHOD_GET && p->method != METHOD_POST) {
         r->status_code = STATUS_NOT_IMPLEMENTED;
@@ -236,7 +248,7 @@ int check_request_header(request *r)
 int open_static_file(request *r)
 {
     location        *loc = r->loc;
-    char            *path = r->host_uri;
+    fcy_str         *uri = &r->uri;
     struct stat     *sbuf = &r->sbuf;
     int             err;
 
@@ -248,16 +260,19 @@ int open_static_file(request *r)
     }
 
     /* 测试文件 */
-    char *path_end = path + r->host_uri_len;
-    if (r->suffix == NULL && path[r->host_uri_len - 1] == '/') {
+    char path[uri->len + 64];
+    char *path_base = path + uri->len;
+    strcpy(path, uri->data);
+    if (r->suffix.data == NULL && path[uri->len - 1] == '/') {
 
         int found = 0;
-        for (int i = 0; loc->index[i] != NULL; ++i) {
-            strcpy(path_end, loc->index[i]);
+        for (int i = 0; loc->index[i].data != NULL; ++i) {
+            strcpy(path_base, loc->index[i].data);
             err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
             if (err != -1) {
                 found = 1;
-                r->suffix = strchr(loc->index[i], '.');
+                r->suffix.data = strchr(loc->index[i].data, '.');
+                r->suffix.len = strlen(r->suffix.data);
                 break;
             }
         }
@@ -270,6 +285,7 @@ int open_static_file(request *r)
     else {
         err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
         if (err == -1) {
+            LOG_SYSERR("fstatat error");
             r->status_code = STATUS_NOT_FOUND;
             return FCY_ERROR;
         }
@@ -283,76 +299,18 @@ int open_static_file(request *r)
     /* 打开文件会阻塞！！ */
     int fd = openat(loc->root_dirfd, path + 1, O_RDONLY);
     if (fd == -1) {
+        LOG_SYSERR("fstatat error");
         r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;
     }
 
     assert(r->content_type == NULL);
-    r->content_type = get_content_type(r->suffix);
+    r->content_type = get_content_type(&r->suffix);
 
     r->send_fd = fd;
     r->status_code = STATUS_OK;
     return FCY_OK;
 }
-
-void set_conn_header_closed(request *r)
-{
-    /* 动态类型请求不支持keep-alive */
-    buffer  *in;
-    char    *beg, *end;
-
-    in = r->header_in;
-    beg = r->keep_alive_value_start;
-    end = r->keep_alive_value_end;
-
-    /* in has complete headers */
-    assert(strcmp_stop((char*)in->data_end - 4, "\r\n\r\n") == 0);
-
-    if (!r->has_connection_header) {
-        in->data_end -= 2;
-        buffer_write(in, "Connection:close\r\n\r\n", 20);
-    }
-    else if (beg != NULL) {
-        assert(end - beg == 10); // keep_alive
-        strncpy(beg, "close     ", end - beg);
-    }
-}
-
-void set_proxy_pass_host(request *r)
-{
-    buffer      *in;
-    char        *beg, *end;
-    location    *loc;
-
-    in = r->header_in;
-    beg = r->host_value_start;
-    end = r->host_value_end;
-    loc = r->loc;
-
-    assert(strcmp_stop((char*)in->data_end - 4, "\r\n\r\n") == 0);
-    assert(loc->use_proxy);
-
-    if (r->has_host_header) {
-        assert(beg!= NULL && end != NULL);
-        if (end - beg >= loc->proxy_pass_len) {
-            strncpy(beg, loc->proxy_pass_str, loc->proxy_pass_len);
-            beg += loc->proxy_pass_len;
-            memset(beg, ' ', end - beg);
-            return;
-        } else {
-            /* ...\r\n
-             * Host: abcde\r\n
-             * */
-            memset(r->host_header_start, ' ', end + 2 - r->host_header_start);
-        }
-    }
-
-    in->data_end -= 2;
-    buffer_write(in, "Host:", 5);
-    buffer_write(in, loc->proxy_pass_str, loc->proxy_pass_len);
-    buffer_write(in, "\r\n\r\n", 4);
-}
-
 
 static void request_set_cork(connection *conn, int open)
 {
@@ -375,47 +333,55 @@ static void request_set_conn(request *r, connection *c)
     ++c->app_count;
 }
 
-static void request_on_header(void *user, char *name, char *value)
+static void request_on_header(void *user, fcy_str *name, fcy_str *value)
 {
     request *r = user;
-    if (strncasecmp(name, "Host", 4) == 0) {
+    if (strcasecmp(name->data, "Host") == 0) {
         r->has_host_header = 1;
-        r->host_value_start = value;
-        while (!isspace(*value) && *value != '\r')
-            ++value;
-        r->host_value_end = value;
-        r->host_header_start = name;
+        r->host = *value;
+        return;
     }
-    else if (strncasecmp(name, "Connection", 10) == 0) {
+    else if (strcasecmp(name->data, "Connection") == 0) {
         r->has_connection_header = 1;
-        if (strncasecmp(value, "keep-alive", 10) == 0) {
+        r->connection = *value;
+        if (strcasecmp(value->data, "Keep-alive") == 0) {
             r->should_keep_alive = 1;
-            r->keep_alive_value_start = value;
-            r->keep_alive_value_end  = value + 10;
         }
         else {
             r->should_keep_alive = 0;
         }
+        return;
     }
-    else if (strncasecmp(name, "Content-Length", 14) == 0) {
+    else if (strcasecmp(name->data, "Content-Length") == 0) {
         r->has_content_length_header = 1;
-        r->content_length = strtol(value, NULL, 0);
+        r->content_length = atoi(value->data);
     }
-    else if (strncasecmp(name, "Transfer-Encoding", 17) == 0) {
-        if (strncasecmp(value, "chunked", 7) == 0) {
+    else if (strcasecmp(name->data, "Transfer-Encoding") == 0) {
+        if (strcasecmp(value->data, "chunked") == 0) {
             r->is_chunked = 1;
         }
     }
+
+    keyval *kv = array_alloc(r->headers);
+    if (kv == NULL) {
+        LOG_ERROR("array alloc failed");
+        exit(EXIT_FAILURE);
+    }
+    kv->key = *name;
+    kv->value = *value;
 }
 
-static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
+static void request_on_uri(void *user, fcy_str *uri, fcy_str *suffix)
 {
     request *r = user;
     location *loc = NULL;
 
+    r->uri = *uri;
+    r->suffix = *suffix;
+
     for (size_t i = 0; i < locations->size; ++i) {
         loc = array_at(locations, i);
-        if (strcmp_stop(uri, loc->prefix) == 0) {
+        if (strncmp(uri->data, loc->prefix.data, loc->prefix.len) == 0) {
             r->loc = loc;
             if (!loc->use_proxy) {
                 r->is_static = 1;
@@ -431,40 +397,17 @@ static void request_on_uri(void *user, char *uri, size_t uri_len, char *suffix)
         r->status_code = STATUS_NOT_FOUND;
         return;
     }
-
-    if (r->is_static) {
-        r->host_uri_len = uri_len;
-        r->host_uri = palloc(r->pool, uri_len + 32);
-        strcpy(r->host_uri, uri);
-        if (suffix != NULL) {
-            r->suffix = r->host_uri + (suffix - uri);
-        }
-    }
 }
 
-static const char *get_content_type(const char *suffix)
+static const char *get_content_type(fcy_str *suffix)
 {
     if (suffix != NULL) {
-        assert(*suffix == '.');
-        ++suffix;
+        assert(*suffix->data == '.');
         for (int i = 0; suffix_str[i] != NULL; ++i) {
-            if (strcmp_stop(suffix, suffix_str[i]) == 0) {
+            if (strcmp(suffix->data + 1, suffix_str[i]) == 0) {
                 return content_type_str[i];
             }
         }
     }
     return content_type_str[0];
-}
-
-int strcmp_stop(const char *data, const char *stop)
-{
-    while (*data == *stop) {
-        ++data;
-        ++stop;
-
-        if (*stop == '\0') {
-            return 0;
-        }
-    }
-    return *data - *stop;
 }

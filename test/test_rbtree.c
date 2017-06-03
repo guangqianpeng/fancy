@@ -4,7 +4,7 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "../base/rbtree.h"
+#include "rbtree.h"
 
 #define TREE_SIZE 50
 

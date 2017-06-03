@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
     config(FANCY_CONFIG_FILE);
 
-    if (log_init(log_path) == FCY_ERROR) {
+    if (log_init(&log_path) == FCY_ERROR) {
         fprintf(stderr, "init log error");
         exit(EXIT_FAILURE);
     }

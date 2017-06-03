@@ -37,8 +37,7 @@ typedef struct conf_block   conf_block;
 typedef const char *(*conf_callback)(const char*, void*);
 
 struct conf_block {
-    const char      *str;
-    size_t          len;
+    fcy_str         str;
     conf_callback   cb;
     void            *data;
 };
@@ -48,7 +47,7 @@ int         daemonize           = -1;
 int         master_process      = -1;
 int         worker_processes    = -1;
 int         log_level = -1;
-const char  *log_path = NULL;
+fcy_str     log_path = null_string;
 
 /* events conf */
 int worker_connections  = -1;
@@ -65,41 +64,41 @@ int accept_defer        = -1;
 array    *locations;
 
 static conf_block conf_main_block[] = {
-        {"daemonize", 9, config_bool, &daemonize},
-        {"master_process", 14, config_bool, &master_process},
-        {"worker_processes", 16, config_num_positive, &worker_processes},
-        {"log_level", 9, config_log_level, &log_level},
-        {"log_path", 8, config_log_path, &log_path},
-        {"events", 6, config_events, NULL},
-        {"server", 6, config_server, NULL},
-        {"#", 1, config_comment, NULL},
-        {NULL},
+        {string("daemonize"), config_bool, &daemonize},
+        {string("master_process"), config_bool, &master_process},
+        {string("worker_processes"), config_num_positive, &worker_processes},
+        {string("log_level"), config_log_level, &log_level},
+        {string("log_path"), config_log_path, &log_path},
+        {string("events"), config_events, NULL},
+        {string("server"), config_server, NULL},
+        {string("#"), config_comment, NULL},
+        {null_string, NULL, NULL},
 };
 
 static conf_block conf_events_block[] = {
-        {"worker_connections", 18, config_num_positive, &worker_connections},
-        {"epoll_events", 12, config_num_positive, &epoll_events},
-        {"#", 1, config_comment, NULL},
-        {NULL},
+        {string("worker_connections"), config_num_positive, &worker_connections},
+        {string("epoll_events"), config_num_positive, &epoll_events},
+        {string("#"), config_comment, NULL},
+        {null_string, NULL, NULL},
 };
 
 static conf_block conf_server_block[] = {
-        {"listen_on", 9, config_num_positive, &listen_on},
-        {"request_timeout", 15, config_num_positive, &request_timeout},
-        {"upstream_timeout", 16, config_num_positive, &upstream_timeout},
-        {"keep_alive_requests", 19, config_num_positive, &keep_alive_requests},
-        {"accept_defer", 12, config_num_positive, &accept_defer},
-        {"location", 8, config_location, NULL},
-        {"#", 1, config_comment, NULL},
-        {NULL},
+        {string("listen_on"), config_num_positive, &listen_on},
+        {string("request_timeout"), config_num_positive, &request_timeout},
+        {string("upstream_timeout"), config_num_positive, &upstream_timeout},
+        {string("keep_alive_requests"), config_num_positive, &keep_alive_requests},
+        {string("accept_defer"), config_num_positive, &accept_defer},
+        {string("location"), config_location, NULL},
+        {string("#"), config_comment, NULL},
+        {null_string, NULL, NULL},
 };
 
 static conf_block conf_location_block[] = {
-        {"root", 4, config_root, NULL},
-        {"index", 5, config_index, NULL},
-        {"proxy_pass", 10, config_proxy_pass, NULL},
-        {"#", 1, config_comment, NULL},
-        {NULL},
+        {string("root"), config_root, NULL},
+        {string("index"), config_index, NULL},
+        {string("proxy_pass"), config_proxy_pass, NULL},
+        {string("#"), config_comment, NULL},
+        {null_string, NULL, NULL},
 };
 
 void config(const char *path)
@@ -153,14 +152,14 @@ static const char *config_main(const char *s, void *d)
     s = first_not_space(s);
     for (; *s != '\0'; s = first_not_space(s)) {
         int i = 0;
-        for (; b[i].str != NULL; ++i) {
-            if (strncmp(s, b[i].str, b[i].len) == 0) {
-                s += b[i].len;
+        for (; b[i].str.data != NULL; ++i) {
+            if (strncmp(s, b[i].str.data, b[i].str.len) == 0) {
+                s += b[i].str.len;
                 s = b[i].cb(s, b[i].data);
                 break;
             }
         }
-        if (b[i].str == NULL) {
+        if (b[i].str.data == NULL) {
             fprintf(stderr, "unknown config %s", s);
             exit(EXIT_FAILURE);
         }
@@ -176,14 +175,14 @@ static const char *config_events(const char *s, void *d)
     s = first_not_space(s);
     for ( ;*s != '}' ; s = first_not_space(s)) {
         int i = 0;
-        for (; b[i].str != NULL; ++i) {
-            if (strncmp(s, b[i].str, b[i].len) == 0) {
-                s += b[i].len;
+        for (; b[i].str.data != NULL; ++i) {
+            if (strncmp(s, b[i].str.data, b[i].str.len) == 0) {
+                s += b[i].str.len;
                 s = b[i].cb(s, b[i].data);
                 break;
             }
         }
-        if (b[i].str == NULL) {
+        if (b[i].str.data == NULL) {
             fprintf(stderr, "unknown config %s", s);
             exit(EXIT_FAILURE);
         }
@@ -199,14 +198,14 @@ static const char *config_server(const char *s, void *d)
     s = first_not_space(s);
     for (; *s != '}'; s = first_not_space(s)) {
         int i = 0;
-        for (; b[i].str != NULL; ++i) {
-            if (strncmp(s, b[i].str, b[i].len) == 0) {
-                s += b[i].len;
+        for (; b[i].str.data != NULL; ++i) {
+            if (strncmp(s, b[i].str.data, b[i].str.len) == 0) {
+                s += b[i].str.len;
                 s = b[i].cb(s, b[i].data);
                 break;
             }
         }
-        if (b[i].str == NULL) {
+        if (b[i].str.data == NULL) {
             fprintf(stderr, "unknown config %s", s);
             exit(EXIT_FAILURE);
         }
@@ -225,15 +224,15 @@ static const char *config_location(const char *s, void *d)
     for (; *s != '}'; s = first_not_space(s)) {
 
         int i = 0;
-        for (; b[i].str != NULL; ++i) {
-            if (strncmp(s, b[i].str, b[i].len) == 0) {
-                s += b[i].len;
+        for (; b[i].str.data != NULL; ++i) {
+            if (strncmp(s, b[i].str.data, b[i].str.len) == 0) {
+                s += b[i].str.len;
                 s = b[i].cb(s, loc);
                 break;
             }
         }
 
-        if (b[i].str == NULL) {
+        if (b[i].str.data == NULL) {
             fprintf(stderr, "unknown config %s", s);
             exit(EXIT_FAILURE);
         }
@@ -290,7 +289,7 @@ static const char *config_log_path(const char *s, void *d)
 
 static const char *config_str_semicolons(const char *s, void *d)
 {
-    char        **str = d;
+    fcy_str *str = d;
 
     s = first_not_space(s);
 
@@ -299,8 +298,9 @@ static const char *config_str_semicolons(const char *s, void *d)
     while (*end != '\0' && !isspace(*end) && *end != ';')
         ++end;
 
-    *str = pcalloc(pool, end - s + 1);
-    strncpy(*str, s, end - s);
+    str->data = pcalloc(pool, end - s + 1);
+    strncpy(str->data, s, end - s);
+    str->len = end - s;
     s = end;
 
     return s;
@@ -308,7 +308,7 @@ static const char *config_str_semicolons(const char *s, void *d)
 
 static const char *config_str_brace(const char *s, void *d)
 {
-    char        **str = d;
+    fcy_str *str = d;
 
     s = first_not_space(s);
 
@@ -317,8 +317,9 @@ static const char *config_str_brace(const char *s, void *d)
     while (*end != '\0' && !isspace(*end) && *end != '{')
         ++end;
 
-    *str = pcalloc(pool, end - s + 1);
-    strncpy(*str, s, end - s);
+    str->data = pcalloc(pool, end - s + 1);
+    strncpy(str->data, s, end - s);
+    str->len = end - s;
     s = end;
 
     return s;
@@ -392,13 +393,13 @@ static const char *config_proxy_pass(const char *s, void *d)
         ++s;
     }
 
-    loc->proxy_pass_len = s - temp_s;
-    loc->proxy_pass_str = pcalloc(pool, s - temp_s + 1);
-    if (loc->proxy_pass_str == NULL) {
+    loc->proxy_pass_str.len = s - temp_s;
+    loc->proxy_pass_str.data = pcalloc(pool, s - temp_s + 1);
+    if (loc->proxy_pass_str.data == NULL) {
         fprintf(stderr, "palloc failed");
         exit(EXIT_FAILURE);
     }
-    strncpy(loc->proxy_pass_str, temp_s, s - temp_s);
+    strncpy(loc->proxy_pass_str.data, temp_s, s - temp_s);
 
 
     return expect(s, ';');
@@ -414,7 +415,7 @@ static const char *config_root(const char *s, void *d)
     int      dirfd;
 
     s = config_str_semicolons(s, &loc->root);
-    dirfd = open(loc->root, O_DIRECTORY | O_RDONLY);
+    dirfd = open(loc->root.data, O_DIRECTORY | O_RDONLY);
     if (dirfd == -1) {
         perror("open error");
         exit(EXIT_FAILURE);
@@ -442,7 +443,7 @@ static const char *config_index(const char *s, void *d)
         exit(EXIT_FAILURE);
     }
 
-    loc->index[i] = NULL;
+    fcy_str_null(&loc->index[i]);
 
     return expect(s, ';');
 }

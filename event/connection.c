@@ -176,14 +176,12 @@ void conn_disable_write(connection *conn)
 
 int conn_read(connection *conn, buffer *in)
 {
-    int n;
-
+    int error;
     inter:
-    n = (int)read(conn->sockfd, in->data_end, buffer_space(in));
-    switch(n) {
+    switch(buffer_read_fd(in, conn->sockfd, &error)) {
         case -1:
         {
-            switch (errno) {
+            switch (error) {
                 case EINTR:
                     goto inter;
                 case EAGAIN:
@@ -197,24 +195,20 @@ int conn_read(connection *conn, buffer *in)
             return FCY_ERROR;
 
         default:
-            buffer_seek_end(in, n);
             return FCY_OK;
     }
 }
 
 int conn_read_chunked(connection *conn, buffer *in)
 {
-
     return FCY_ERROR;
 }
 
 int conn_write(connection *conn, buffer *out)
 {
-    int n;
-
+    int error;
     inter:
-    n = (int)write(conn->sockfd, out->data_start, buffer_size(out));
-    if (n == -1) {
+    if (buffer_write_fd(out, conn->sockfd, &error) == -1) {
         switch (errno) {
             case EINTR:
                 goto inter;
@@ -225,7 +219,9 @@ int conn_write(connection *conn, buffer *out)
                 return FCY_ERROR;
         }
     }
-    buffer_seek_start(out, n);
+    if (!buffer_empty(out)) {
+        return FCY_AGAIN;
+    }
     return FCY_OK;
 }
 

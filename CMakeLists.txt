@@ -15,6 +15,7 @@ include_directories(./base ./event ./http)
 add_subdirectory(./base)
 add_subdirectory(./event)
 add_subdirectory(./http)
+add_subdirectory(./test)
 
 aux_source_directory(. SRC)
 

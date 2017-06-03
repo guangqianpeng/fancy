@@ -10,8 +10,8 @@
 typedef struct array array;
 
 struct array {
-    void        *elems;     // 元素指针
-    size_t      elem_size;  // 元素大小
+    char        *elems;     // 元素指针
+    size_t      elem_size;  // 每个元素大小
     size_t      size;       // 元素个数
     size_t      capacity;   // 容量
     mem_pool    *pool;      // 内存池
@@ -25,5 +25,7 @@ void array_destroy(array *a);
 void *array_alloc(array *a);
 
 void *array_at(array *a, size_t i);
+
+void array_resize(array *a, size_t size);
 
 #endif //FANCY_ARRAY_H

@@ -68,9 +68,7 @@ do {    \
             error_handler; \
             return; \
         default:    \
-            if (!buffer_empty(out)) {    \
-                return; \
-            }  \
+            break;  \
     }   \
 } while(0)  \
 

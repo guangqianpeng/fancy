@@ -3,30 +3,32 @@
 //
 
 #include <ctype.h>
+#include <assert.h>
+#include "base.h"
 #include "http_parser.h"
 
-const char *method_str[] = {
-        "GET",
-        "HEAD",
-        "POST",
-        "OPTIONS",
-        "DELETE",
-        "TRACE",
-        "CONNECT",
+fcy_str method_str[] = {
+        string("GET"),
+        string("HEAD"),
+        string("POST"),
+        string("OPTIONS"),
+        string("DELETE"),
+        string("TRACE"),
+        string("CONNECT"),
 };
 
-const char *status_code_out_str[] = {
-        "200 OK",
-        "400 Bad Request",
-        "403 Forbidden",
-        "404 Not Found",
-        "408 Request Timeout",
-        "411 Length Required",
-        "413 Payload Too Large",
-        "414 URI Too Long",
-        "431 Request Header Fields Too Large",
-        "500 Internal Server Error",
-        "501 Not Implemented",
+fcy_str status_code_out_str[] = {
+        string("200 OK"),
+        string("400 Bad Request"),
+        string("403 Forbidden"),
+        string("404 Not Found"),
+        string("408 Request Timeout"),
+        string("411 Length Required"),
+        string("413 Payload Too Large"),
+        string("414 URI Too Long"),
+        string("431 Request Header Fields Too Large"),
+        string("500 Internal Server Error"),
+        string("501 Not Implemented"),
 };
 
 enum {
@@ -44,6 +46,7 @@ enum {
     version_HTTP_slash_1_,
     version_HTTP_slash_1_dot_,
     space_after_version_,
+
     line_almost_done_,
     line_done_,
 
@@ -58,31 +61,31 @@ enum {
     error_,
 };
 
-static int parse_request(http_parser *ps, buffer *in);
-static int parse_request_line(http_parser *ps, buffer *in);
-static int parse_uri(http_parser *ps);
+static int parse_request(http_parser *ps, char *beg, char *end);
+static int parse_request_line(http_parser *ps, char *beg, char *end);
+static int parse_uri(http_parser *ps, char *beg, char *end);
 
-static int parse_response(http_parser *ps, buffer *in);
-static int parse_response_line(http_parser *ps, buffer *in);
+static int parse_response(http_parser *ps, char *beg, char *end);
+static int parse_response_line(http_parser *ps, char *beg, char *end);
 
-static int parse_headers(http_parser *ps, buffer *in);
+static int parse_headers(http_parser *ps, char *beg, char *end);
 
-int parser_execute(http_parser *ps, buffer *in)
+int parser_execute(http_parser *ps, char *beg, char *end)
 {
     if (ps->type == HTTP_PARSE_REQUEST) {
-        return parse_request(ps, in);
+        return parse_request(ps, beg, end);
     }
     else {
-        return parse_response(ps, in);
+        return parse_response(ps, beg, end);
     }
 }
 
-static int parse_request(http_parser *ps, buffer *in)
+static int parse_request(http_parser *ps, char *beg, char *end)
 {
     assert(ps->state != error_);
 
     if (ps->state < line_done_) {
-        switch (parse_request_line(ps, in)) {
+        switch (parse_request_line(ps, beg, end)) {
             case FCY_AGAIN:
                 assert(ps->state < line_done_);
                 return FCY_AGAIN;
@@ -97,7 +100,7 @@ static int parse_request(http_parser *ps, buffer *in)
     }
 
     if (ps->state < all_done_) {
-        switch (parse_headers(ps, in)) {
+        switch (parse_headers(ps, beg, end)) {
             case FCY_AGAIN:
                 assert(ps->state < all_done_);
                 return FCY_AGAIN;
@@ -111,19 +114,18 @@ static int parse_request(http_parser *ps, buffer *in)
     }
 
     assert(ps->state == all_done_);
-    return parse_uri(ps);
+    return FCY_OK;
 }
 
-static int parse_request_line(http_parser *ps, buffer *in)
+static int parse_request_line(http_parser *ps, char *beg, char *end)
 {
-    char        c, *p;
     unsigned    state = ps->state;
+    char        *p = beg + ps->where;
 
-    for (p = buffer_read(in);
-         !buffer_empty(in);
-         p = buffer_seek_start(in, 1)) {
+    for (; p < end; ++p) {
 
-        c = *p;
+        const char  c = *p;
+
         switch (state) {
             case start_:
                 /* method_start_ */
@@ -144,7 +146,7 @@ static int parse_request_line(http_parser *ps, buffer *in)
 
             case method_:
             {
-                const char *matcher = method_str[ps->method];
+                const char *matcher = method_str[ps->method].data;
 
                 if (matcher[ps->index] != '\0') {
                     if (matcher[ps->index] == c) {
@@ -173,7 +175,11 @@ static int parse_request_line(http_parser *ps, buffer *in)
 
             case uri_:
                 if (c == ' ') {
-                    ps->uri_end = p;
+                    /* set uri str */
+                    *p = '\0';
+                    if (parse_uri(ps, ps->uri_start, p) == FCY_ERROR) {
+                        goto error;
+                    }
                     state = space_before_version_;
                     break;
                 }
@@ -258,8 +264,8 @@ static int parse_request_line(http_parser *ps, buffer *in)
 
             case line_almost_done_:
                 if (c == '\n') {
-                    buffer_seek_start(in, 1);
                     state = line_done_;
+                    ++p;
                     goto done;
                 }
                 goto error;
@@ -270,6 +276,7 @@ static int parse_request_line(http_parser *ps, buffer *in)
     }
 
     done:
+    ps->where = p - beg;
     ps->state = state;
     return (state == line_done_ ? FCY_OK : FCY_AGAIN);
 
@@ -278,16 +285,15 @@ static int parse_request_line(http_parser *ps, buffer *in)
     return FCY_ERROR;
 }
 
-static int parse_headers(http_parser *ps, buffer *in)
+static int parse_headers(http_parser *ps, char *beg, char *end)
 {
-    char        c, *p;
     unsigned    state = ps->state;
+    char        *p = beg + ps->where;
 
-    for (p = buffer_read(in);
-         !buffer_empty(in);
-         p = buffer_seek_start(in, 1)) {
+    for (; p < end; ++p) {
 
-        c = *p;
+        const char  c = *p;
+
         switch (state) {
             case header_start_:
                 if (c == '\r') {
@@ -295,8 +301,8 @@ static int parse_headers(http_parser *ps, buffer *in)
                     break;
                 }
                 if (isalpha(c) || c == '-') {
+                    ps->last_header_name.data = p;
                     state = name_;
-                    ps->last_header_name_start = p;
                     break;
                 }
                 goto error;
@@ -306,6 +312,8 @@ static int parse_headers(http_parser *ps, buffer *in)
                     break;
                 }
                 if (c == ':') {
+                    ps->last_header_name.len = p - ps->last_header_name.data;
+                    *p = '\0';
                     state = space_before_value_;
                     break;
                 }
@@ -316,7 +324,7 @@ static int parse_headers(http_parser *ps, buffer *in)
                     break;
                 }
                 if (!iscntrl(c)) {
-                    ps->last_header_value_start = p;
+                    ps->last_header_value.data = p;
                     state = value_;
                     break;
                 }
@@ -324,11 +332,12 @@ static int parse_headers(http_parser *ps, buffer *in)
 
             case value_:
                 if (c == '\r') {
-
+                    ps->last_header_value.len = p - ps->last_header_value.data;
+                    *p = '\0';
                     if (ps->header_cb != NULL) {
                         ps->header_cb(ps->user,
-                                      ps->last_header_name_start,
-                                      ps->last_header_value_start);
+                                      &ps->last_header_name,
+                                      &ps->last_header_value);
                     }
                     state = header_almost_done_;
                     break;
@@ -347,7 +356,7 @@ static int parse_headers(http_parser *ps, buffer *in)
 
             case all_headers_almost_done:
                 if (c == '\n') {
-                    buffer_seek_start(in, 1);
+                    ++p;
                     state = all_done_;
                     goto done;
                 }
@@ -358,6 +367,7 @@ static int parse_headers(http_parser *ps, buffer *in)
     }
 
     done:
+    ps->where = p - beg;
     ps->state = state;
     if (state == all_done_) {
         return FCY_OK;
@@ -371,11 +381,11 @@ static int parse_headers(http_parser *ps, buffer *in)
     return FCY_ERROR;
 }
 
-static int parse_uri(http_parser *ps)
+static int parse_uri(http_parser *ps, char *beg, char *end)
 {
     int     hex1, hex2;
-    char    host_uri[ps->uri_end - ps->uri_start + 1];
-    char    c, *p, *u = host_uri , *last_dot = NULL;
+    char    *u = beg;
+    char    *last_dot = NULL;
     enum { /* local */
         start_ = 0,
         after_slash_,
@@ -384,9 +394,10 @@ static int parse_uri(http_parser *ps)
     } state = start_;
 
     /* 注意，此时uri已经读完了，不需要考虑FCY_AGAIN的情况 */
-    for (p = ps->uri_start; p != ps->uri_end; ++p) {
+    char *p = u;
+    for (; p < end; ++p) {
 
-        c = *p;
+        char c = *p;
         switch (state) {
             case start_:
                 if (c == '/') {
@@ -471,10 +482,22 @@ static int parse_uri(http_parser *ps)
         }
     }
 
+    fcy_str     uri;
+    fcy_str     suffix;
+
     done:
     *u = '\0';
+    uri.data = beg;
+    uri.len = u - beg;
+    if (last_dot == NULL) {
+        fcy_str_null(&suffix);
+    }
+    else {
+        suffix.len = end - last_dot;
+        suffix.data = last_dot;
+    }
     if (ps->uri_cb != NULL) {
-        ps->uri_cb(ps->user, host_uri, u - host_uri, last_dot);
+        ps->uri_cb(ps->user, &uri, &suffix);
     }
     return FCY_OK;
 
@@ -483,12 +506,12 @@ static int parse_uri(http_parser *ps)
     return FCY_ERROR;
 }
 
-static int parse_response(http_parser *ps, buffer *in)
+static int parse_response(http_parser *ps, char *beg, char *end)
 {
     assert(ps->state != error_);
 
     if (ps->state < line_done_) {
-        switch (parse_response_line(ps, in)) {
+        switch (parse_response_line(ps, beg, end)) {
             case FCY_AGAIN:
                 assert(ps->state < line_done_);
                 return FCY_AGAIN;
@@ -503,7 +526,7 @@ static int parse_response(http_parser *ps, buffer *in)
     }
 
     if (ps->state < all_done_) {
-        switch (parse_headers(ps, in)) {
+        switch (parse_headers(ps, beg, end)) {
             case FCY_AGAIN:
                 assert(ps->state < all_done_);
                 return FCY_AGAIN;
@@ -520,26 +543,29 @@ static int parse_response(http_parser *ps, buffer *in)
     return FCY_ERROR;
 }
 
-static int parse_response_line(http_parser *ps, buffer *in)
+static int parse_response_line(http_parser *ps, char *beg, char *end)
 {
-    char        c, *p;
     unsigned    state = ps->state;
+    char        *p = beg + ps->where;
 
-    for (p = buffer_read(in);
-         !buffer_empty(in);
-         p = buffer_seek_start(in, 1)) {
+    for (; p < end; ++p) {
 
-        c = *p;
+        const char  c = *p;
+
         switch(state) {
             case start_:
                 if (c == '\r') {
+                    ps->response_line.data = beg;
+                    ps->response_line.len = p - beg;
+                    *p = '\0';
                     state = line_almost_done_;
+                    break;
                 }
                 break;
 
             case line_almost_done_:
                 if (c == '\n') {
-                    buffer_seek_start(in, 1);
+                    ++p;
                     state = line_done_;
                     goto done;
                 }
@@ -550,6 +576,7 @@ static int parse_response_line(http_parser *ps, buffer *in)
     }
 
     done:
+    ps->where = p - beg;
     ps->state = state;
     return (state == line_done_ ? FCY_OK : FCY_AGAIN);
 

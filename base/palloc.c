@@ -20,8 +20,8 @@ mem_pool *mem_pool_create(size_t size)
         return NULL;
     }
 
-    pool->last = (u_char*) pool + sizeof(mem_pool);
-    pool->end = (u_char*) pool + size;
+    pool->last = (char *) pool + sizeof(mem_pool);
+    pool->end = (char *) pool + size;
     pool->failed = 0;
     pool->next = NULL;
     pool->current = pool;
@@ -42,7 +42,7 @@ void mem_pool_destroy(mem_pool *pool)
 
 void *palloc(mem_pool *pool, size_t size)
 {
-    u_char      *last;
+    char      *last;
     mem_pool    *p;
 
     for (p = pool->current; p; p = p->next) {
@@ -56,7 +56,7 @@ void *palloc(mem_pool *pool, size_t size)
         }
     }
 
-    assert(size <= pool->end - (u_char*)pool - offsetof(mem_pool, current));
+    assert(size <= pool->end - (char *)pool - offsetof(mem_pool, current));
 
     p = mem_pool_append(pool);
     if (p == NULL) {
@@ -71,7 +71,7 @@ void *palloc(mem_pool *pool, size_t size)
 
 void *pcalloc(mem_pool *pool, size_t size)
 {
-    u_char *last = palloc(pool, size);
+    char *last = palloc(pool, size);
     if (last == NULL) {
         return NULL;
     }
@@ -86,17 +86,17 @@ static mem_pool *mem_pool_append(mem_pool *pool)
     mem_pool    *new = NULL, *p;
     int         val;
 
-    size = pool->end - (u_char*)pool;
+    size = pool->end - (char *)pool;
     val = posix_memalign((void**)&new, MEM_POOL_ALIGNMENT, size);
     if (val == -1 || new == NULL) {
         assert(0);
         return NULL;
     }
 
-    new->last = (u_char*)new + offsetof(mem_pool, current);
+    new->last = (char *)new + offsetof(mem_pool, current);
     new->last = align_ptr(new->last, MEM_POOL_ALIGNMENT);
 
-    new->end = (u_char*)new + size;
+    new->end = (char *)new + size;
     new->failed = 0;
     new->next = NULL;
 

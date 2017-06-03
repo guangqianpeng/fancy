@@ -19,8 +19,8 @@
 typedef struct mem_pool mem_pool;
 
 struct mem_pool {
-    u_char      *last;
-    u_char      *end;
+    char        *last;
+    char        *end;
     u_int       failed;
     mem_pool    *next;
 

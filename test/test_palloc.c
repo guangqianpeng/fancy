@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../base/palloc.h"
+#include "palloc.h"
 
 #define LOOP_SIZE 1000
 

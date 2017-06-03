@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <sys/types.h>
-#include "../base/list.h"
+#include "list.h"
 
 typedef struct Node {
     int         data;
