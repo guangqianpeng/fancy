@@ -2,6 +2,7 @@
 // Created by frank on 17-5-30.
 //
 
+
 #ifndef FANCY_CONFIG_H
 #define FANCY_CONFIG_H
 
