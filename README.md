@@ -2,7 +2,7 @@
 
 fancy是一个基于事件驱动(epoll)的多进程web服务器。其原理与Nginx类似，即 **one loop per process**. fancy的特性如下：
 
-- epoll+nonblocking IO。epoll是编写高性能服务器的基础设施，Nginx和muduo库都采用了epoll。 epoll_wait的触发方式两种：水平触发（LT）和边沿触发（ET）。对于连接事件（accept），采用水平触发；对于其他IO事件(connect, read, write)采用边沿触发。
+- epoll+nonblocking IO。epoll是编写高性能服务器的基础设施，Nginx和muduo库都采用了epoll。
 - 反向代理HTTP服务器。简单来说就是转发HTTP request and response。
 - 通过计时器踢掉空闲连接。fancy使用红黑树实现定时器。
 - buffer。TCP连接的读写必须有用户态buffer。fancy参考了muduo库buffer的设计，实现了一个简易的自适应buffer。此外，对于长连接，buffer可以重用。

@@ -414,6 +414,8 @@ static void upstream_write_request_h(event *ev)
                   close_connection(conn));
     }
 
+    LOG_DEBUG("%s upstream write request", conn_str(conn));
+
     /* 打开读超时 */
     assert(!peer->write.timer_set);
     timer_add(&peer->read, (timer_msec)upstream_timeout);
@@ -519,23 +521,24 @@ static void upstream_read_response_body(event *ev)
         goto error;
     }
 
-    if (upstm->has_content_length_header) {
-        assert(buffer_readable_bytes(b) <= upstm->content_length);
-        if (buffer_readable_bytes(b) == upstm->content_length) {
-            goto done;
-        }
-        CONN_READ(conn, b, close_connection(conn));
-        if (buffer_readable_bytes(b) < upstm->content_length) {
-            return;
-        }
-    }
-    else if (upstm->is_chunked) {
+    if (upstm->has_content_length_header || upstm->is_chunked) {
         if (upstm->avoid_read_body) {
             upstm->avoid_read_body = 0;
         }
         else {
             CONN_READ(peer, b, close_connection(conn));
         }
+    }
+
+    if (upstm->has_content_length_header) {
+        if (buffer_readable_bytes(b) < upstm->content_length) {
+            return;
+        }
+        else {
+            goto done;
+        }
+    }
+    else if (upstm->is_chunked) {
         switch(upstream_read_chunked(upstm)) {
             case FCY_ERROR:
                 LOG_ERROR("upstream_read_chunked error");

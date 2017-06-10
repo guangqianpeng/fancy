@@ -100,7 +100,7 @@ void conn_enable_read(connection *conn, event_handler handler)
 
     struct epoll_event e_event = {
             .data.ptr = conn,
-            .events = EPOLLET | EPOLLIN | EPOLLRDHUP | EPOLLPRI
+            .events = EPOLLIN | EPOLLRDHUP | EPOLLPRI
     };
 
     // conn->fd has already registered
@@ -140,7 +140,7 @@ void conn_enable_write(connection *conn, event_handler handler)
 
     struct epoll_event e_event = {
             .data.ptr = conn,
-            .events = EPOLLET | EPOLLOUT | EPOLLRDHUP | EPOLLPRI
+            .events = EPOLLOUT | EPOLLRDHUP | EPOLLPRI
     };
 
     // conn->fd has already registered

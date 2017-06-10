@@ -28,7 +28,6 @@ struct request {
     unsigned        has_content_length_header:1;
     unsigned        is_static:1;
     unsigned        is_chunked:1;
-    unsigned        chunk_inited:1; /* 第一次处理chunk data */
 
     fcy_str         uri;
     fcy_str         suffix;

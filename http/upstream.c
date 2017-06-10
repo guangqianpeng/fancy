@@ -44,6 +44,10 @@ upstream *upstream_create(peer_connection *conn, mem_pool *p)
 
 void upstream_destroy(upstream *u)
 {
+    buffer_destroy(u->body_out);
+    buffer_destroy(u->body_in);
+    buffer_destroy(u->header_out);
+    buffer_destroy(u->header_in);
     array_destroy(u->headers);
 }
 
