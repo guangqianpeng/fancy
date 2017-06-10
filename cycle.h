@@ -5,8 +5,6 @@
 #ifndef FANCY_CYCLE_H
 #define FANCY_CYCLE_H
 
-extern int pid_fd;
-
 void run_master_process();
 void run_single_process();
 void run_signal_process(int sig_no);

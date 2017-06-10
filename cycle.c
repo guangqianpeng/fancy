@@ -41,7 +41,6 @@ void run_master_process()
                 exit(EXIT_FAILURE);
 
             case 0:
-                CHECK(close(pid_fd));
                 run_single_process();
                 exit(EXIT_SUCCESS);
 

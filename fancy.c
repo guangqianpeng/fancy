@@ -12,9 +12,8 @@
 #include "config.h"
 #include "cycle.h"
 
-int pid_fd;
-static int open_and_lock_pid_file(const char *path);
-static int write_and_lock_pid_file();
+static int open_and_test_file(const char *path);
+static int write_and_lock_file(const char *path);
 
 int main(int argc, char **argv)
 {
@@ -54,7 +53,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    if (open_and_lock_pid_file(FANCY_PID_FILE) == FCY_ERROR) {
+    if (open_and_test_file(FANCY_PID_FILE) == FCY_ERROR) {
         fprintf(stderr, "fancy already running");
         exit(EXIT_FAILURE);
     }
@@ -73,7 +72,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (write_and_lock_pid_file() == FCY_ERROR) {
+    if (write_and_lock_file(FANCY_PID_FILE) == FCY_ERROR) {
         LOG_ERROR("create pid file error");
         exit(EXIT_FAILURE);
     }
@@ -89,9 +88,9 @@ int main(int argc, char **argv)
     }
 }
 
-static int open_and_lock_pid_file(const char *path)
+static int open_and_test_file(const char *path)
 {
-    pid_fd = open(path, O_RDWR | O_CREAT ,
+    int pid_fd = open(path, O_RDWR | O_CREAT ,
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (pid_fd == -1) {
         perror("open pid file error");
@@ -106,11 +105,18 @@ static int open_and_lock_pid_file(const char *path)
         fprintf(stderr, "can not lock file %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    CHECK(lockf(pid_fd, F_ULOCK, 0));
+    CHECK(close(pid_fd));
+
     return FCY_OK;
 }
 
-static int write_and_lock_pid_file()
+static int write_and_lock_file(const char *path)
 {
+    int pid_fd = open(path, O_RDWR | O_CREAT ,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
     if (lockf(pid_fd, F_TLOCK, 0) == -1) {
         if (errno == EAGAIN || errno == EACCES) {
             CHECK(close(pid_fd));
