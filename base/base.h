@@ -34,7 +34,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-#include "fcy_str.h"
+#include "str.h"
 #include "array.h"
 
 #define FCY_OK      0
@@ -62,7 +62,7 @@ __END_DECLS
 extern int          daemonize;
 extern int          master_process;      // 是否单进程
 extern int          worker_processes;    // 多进程下workers数目
-extern fcy_str      log_path;
+extern string       log_path;
 extern int          log_level;
 
 extern int worker_connections;  // 并发连接数

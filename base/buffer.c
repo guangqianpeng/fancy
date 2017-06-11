@@ -3,7 +3,7 @@
 //
 
 #include <assert.h>
-#include <string.h>
+#include <str.h>
 #include <sys/uio.h>
 #include "base.h"
 #include "buffer.h"

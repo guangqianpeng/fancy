@@ -37,7 +37,7 @@ static void test_once()
     alloc = 0;
 
     for (int i = 0; i < LOOP_SIZE; ++i) {
-        bytes = (size_t)rand() % (pool->end - (u_char*)pool - sizeof(mem_pool)) + 1;
+        bytes = (size_t)rand() % (pool->end - (char*)pool - sizeof(mem_pool)) + 1;
 
         /* palloc的对齐操作会造成内部碎片，难以验证内存池的正确性
          * 因此总是分配对齐的整数倍字节
@@ -69,10 +69,10 @@ static int check_pool(mem_pool *pool, size_t alloc)
     size = 0;
     for (p = pool; p != NULL; p = p->next) {
         if (p == pool) {
-            size += p->last - align_ptr((u_char*)p + sizeof(mem_pool), MEM_POOL_ALIGNMENT);
+            size += p->last - align_ptr((char *)p + sizeof(mem_pool), MEM_POOL_ALIGNMENT);
         }
         else {
-            size += p->last - align_ptr((u_char*)p + offsetof(mem_pool, current), MEM_POOL_ALIGNMENT);
+            size += p->last - align_ptr((char*)p + offsetof(mem_pool, current), MEM_POOL_ALIGNMENT);
         }
     }
     printf("real alloc = %lu, calcu alloc = %lu\n", size, alloc);
@@ -82,16 +82,16 @@ static int check_pool(mem_pool *pool, size_t alloc)
 
 static void print_pool(mem_pool *pool)
 {
-    u_char      *first;
+    char        *first;
     mem_pool    *p;
     size_t      alloc, free;
 
     for (p = pool; p; p = p->next) {
         if (p == pool) {
-            first = (u_char *) p + sizeof(mem_pool);
+            first = (char *)p + sizeof(mem_pool);
         }
         else {
-            first = (u_char *) p + offsetof(mem_pool, current);
+            first = (char *) p + offsetof(mem_pool, current);
         }
 
         alloc = p->last - first;

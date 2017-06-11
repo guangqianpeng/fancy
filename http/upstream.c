@@ -8,7 +8,7 @@
 #include "chunk_reader.h"
 
 static void upstream_set_parser(upstream *u);
-static void upstream_on_header(void *user, fcy_str *name, fcy_str *value);
+static void upstream_on_header(void *user, string *name, string *value);
 
 upstream *upstream_create(peer_connection *conn, mem_pool *p)
 {
@@ -98,7 +98,7 @@ static void upstream_set_parser(upstream *u)
     u->parser.user = u;
 }
 
-static void upstream_on_header(void *user, fcy_str *name, fcy_str *value)
+static void upstream_on_header(void *user, string *name, string *value)
 {
     upstream *u = user;
     if (strcasecmp(name->data, "Content-Length") == 0) {

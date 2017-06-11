@@ -21,7 +21,7 @@ int main()
 
     /* 初始化数组， 没有再分配 */
     a = array_create(pool, 24, sizeof(long));
-    temp = a->elems;
+    temp = (void*)a->elems;
 
     assert(pool->end - pool->last == 1 * sizeof(long));
 
@@ -30,45 +30,45 @@ int main()
         *elem = i;
     }
 
-    assert(temp == a->elems);
+    assert(temp == (long*)a->elems);
     assert(a->capacity == 24);
     assert(a->size == 24);
-    assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->last);
+    assert(a->elems + a->capacity * a->elem_size == a->pool->last);
 
-    elem = a->elems;
+    elem = (void*)a->elems;
     for (size_t i = 0; i < a->size; ++i) {
         assert(elem[i] == i + 1);
     }
 
 
     /* 再分配1个元素，由于没有超出内存池边界，因此也不会再分配 */
-    temp = a->elems;
+    temp = (void*)a->elems;
 
     elem = array_alloc(a);
     *elem = 25;
 
-    assert(temp == a->elems);
+    assert(temp == (void*)a->elems);
     assert(a->capacity == 25);
     assert(a->size == 25);
-    assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->last);
+    assert(a->elems + a->capacity * a->elem_size == a->pool->last);
 
     /* 再分配1个元素，触发再分配
      * 此时内存池回收旧的a->elems块，不回收数组头部
      * */
-    temp = a->elems;
+    temp = (void*)a->elems;
 
     elem = array_alloc(a);
     *elem = 26;
 
-    assert(temp != a->elems);
+    assert(temp != (long*)a->elems);
     assert(a->capacity == 50);
     assert(a->size == 26);
-    assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->next->last);
+    assert(a->elems + a->capacity * a->elem_size == a->pool->next->last);
 
     /* destroy只回收第一块的头部 */
     array_destroy(a);
-    assert((u_char*)a->elems + a->capacity * a->elem_size == a->pool->next->last);
-    assert((u_char*)a == pool->last);
+    assert(a->elems + a->capacity * a->elem_size == a->pool->next->last);
+    assert(a == (array*)pool->last);
 
     print_array(a);
 
@@ -77,7 +77,7 @@ int main()
      * */
     a = array_create(pool, 1, sizeof(long));
     array_destroy(a);
-    assert((u_char*)a->elems + a->capacity * a->elem_size - a->pool->last ==
+    assert(a->elems + a->capacity * a->elem_size - a->pool->last ==
                    sizeof(array) + sizeof(long));
 
     /*
@@ -99,7 +99,7 @@ static void print_array(array *a)
     printf("size = %lu\n", a->size);
     printf("capacity = %lu\n", a->capacity);
 
-    elems = a->elems;
+    elems = (void*)a->elems;
 
     for (size_t i = 0; i < a->size; ++i) {
         printf("%ld, ", elems[i]);

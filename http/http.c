@@ -602,7 +602,7 @@ static void write_response_headers_h(event *ev)
     connection  *conn;
     request     *rqst;
     buffer      *b;
-    fcy_str     *status_str;
+    string     *status_str;
     int         n;
 
     conn = ev->conn;

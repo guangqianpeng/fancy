@@ -5,7 +5,7 @@
 #ifndef FANCY_ERROR_H
 #define FANCY_ERROR_H
 
-#include "fcy_str.h"
+#include "str.h"
 
 #define LOG_LEVEL_DEBUG     0
 #define LOG_LEVEL_INFO      1
@@ -13,7 +13,7 @@
 #define LOG_LEVEL_ERROR     3
 #define LOG_LEVEL_FATAL     4
 
-int log_init(fcy_str *file_name);
+int log_init(string *file_name);
 
 /* private, do not use  */
 void log_base(const char *file,

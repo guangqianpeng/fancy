@@ -18,7 +18,7 @@
 #define METHOD_DELETE       4
 #define METHOD_TRACE        5
 #define METHOD_CONNECT      6
-extern fcy_str method_str[];
+extern string method_str[];
 
 /* status code */
 #define STATUS_OK                               0
@@ -32,14 +32,14 @@ extern fcy_str method_str[];
 #define STATUS_REQUEST_HEADER_FIELD_TOO_LARGE   8
 #define STATUS_INTARNAL_SEARVE_ERROR            9
 #define STATUS_NOT_IMPLEMENTED                  10
-extern fcy_str status_code_out_str[];
+extern string status_code_out_str[];
 
 #define HTTP_V10                    0
 #define HTTP_V11                    1
 
 typedef struct http_parser http_parser;
-typedef void(*http_header_callback)(void *user, fcy_str *name, fcy_str *value);
-typedef void(*http_uri_callback)(void *user, fcy_str *uri, fcy_str *suffix);
+typedef void(*http_header_callback)(void *user, string *name, string *value);
+typedef void(*http_uri_callback)(void *user, string *uri, string *suffix);
 
 struct http_parser {
 
@@ -51,10 +51,10 @@ struct http_parser {
     unsigned            method:8;
     unsigned            version:4;
 
-    fcy_str             response_line;
+    string             response_line;
 
-    fcy_str             last_header_name;
-    fcy_str             last_header_value;
+    string             last_header_name;
+    string             last_header_value;
 
     size_t              where;
     char                *uri_start;

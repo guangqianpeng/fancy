@@ -20,7 +20,7 @@ static int log_fd = -1;
 
 static int timestamp(char *, size_t len);
 
-int log_init(fcy_str *file_name)
+int log_init(string *file_name)
 {
     if (strcmp(file_name->data, "stdout") == 0) {
         log_fd = STDOUT_FILENO;

@@ -37,7 +37,7 @@ typedef struct conf_block   conf_block;
 typedef const char *(*conf_callback)(const char*, void*);
 
 struct conf_block {
-    fcy_str         str;
+    string         str;
     conf_callback   cb;
     void            *data;
 };
@@ -47,7 +47,7 @@ int         daemonize           = -1;
 int         master_process      = -1;
 int         worker_processes    = -1;
 int         log_level = -1;
-fcy_str     log_path = null_string;
+string     log_path = null_str;
 
 /* events conf */
 int worker_connections  = -1;
@@ -72,14 +72,14 @@ static conf_block conf_main_block[] = {
         {string("events"), config_events, NULL},
         {string("server"), config_server, NULL},
         {string("#"), config_comment, NULL},
-        {null_string, NULL, NULL},
+        {null_str, NULL, NULL},
 };
 
 static conf_block conf_events_block[] = {
         {string("worker_connections"), config_num_positive, &worker_connections},
         {string("epoll_events"), config_num_positive, &epoll_events},
         {string("#"), config_comment, NULL},
-        {null_string, NULL, NULL},
+        {null_str, NULL, NULL},
 };
 
 static conf_block conf_server_block[] = {
@@ -90,7 +90,7 @@ static conf_block conf_server_block[] = {
         {string("accept_defer"), config_num_positive, &accept_defer},
         {string("location"), config_location, NULL},
         {string("#"), config_comment, NULL},
-        {null_string, NULL, NULL},
+        {null_str, NULL, NULL},
 };
 
 static conf_block conf_location_block[] = {
@@ -98,7 +98,7 @@ static conf_block conf_location_block[] = {
         {string("index"), config_index, NULL},
         {string("proxy_pass"), config_proxy_pass, NULL},
         {string("#"), config_comment, NULL},
-        {null_string, NULL, NULL},
+        {null_str, NULL, NULL},
 };
 
 void config(const char *path)
@@ -289,7 +289,7 @@ static const char *config_log_path(const char *s, void *d)
 
 static const char *config_str_semicolons(const char *s, void *d)
 {
-    fcy_str *str = d;
+    string *str = d;
 
     s = first_not_space(s);
 
@@ -308,7 +308,7 @@ static const char *config_str_semicolons(const char *s, void *d)
 
 static const char *config_str_brace(const char *s, void *d)
 {
-    fcy_str *str = d;
+    string *str = d;
 
     s = first_not_space(s);
 
@@ -443,7 +443,7 @@ static const char *config_index(const char *s, void *d)
         exit(EXIT_FAILURE);
     }
 
-    fcy_str_null(&loc->index[i]);
+    str_null(&loc->index[i]);
 
     return expect(s, ';');
 }

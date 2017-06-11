@@ -7,7 +7,7 @@
 #include "base.h"
 #include "http_parser.h"
 
-fcy_str method_str[] = {
+string method_str[] = {
         string("GET"),
         string("HEAD"),
         string("POST"),
@@ -17,7 +17,7 @@ fcy_str method_str[] = {
         string("CONNECT"),
 };
 
-fcy_str status_code_out_str[] = {
+string status_code_out_str[] = {
         string("200 OK"),
         string("400 Bad Request"),
         string("403 Forbidden"),
@@ -482,15 +482,15 @@ static int parse_uri(http_parser *ps, char *beg, char *end)
         }
     }
 
-    fcy_str     uri;
-    fcy_str     suffix;
+    string     uri;
+    string     suffix;
 
     done:
     *u = '\0';
     uri.data = beg;
     uri.len = u - beg;
     if (last_dot == NULL) {
-        fcy_str_null(&suffix);
+        str_null(&suffix);
     }
     else {
         suffix.len = end - last_dot;

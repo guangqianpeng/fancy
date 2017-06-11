@@ -6,7 +6,7 @@
 #define FANCY_BUFFER_H
 
 #include "array.h"
-#include "fcy_str.h"
+#include "str.h"
 
 #define BUFFER_INIT_SIZE 1024
 

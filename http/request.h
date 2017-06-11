@@ -29,10 +29,10 @@ struct request {
     unsigned        is_static:1;
     unsigned        is_chunked:1;
 
-    fcy_str         uri;
-    fcy_str         suffix;
-    fcy_str         host;
-    fcy_str         connection;
+    string         uri;
+    string         suffix;
+    string         host;
+    string         connection;
     array           *headers;   /* 其余的header */
 
     location        *loc;
@@ -57,19 +57,19 @@ struct request {
 
 struct location {
 
-    fcy_str     prefix;
+    string     prefix;
     unsigned    use_proxy:1;
 
     union
     {
         struct {
             int     root_dirfd;
-            fcy_str root;
+            string root;
 #define MAX_INDEX 10
-            fcy_str index[MAX_INDEX];
+            string index[MAX_INDEX];
         };
         struct {
-            fcy_str proxy_pass_str;
+            string proxy_pass_str;
             struct sockaddr_in proxy_pass;
         };
     };

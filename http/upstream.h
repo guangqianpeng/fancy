@@ -31,8 +31,8 @@ struct upstream {
     buffer      *body_in;
     buffer      *body_out;
 
-    fcy_str     server;
-    fcy_str     connection;
+    string     server;
+    string     connection;
     array       *headers;
 
     http_parser     parser;

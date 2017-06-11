@@ -35,9 +35,9 @@ static void request_set_cork(connection *conn, int open);
 static void request_set_parser(request *r);
 static void request_set_conn(request *r, connection *c);
 
-static void request_on_header(void *user, fcy_str *name, fcy_str *value);
-static void request_on_uri(void *user, fcy_str *uri, fcy_str *suffix);
-static const char *get_content_type(fcy_str *suffix);
+static void request_on_header(void *user, string *name, string *value);
+static void request_on_uri(void *user, string *uri, string *suffix);
+static const char *get_content_type(string *suffix);
 
 
 int request_init(mem_pool *pool)
@@ -248,7 +248,7 @@ int check_request_header(request *r)
 int open_static_file(request *r)
 {
     location        *loc = r->loc;
-    fcy_str         *uri = &r->uri;
+    string         *uri = &r->uri;
     struct stat     *sbuf = &r->sbuf;
     int             err;
 
@@ -333,7 +333,7 @@ static void request_set_conn(request *r, connection *c)
     ++c->app_count;
 }
 
-static void request_on_header(void *user, fcy_str *name, fcy_str *value)
+static void request_on_header(void *user, string *name, string *value)
 {
     request *r = user;
     if (strcasecmp(name->data, "Host") == 0) {
@@ -371,7 +371,7 @@ static void request_on_header(void *user, fcy_str *name, fcy_str *value)
     kv->value = *value;
 }
 
-static void request_on_uri(void *user, fcy_str *uri, fcy_str *suffix)
+static void request_on_uri(void *user, string *uri, string *suffix)
 {
     request *r = user;
     location *loc = NULL;
@@ -399,7 +399,7 @@ static void request_on_uri(void *user, fcy_str *uri, fcy_str *suffix)
     }
 }
 
-static const char *get_content_type(fcy_str *suffix)
+static const char *get_content_type(string *suffix)
 {
     if (suffix != NULL) {
         assert(*suffix->data == '.');

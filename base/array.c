@@ -2,7 +2,6 @@
 // Created by frank on 17-2-10.
 //
 
-#include <stddef.h>
 #include <string.h>
 #include <assert.h>
 #include "log.h"
