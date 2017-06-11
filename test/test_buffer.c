@@ -53,7 +53,7 @@ int main()
 
     /* 完全回收 */
     buffer_destroy(b);
-    assert((u_char*)b == p->last);
+    assert((char*)b == p->last);
 
     printf("OK");
 }
