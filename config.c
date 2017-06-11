@@ -115,7 +115,7 @@ void config(const char *path)
     char file[sbuf.st_size + 1];
     int fd = open(path, O_RDONLY);
     if (fd == -1) {
-        sprintf(stderr, "open %s error: %s", path, strerror(errno));
+        fprintf(stderr, "open %s error: %s", path, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
