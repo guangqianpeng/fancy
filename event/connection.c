@@ -209,7 +209,7 @@ int conn_write(connection *conn, buffer *out)
     int error;
     inter:
     if (buffer_write_fd(out, conn->sockfd, &error) == -1) {
-        switch (errno) {
+        switch (error) {
             case EINTR:
                 goto inter;
             case EAGAIN:
