@@ -14,7 +14,7 @@
 
 /* 向上取对齐指针 */
 #define align_ptr(ptr, alignment) \
-(typeof(ptr)) (((u_int64_t)ptr + (alignment - 1)) & ~(alignment - 1))
+((typeof(ptr)) (((u_int64_t)ptr + (alignment - 1)) & ~(alignment - 1)))
 
 typedef struct mem_pool mem_pool;
 
@@ -26,8 +26,6 @@ struct mem_pool {
 
     /* 以下字段为mem_pool头结点独有 */
     mem_pool    *current;
-    /* 剩余字段 */
-    //...
 };
 
 mem_pool *mem_pool_create(size_t size);
