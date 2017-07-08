@@ -259,16 +259,35 @@ int open_static_file(request *r)
         return FCY_ERROR;
     }
 
-    /* 测试文件 */
     char path[uri->len + 64];
-    char *path_base = path + uri->len;
-    strcpy(path, uri->data);
-    if (r->suffix.data == NULL && path[uri->len - 1] == '/') {
+    char *path_base;
+
+    if (uri->len == 1) {
+        strcpy(path, "./");
+        path_base = path + 2;
+    }
+    else {
+        strcpy(path, uri->data + 1);
+        path_base = path + uri->len - 1;
+    }
+
+    err = fstatat(loc->root_dirfd, path, sbuf, 0);
+    if (err == -1) {
+        LOG_SYSERR("fstatat %s error", path);
+        r->status_code = STATUS_NOT_FOUND;
+        return FCY_ERROR;
+    }
+
+    if (sbuf->st_mode & S_IFDIR) {
+
+        if (path_base[-1] != '/') {
+            *path_base++ = '/';
+        }
 
         int found = 0;
         for (int i = 0; loc->index[i].data != NULL; ++i) {
             strcpy(path_base, loc->index[i].data);
-            err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
+            err = fstatat(loc->root_dirfd, path, sbuf, 0);
             if (err != -1) {
                 found = 1;
                 r->suffix.data = strchr(loc->index[i].data, '.');
@@ -282,14 +301,7 @@ int open_static_file(request *r)
             return FCY_ERROR;
         }
     }
-    else {
-        err = fstatat(loc->root_dirfd, path + 1, sbuf, 0);
-        if (err == -1) {
-            LOG_SYSERR("fstatat error");
-            r->status_code = STATUS_NOT_FOUND;
-            return FCY_ERROR;
-        }
-    }
+
 
     if (!S_ISREG(sbuf->st_mode) || !(S_IRUSR & sbuf->st_mode)) {
         r->status_code = STATUS_FORBIDDEN;
@@ -297,8 +309,9 @@ int open_static_file(request *r)
     }
 
     /* 打开文件会阻塞！！ */
-    int fd = openat(loc->root_dirfd, path + 1, O_RDONLY);
+    int fd = openat(loc->root_dirfd, path, O_RDONLY);
     if (fd == -1) {
+        close(fd);
         LOG_SYSERR("fstatat error");
         r->status_code = STATUS_INTARNAL_SEARVE_ERROR;
         return FCY_ERROR;

@@ -417,7 +417,7 @@ static const char *config_root(const char *s, void *d)
     s = config_str_semicolons(s, &loc->root);
     dirfd = open(loc->root.data, O_DIRECTORY | O_RDONLY);
     if (dirfd == -1) {
-        perror("open error");
+        fprintf(stderr, "configure %s error: %s", loc->root.data, strerror(errno));
         exit(EXIT_FAILURE);
     }
     loc->root_dirfd = dirfd;
