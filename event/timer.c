@@ -2,7 +2,7 @@
 // Created by frank on 17-2-12.
 //
 
-#include <assert.h>
+#include "base.h"
 #include "timer.h"
 
 #define TIMER_INFINITE (timer_msec)-1;

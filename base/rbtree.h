@@ -5,7 +5,7 @@
 #ifndef FANCY_RBTREE_H
 #define FANCY_RBTREE_H
 
-#include "base.h"
+#include <sys/types.h>
 
 typedef struct rbtree       rbtree;
 typedef struct rbtree_node  rbtree_node;

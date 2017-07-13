@@ -5,6 +5,8 @@
 #ifndef FANCY_CONN_POOL_H
 #define FANCY_CONN_POOL_H
 
+#include "list.h"
+#include "buffer.h"
 #include "event.h"
 
 typedef struct connection connection;

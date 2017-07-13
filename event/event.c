@@ -25,7 +25,8 @@ int event_init(mem_pool *p, int n_ev)
 
     epollfd = epoll_create1(0);
     if (epollfd == -1) {
-        exit(1);
+        LOG_SYSERR("epoll_create1 error");
+        return FCY_ERROR;
     }
 
     epoll_events = n_ev;

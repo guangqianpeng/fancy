@@ -2,6 +2,7 @@
 // Created by frank on 17-2-9.
 //
 
+#include <stddef.h>
 #include "rbtree.h"
 
 #define RED     0

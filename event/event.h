@@ -5,10 +5,8 @@
 #ifndef FANCY_EVENT_H
 #define FANCY_EVENT_H
 
-#include "buffer.h"
-#include "list.h"
-#include "rbtree.h"
 #include "palloc.h"
+#include "rbtree.h"
 
 extern int epollfd;
 

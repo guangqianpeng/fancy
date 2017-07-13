@@ -54,7 +54,7 @@ __THROW __attribute__ ((__noreturn__));
 __END_DECLS
 #endif
 
-#define CHECK(ret) ({ __typeof__ (ret) errnum = (ret);         \
+#define CHECK(ret) ({ typeof (ret) errnum = (ret);         \
                         if (__builtin_expect(errnum != 0, 0))    \
                             __assert_perror_fail (errnum, __FILE__, __LINE__, __func__);})
 
