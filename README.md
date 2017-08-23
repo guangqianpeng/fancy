@@ -1,4 +1,4 @@
-##  fancy: 高性能Web服务器
+##  fancy: A high performance web server
 
 ### 简介
 

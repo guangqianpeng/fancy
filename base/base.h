@@ -58,7 +58,7 @@ __END_DECLS
                         if (__builtin_expect(errnum != 0, 0))    \
                             __assert_perror_fail (errnum, __FILE__, __LINE__, __func__);})
 
-/* TODO: 参数应该是可配置的 */
+
 extern int          daemonize;
 extern int          master_process;      // 是否单进程
 extern int          worker_processes;    // 多进程下workers数目
