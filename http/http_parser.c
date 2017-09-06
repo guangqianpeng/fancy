@@ -301,7 +301,7 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
                     state = all_headers_almost_done;
                     break;
                 }
-                if (isalpha(c) || c == '-') {
+                if (isprint(c)) {
                     ps->last_header_name.data = p;
                     state = name_;
                     break;
@@ -309,7 +309,7 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
                 goto error;
 
             case name_:
-                if (isalpha(c) || c == '-') {
+                if (isprint(c)) {
                     break;
                 }
                 if (c == ':') {
