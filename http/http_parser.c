@@ -301,7 +301,7 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
                     state = all_headers_almost_done;
                     break;
                 }
-                if (isprint(c)) {
+                if (isgraph(c)) {
                     ps->last_header_name.data = p;
                     state = name_;
                     break;
@@ -309,13 +309,13 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
                 goto error;
 
             case name_:
-                if (isprint(c)) {
-                    break;
-                }
                 if (c == ':') {
                     ps->last_header_name.len = p - ps->last_header_name.data;
                     *p = '\0';
                     state = space_before_value_;
+                    break;
+                }
+                if (isgraph(c)) {
                     break;
                 }
                 goto error;
