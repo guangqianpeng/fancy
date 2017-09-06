@@ -308,7 +308,6 @@ int open_static_file(request *r)
         return FCY_ERROR;
     }
 
-    /* 打开文件会阻塞！！ */
     int fd = openat(loc->root_dirfd, path, O_RDONLY);
     if (fd == -1) {
         close(fd);

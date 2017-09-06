@@ -141,14 +141,18 @@ static void parse_request_h(event *ev)
 {
     connection  *conn = ev->conn;
     request     *rqst = conn->app;
+    const char* header_in;
+    const char* where;
 
     /* 解析请求 */
     int err = request_parse(rqst);
     switch (err) {
 
         case FCY_ERROR:
+            header_in = buffer_peek(rqst->header_in);
+            where = header_in + rqst->parser.where;
             LOG_INFO("%s request parse error, \"%s\"",
-                     conn_str(conn), buffer_peek(rqst->header_in));
+                     conn_str(conn), where);
             conn_disable_read(conn);
             response_and_close(conn, STATUS_BAD_REQUEST);
             return;

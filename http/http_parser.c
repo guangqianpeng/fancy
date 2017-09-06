@@ -281,6 +281,7 @@ static int parse_request_line(http_parser *ps, char *beg, char *end)
     return (state == line_done_ ? FCY_OK : FCY_AGAIN);
 
     error:
+    ps->where = p - beg;
     ps->state = error_;
     return FCY_ERROR;
 }
@@ -377,6 +378,7 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
     }
 
     error:
+    ps->where = p - beg;
     ps->state = error_;
     return FCY_ERROR;
 }
@@ -581,6 +583,7 @@ static int parse_response_line(http_parser *ps, char *beg, char *end)
     return (state == line_done_ ? FCY_OK : FCY_AGAIN);
 
     error:
+    ps->where = p - beg;
     ps->state = error_;
     return FCY_ERROR;
 }
