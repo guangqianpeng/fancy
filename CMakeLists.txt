@@ -3,7 +3,11 @@ project(fancy)
 
 set(CMAKE_C_STANDARD 11)
 
-add_compile_options(-Wall -Werror)
+add_compile_options(-Wall -Wextra -Werror)
+
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Release")
+endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -finline-limit=1000 -DNDEBUG")
