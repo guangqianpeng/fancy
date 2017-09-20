@@ -199,11 +199,11 @@ static void read_request_body(event *ev)
     /* content-length */
     if (rqst->has_content_length_header) {
         readable = buffer_readable_bytes(body_in);
-        if (readable >= rqst->content_length) {
+        if (readable >= (size_t)rqst->content_length) {
             goto done;
         }
         CONN_READ(conn, body_in, close_connection(conn));
-        if (buffer_readable_bytes(body_in) < rqst->content_length) {
+        if (buffer_readable_bytes(body_in) < (size_t)rqst->content_length) {
             return;
         }
     }
@@ -215,7 +215,7 @@ static void read_request_body(event *ev)
     /* 整个http请求解析和读取完毕 */
 done:
     readable = buffer_readable_bytes(body_in);
-    if (readable > rqst->content_length) {
+    if (readable > (size_t)rqst->content_length) {
         LOG_WARN("%s read extra request body", conn_str(conn));
         /* trunc */
         buffer_unwrite(body_in, readable - rqst->content_length);
@@ -479,7 +479,7 @@ static void upstream_read_response_body(event *ev)
     }
 
     if (upstm->has_content_length_header) {
-        if (buffer_readable_bytes(b) < upstm->content_length) {
+        if (buffer_readable_bytes(b) < (size_t)upstm->content_length) {
             return;
         }
         else {

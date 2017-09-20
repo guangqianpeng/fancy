@@ -50,7 +50,7 @@ void *palloc(mem_pool *pool, size_t size)
         /* 对齐指针 */
         last = align_ptr(p->last, MEM_POOL_ALIGNMENT);
 
-        if (p->end - last >= size) {
+        if ((size_t)(p->end - last) >= size) {
             p->last = last + size;
             return last;
         }

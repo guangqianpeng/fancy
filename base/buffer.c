@@ -152,7 +152,7 @@ ssize_t buffer_read_fd(buffer *b, int fd, int *saved_errno)
     if (n == -1) {
        *saved_errno = errno;
     }
-    else if (n <= writable) {
+    else if (n <= (int)writable) {
         b->write_index += n;
     }
     else {

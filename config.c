@@ -147,6 +147,8 @@ void config(const char *path)
 
 static const char *config_main(const char *s, void *d)
 {
+    (void)d;
+
     conf_block *b = conf_main_block;
 
     s = first_not_space(s);
@@ -169,6 +171,8 @@ static const char *config_main(const char *s, void *d)
 
 static const char *config_events(const char *s, void *d)
 {
+    (void)d;
+
     conf_block *b = conf_events_block;
 
     s = expect(s, '{');
@@ -192,6 +196,8 @@ static const char *config_events(const char *s, void *d)
 
 static const char *config_server(const char *s, void *d)
 {
+    (void)d;
+
     conf_block *b = conf_server_block;
 
     s = expect(s, '{');
@@ -215,6 +221,8 @@ static const char *config_server(const char *s, void *d)
 
 static const char *config_location(const char *s, void *d)
 {
+    (void)d;
+
     conf_block  *b = conf_location_block;
     location    *loc = array_alloc(locations);
 
@@ -327,7 +335,7 @@ static const char *config_str_brace(const char *s, void *d)
 
 static const char *config_log_level(const char *s, void *d)
 {
-    const static char *level_str[] = {
+    static const char *level_str[] = {
             "debug",
             "info",
             "warn",
@@ -450,6 +458,7 @@ static const char *config_index(const char *s, void *d)
 
 static const char *config_comment(const char *s, void *d)
 {
+    (void)d;
     while (*s != '\0' && *s != '\n')
         ++s;
     return s;

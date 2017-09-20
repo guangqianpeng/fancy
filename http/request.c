@@ -10,13 +10,13 @@
 #include "connection.h"
 #include "request.h"
 
-const static char *suffix_str[] = {
+static const char *suffix_str[] = {
         "html", "txt", "xml", "asp", "css",
         "gif", "ico", "png", "jpg", "js",
         "pdf", NULL,
 };
 
-const static char *content_type_str[] = {
+static const char *content_type_str[] = {
         "text/html; charset=utf-8",
         "text/plain; charset=utf-8",
         "text/xml",
@@ -42,6 +42,7 @@ static const char *get_content_type(string *suffix);
 
 int request_init(mem_pool *pool)
 {
+    (void)pool;
     return FCY_OK;
 }
 
@@ -194,6 +195,7 @@ void request_headers_htop(request *r, buffer *b)
 
 int request_read_chunked(request *r)
 {
+    (void)r;
     // TODO
     return FCY_ERROR;
 }

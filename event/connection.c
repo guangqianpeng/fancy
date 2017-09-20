@@ -201,6 +201,8 @@ int conn_read(connection *conn, buffer *in)
 
 int conn_read_chunked(connection *conn, buffer *in)
 {
+    (void)conn;
+    (void)in;
     return FCY_ERROR;
 }
 

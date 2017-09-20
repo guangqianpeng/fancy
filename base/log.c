@@ -8,7 +8,7 @@
 
 #define MAXLINE     256
 
-const static char *log_level_str[] = {
+static const char *log_level_str[] = {
         "[DEBUG]",
         "[INFO] ",
         "[WARN] ",
