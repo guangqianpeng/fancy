@@ -45,6 +45,7 @@ int main()
         list_remove(x);
     }
 
+    (void)head;
     assert(list_empty(&h));
     printf("OK");
 }
