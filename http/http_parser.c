@@ -231,6 +231,7 @@ static int parse_request_line(http_parser *ps, char *beg, char *end)
                     state = version_HTTP_slash_1_;
                     break;
                 }
+                goto error;
 
             case version_HTTP_slash_1_:
                 if (c == '.') {
@@ -361,6 +362,7 @@ static int parse_headers(http_parser *ps, char *beg, char *end)
                     state = all_done_;
                     goto done;
                 }
+                goto error;
 
             default:
                 assert(0);

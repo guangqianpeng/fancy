@@ -3,14 +3,21 @@ project(fancy)
 
 set(CMAKE_C_STANDARD 11)
 
-add_compile_options(-Wall -Wextra -Werror)
-
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "-O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -finline-limit=1000 -DNDEBUG")
+set(C_FLAGS
+		-g
+		-Wall
+		-Wextra
+		-Werror
+		-march=native
+		-rdynamic
+		)
+string(REPLACE ";" " " CMAKE_C_FLAGS "${C_FLAGS}")
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -finline-limit=1000 -DNDEBUG")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
