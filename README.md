@@ -20,8 +20,6 @@ fancy是一个基于事件驱动(epoll)的多进程web服务器. 其原理与Ngi
 
 - 配置文件. fancy 的配置文件风格与Nginx一致.（*config.c*)
 
-  ![structure](img/structure.png)
-
 ## 使用
 
 ```
