@@ -56,19 +56,19 @@ void *array_alloc(array *a)
     size_next = a->elems + a->size * a->elem_size;
     capacity_next = a->elems + a->capacity * a->elem_size;
 
-    // capacity足够
     if (a->capacity > a->size) {
+        // capacity is enough
         ++a->size;
     }
-        // capacity不够，但内存池足够
     else if (capacity_next == a->pool->last
             && a->pool->last + a->elem_size <= a->pool->end) {
+        // capacity is't enough, but memory pool has more space
         a->pool->last += a->elem_size;
         ++a->size;
         ++a->capacity;
     }
-        // 重新分配
     else {
+        // new memory block is needed
         new_elems = palloc(a->pool, 2 * a->capacity * a->elem_size);
         if (new_elems == NULL) {
             return NULL;
@@ -76,7 +76,7 @@ void *array_alloc(array *a)
 
         memcpy(new_elems, a->elems, a->size * a->elem_size);
 
-        /* 回收旧数组的elems */
+        /* free old elements */
         if (a->elems + a->capacity * a->elem_size == a->pool->last) {
             a->pool->last -= a->capacity * a->elem_size;
         }
@@ -103,19 +103,19 @@ void *array_n_alloc(array *a, size_t n)
     capacity_next = a->elems + a->capacity * a->elem_size;
     new_size = a->size + n;
 
-    // capacity足够
     if (a->capacity >= a->size + n) {
+        // capacity is enough
         a->size = new_size;
     }
-        // capacity不够，但内存池足够
     else if (capacity_next == a->pool->last
              && a->pool->last + n * a->elem_size <= a->pool->end) {
+        // new memory block is needed
         a->pool->last += n * a->elem_size;
         a->size += n;
         a->capacity = a->size;
     }
-        // 重新分配
     else {
+        // new memory block is needed
         size_t s = max(2 * a->capacity, new_size);
 
         new_elems = palloc(a->pool, s * a->elem_size);
@@ -125,8 +125,8 @@ void *array_n_alloc(array *a, size_t n)
 
         memcpy(new_elems, a->elems, a->size * a->elem_size);
 
-        /* 回收旧数组的elems */
         if ((char*)a->elems + a->capacity * a->elem_size == a->pool->last) {
+            /* free old elements */
             a->pool->last -= a->capacity * a->elem_size;
         }
 

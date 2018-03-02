@@ -1,5 +1,6 @@
 //
 // Created by frank on 17-2-9.
+// red black implementation
 //
 
 #ifndef FANCY_RBTREE_H
@@ -30,7 +31,7 @@ void rbtree_insert(rbtree *tree, rbtree_node *node);
 void rbtree_delete(rbtree *tree, rbtree_node *node);
 rbtree_node* rbtree_min(rbtree *tree);
 
-/* debug */
+/* for debug */
 int rbtree_is_regular(rbtree *tree);
 
 #endif //FANCY_RBTREE_H

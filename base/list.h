@@ -1,5 +1,6 @@
 //
 // Created by frank on 17-2-12.
+// simple double-linked list
 //
 
 #ifndef FANCY_LIST_H

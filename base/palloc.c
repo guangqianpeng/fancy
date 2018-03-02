@@ -6,7 +6,7 @@
 #include "base.h"
 #include "palloc.h"
 
-/* 追加一个新的空闲内存块 */
+/* append a new memory block */
 static mem_pool *mem_pool_append(mem_pool *pool);
 
 mem_pool *mem_pool_create(size_t size)
@@ -43,14 +43,13 @@ void mem_pool_destroy(mem_pool *pool)
 void *palloc(mem_pool *pool, size_t size)
 {
     char      *last;
-    mem_pool    *p;
+    mem_pool  *p;
 
     for (p = pool->current; p; p = p->next) {
 
-        /* 对齐指针 */
         last = align_ptr(p->last, MEM_POOL_ALIGNMENT);
 
-        if ((size_t)(p->end - last) >= size) {
+        if (p->end - last >= size) {
             p->last = last + size;
             return last;
         }
@@ -100,11 +99,11 @@ static mem_pool *mem_pool_append(mem_pool *pool)
     new->failed = 0;
     new->next = NULL;
 
-    /* 若内存空闲不足发生5次，则不再使用它分配
-     * failed最大值为6
+    /* for memory block failed more than 5 times,
+     * jump to the next block
      * */
     for (p = pool->current; p->next; p = p->next) {
-        if (p->failed++ > 4) {
+        if (++p->failed >= 5) {
             pool->current = p->next;
         }
     }

@@ -38,7 +38,7 @@ void rbtree_init(rbtree *tree, rbtree_node *sentinel)
     root->left = NULL;
     root->right = NULL;
 
-    /* 该字段在删除节点时有用 */
+    /* this field is useful when deleting */
     root->parent = NULL;
 }
 
@@ -51,7 +51,7 @@ void rbtree_insert(rbtree *tree, rbtree_node *node)
 {
     rbtree_node *temp;
 
-    /* 空树 */
+    /* empty tree */
     if (tree->root == tree->sentinel) {
         set_black(node);
         node->left = tree->sentinel;
@@ -63,7 +63,8 @@ void rbtree_insert(rbtree *tree, rbtree_node *node)
 
     insert(tree, node);
 
-    /* 因为is_black(sentinel) && root.parent==sentinel，所以node==root时也会跳出循环 */
+    /* since is_black(sentinel) && root.parent==sentinel,
+     * node==root can break the loop */
     while (is_red(node->parent)) {
         if (node->parent == node->parent->parent->left) {
             temp = node->parent->parent->right;
@@ -82,7 +83,7 @@ void rbtree_insert(rbtree *tree, rbtree_node *node)
                 set_black(node->parent);
                 set_red(node->parent->parent);
                 rotate_right(tree, node->parent->parent);
-                break;  /* 此时is_black(node.parent), 用break避免多余测试 */
+                break;  /* now is_black(node.parent), we break */
             }
         }
         else {
@@ -112,7 +113,7 @@ void rbtree_insert(rbtree *tree, rbtree_node *node)
 
 void rbtree_delete(rbtree *tree, rbtree_node *node)
 {
-    /* subt是需要移动的节点， temp是subt的子树
+    /* subt is the node that needs to be moved, temp is a subtree of subt
      * color==subt.color
      * */
     rbtree_node *sentinel, *temp, *subt;
@@ -178,6 +179,7 @@ static void rotate_left(rbtree *tree, rbtree_node *node)
     temp = node->right;
 
     node->right = temp->left;
+
     /* 此处的检查是必须的，因为sentinel.parent字段在删除节点时有特殊用途
      * rotate_right也一样
      * */
@@ -376,15 +378,15 @@ static int is_regular(rbtree_node *node, rbtree_node *sentinel)
     if (node == sentinel)
         return 1;
 
-    /* 不能有相连的红色节点 */
+    /* no connected red node */
     if (is_red(node) && is_red(node->parent))
         return 0;
 
-    /* 黑高完美平衡 */
+    /* black height is perfectly balanced */
     if (balck_height(node->left, sentinel) != balck_height(node->right, sentinel))
         return 0;
 
-    /* 二叉树基本性质 */
+    /* must be binary search tree */
     if ( (node->parent->left == node && node->key > node->parent->key)
         || (node->parent->right == node && node->key < node->parent->key))
         return 0;

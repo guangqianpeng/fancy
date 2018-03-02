@@ -1,5 +1,6 @@
 //
 // Created by frank on 17-2-10.
+// dynamic array
 //
 
 #ifndef FANCY_ARRAY_H
@@ -10,16 +11,16 @@
 typedef struct array array;
 
 struct array {
-    char        *elems;     // 元素指针
-    size_t      elem_size;  // 每个元素大小
-    size_t      size;       // 元素个数
-    size_t      capacity;   // 容量
-    mem_pool    *pool;      // 内存池
+    char        *elems;     // element pointer
+    size_t      elem_size;  // size of each elements
+    size_t      size;       // number of elements
+    size_t      capacity;   // capacity of elements
+    mem_pool    *pool;      // associated memory pool
 };
 
 array *array_create(mem_pool *pool, size_t capacity, size_t elem_size);
-/* 可以手动destroy
- * */
+
+/* destroy a array is ok */
 void array_destroy(array *a);
 
 void *array_alloc(array *a);
