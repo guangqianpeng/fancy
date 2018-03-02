@@ -84,18 +84,19 @@ static timer_msec timer_recent()
     rbtree_node *recent;
     timer_msec  current;
 
-    /* 计时器为空, 表示不会有任何事件发生 */
+    /* no event is waiting */
     if (rbtree_empty(&timer)) {
         return TIMER_INFINITE;
     }
 
     recent = rbtree_min(&timer);
     current = current_msec();
-    if (current < recent->key) {    /* 没有事件发生，返回最近事件的时间差值 */
+    if (current < recent->key) {
+        /* event will be timeout in the future */
         return recent->key - current;
     }
 
-    /* 有事件发生 */
+    /* event already timeout */
     return 0;
 }
 

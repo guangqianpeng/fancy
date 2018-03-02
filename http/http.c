@@ -11,14 +11,14 @@
 #include "request.h"
 #include "upstream.h"
 
-/* 通用的handler */
+/* generic handler */
 static void accept_h(event *);
 static void read_request_headers_h(event *);
 static void parse_request_h(event *);
 static void read_request_body(event *);
 static void process_request_h(event *);
 
-/* 专门处理动态内容的 handler */
+/* dynamic content handler */
 static void peer_connect_h(event *);
 static void upstream_write_request_h(event *);
 static void upstream_read_response_header_h(event *);
@@ -29,7 +29,7 @@ static void write_response_all_h(event *);
 static void write_response_headers_h(event *);
 static void send_file_h(event *);
 
-/* 表示一个请求处理完成，可能关闭连接，也可能keep_alive */
+/* a request is finished, connection can be closed or keep alive */
 static void finalize_request_h(event *);
 
 static void response_and_close(connection *conn, int status_code);

@@ -51,7 +51,7 @@ int event_process(timer_msec timeout)
         return FCY_ERROR;
     }
     else if (n_ev == 0) {
-        /* 超时 */
+        /* timeout */
         return 0;
     }
 
@@ -60,7 +60,7 @@ int event_process(timer_msec timeout)
         events = e_event->events;
         conn = e_event->data.ptr;
 
-        /* 检测到错误或者对端关闭连接，交给read_handler或者write_handler解决 */
+        /* error detected, throw it to read_handler or write_handler */
         if (events & (EPOLLERR | EPOLLRDHUP)) {
             events |= EPOLLIN | EPOLLOUT ;
         }
@@ -72,7 +72,7 @@ int event_process(timer_msec timeout)
 
         wevent = &conn->write;
         if (wevent->active && (events & EPOLLOUT)) {
-            // 忽略过期事件
+            // ignore timeout event
             if (conn->sockfd == -1) {
                 continue;
             }

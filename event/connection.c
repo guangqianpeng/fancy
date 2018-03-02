@@ -41,7 +41,6 @@ int conn_pool_init(mem_pool *p, int size)
     return FCY_OK;
 }
 
-/* 从空闲链表中取出一个连接 */
 connection *conn_get()
 {
     list_node   *head;

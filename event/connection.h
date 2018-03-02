@@ -1,5 +1,7 @@
 //
 // Created by frank on 17-2-12.
+// TCP connection pool
+// the size of pool is determined by worker connection configuration
 //
 
 #ifndef FANCY_CONN_POOL_H
@@ -12,26 +14,27 @@
 typedef struct connection connection;
 typedef struct connection peer_connection;
 
-/* call conn_get to get a connection */
 struct connection {
 
     int                 sockfd;
     event               read;
     event               write;
 
-    peer_connection     *peer;  // 上游/下游连接
+    peer_connection     *peer;  // user or upstream connection
 
     void                *app;   // request, upstream
     int                 app_count;
 
-    struct sockaddr_in  addr;
+    struct sockaddr_in  addr;   // peer address
 
     list_node           node;
 };
 
 int conn_pool_init(mem_pool *p, int size);
 
+/* conn_get is the only way to get a connection */
 connection *conn_get();
+
 void conn_free(connection *conn);
 char *conn_str(connection *conn);
 

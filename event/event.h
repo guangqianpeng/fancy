@@ -17,9 +17,9 @@ typedef void (*event_handler)(event *);
 
 struct event {
 
-    unsigned        active:1;     // 是否在epoll_wait中
-    unsigned        timer_set:1;  // 是否在定时器中
-    unsigned        timeout:1;    // 是否为超时事件
+    unsigned        active:1;     // is in epoll_wait ?
+    unsigned        timer_set:1;  // is in timer ?
+    unsigned        timeout:1;    // is timeout ?
 
     rbtree_node     rb_node;
 
