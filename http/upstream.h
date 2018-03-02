@@ -19,9 +19,8 @@ struct upstream {
     unsigned    has_server_header:1;
     unsigned    is_chunked:1;
 
-    /* 读header时可能会读一部分body进来
-     * 这样第一次调用readbody时不必读
-     * */
+    /* body may be read when read header
+     * so first time call read_body, we don't need to read */
     unsigned    avoid_read_body;
 
     long        content_length;
@@ -31,8 +30,8 @@ struct upstream {
     buffer      *body_in;
     buffer      *body_out;
 
-    string     server;
-    string     connection;
+    string      server;
+    string      connection;
     array       *headers;
 
     http_parser     parser;

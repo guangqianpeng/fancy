@@ -85,9 +85,7 @@ inter:
 
     LOG_DEBUG("%s [up]", conn_str(conn));
 
-    /* defer option is set,
-     * so there should have data
-     * */
+    /* defer option is set, we should read data */
     read_request_headers_h(&conn->read);
 }
 
@@ -101,14 +99,13 @@ static void response_and_close(connection *conn, int status_code)
     rqst->status_code = status_code;
     conn_enable_write(conn, write_response_headers_h);
     write_response_headers_h(&conn->write);
-    return;
 }
 
 static void read_request_headers_h(event *ev)
 {
     connection *conn = ev->conn;
 
-    /* 对端发送请求超时 */
+    /* peer timeout */
     if (ev->timeout) {
         LOG_WARN("%s request timeout (%dms)",
                  conn_str(conn), request_timeout);
@@ -117,13 +114,13 @@ static void read_request_headers_h(event *ev)
         return;
     }
 
-    /* 若是第一次调用则需要创建request */
+    /* create request struct if first use */
     request *rqst = conn->app;
     if (rqst == NULL) {
         rqst = request_create(conn);
         if (rqst == NULL) {
             LOG_FATAL("request create failed, run out of memory");
-            exit(EXIT_FAILURE); // 阻止编译器警告
+            exit(EXIT_FAILURE); // make compiler happy
         }
     }
 
@@ -134,7 +131,6 @@ static void read_request_headers_h(event *ev)
 
     /* 解析请求 */
     parse_request_h(ev);
-    return;
 }
 
 static void parse_request_h(event *ev)
@@ -142,7 +138,6 @@ static void parse_request_h(event *ev)
     connection  *conn = ev->conn;
     request     *rqst = conn->app;
 
-    /* 解析请求 */
     int err = request_parse(rqst);
     switch (err) {
 
@@ -161,7 +156,7 @@ static void parse_request_h(event *ev)
 
     buffer_retrieve(rqst->header_in, rqst->parser.where);
 
-    /* content 过长 */
+    /* content too long */
     if (rqst->content_length > HTTP_MAX_CONTENT_LENGTH) {
         LOG_WARN("%s content-length too long, %d bytes",
                  conn_str(conn), rqst->content_length);
@@ -170,14 +165,13 @@ static void parse_request_h(event *ev)
         return;
     }
 
-    /* 转移多读的body */
+    /* move body */
     if (!buffer_empty(rqst->header_in)) {
         buffer_transfer(rqst->body_in, rqst->header_in);
     }
 
     conn->read.handler = read_request_body;
     read_request_body(ev);
-    return;
 }
 
 static void read_request_body(event *ev)
@@ -185,7 +179,7 @@ static void read_request_body(event *ev)
     connection  *conn = ev->conn;
     request     *rqst = conn->app;
 
-    /* 对端发送body超时 */
+    /* peer timeout */
     if (ev->timeout) {
         LOG_WARN("%s request body timeout", conn_str(conn));
         conn_disable_read(conn);
@@ -212,7 +206,7 @@ static void read_request_body(event *ev)
         pause();
     }
 
-    /* 整个http请求解析和读取完毕 */
+    /* http request read and parse is done */
 done:
     readable = buffer_readable_bytes(body_in);
     if (readable > (size_t)rqst->content_length) {
@@ -233,8 +227,6 @@ done:
     }
 
     process_request_h(ev);
-
-    return;
 }
 
 static void process_request_h(event *ev)
@@ -249,8 +241,9 @@ static void process_request_h(event *ev)
         return;
     }
 
-    /* 静态类型请求 */
     if (rqst->is_static) {
+        /* static file request */
+
         err = open_static_file(rqst);
         if (err == FCY_ERROR) {
             LOG_INFO("%s open static failed", conn_str(conn));
@@ -266,6 +259,8 @@ static void process_request_h(event *ev)
         return;
     }
     else if (rqst->status_code == STATUS_OK) {
+        /* dynamic request, proxy to upstream */
+
         LOG_DEBUG("%s upstream %s \"%s\"",
                   conn_str(conn), method_str[rqst->parser.method].data, rqst->uri.data);
 
@@ -317,7 +312,6 @@ static void peer_connect_h(event *ev)
     /* connect success immediately, no timer needed */
     conn_enable_write(peer, upstream_write_request_h);
     upstream_write_request_h(&peer->write);
-    return;
 }
 
 static void upstream_write_request_h(event *ev)
@@ -327,7 +321,7 @@ static void upstream_write_request_h(event *ev)
     request         *rqst = conn->app;
     upstream        *upstm = peer->app;
 
-    /* peer connect 超时 */
+    /* peer connect timeout */
     if (ev->timeout) {
         LOG_WARN("%s upstream connect timeout", conn_str(conn));
         conn_disable_write(peer);
@@ -337,11 +331,11 @@ static void upstream_write_request_h(event *ev)
 
     if (upstm == NULL) {
 
-        /* 若是第一次调用:
-         *   1. 检查connect调用是否成功
-         *   2. 若成功则创建upstream
-         *   3. 关闭connect超时
-         *   4. 写头部
+        /* first time send a request to upstream:
+         *   1. connect success
+         *   2. create upstream
+         *   3. remove connect timeout
+         *   4. write request header
          * */
         int         conn_err;
         socklen_t   err_len = sizeof(int);
@@ -381,7 +375,7 @@ static void upstream_write_request_h(event *ev)
 
     LOG_DEBUG("%s upstream write request", conn_str(conn));
 
-    /* 打开读超时 */
+    /* set read timeout */
     assert(!peer->write.timer_set);
     timer_add(&peer->read, (timer_msec)upstream_timeout);
 
@@ -389,7 +383,6 @@ static void upstream_write_request_h(event *ev)
     conn_enable_read(peer, upstream_read_response_header_h);
 
     upstream_read_response_header_h(&peer->read);
-    return;
 }
 
 static void upstream_read_response_header_h(event *ev)
@@ -405,13 +398,12 @@ static void upstream_read_response_header_h(event *ev)
         return;
     }
 
-    /* 读 upstream http response */
+    /* read upstream http response */
     upstream  *upstm = peer->app;
     buffer    *b = upstm->header_in;
     CONN_READ(peer, b, close_connection(conn));
 
     upstream_parse_response_h(ev);
-    return;
 }
 
 static void upstream_parse_response_h(event *ev)
@@ -454,7 +446,6 @@ static void upstream_parse_response_h(event *ev)
 
     peer->read.handler = upstream_read_response_body;
     upstream_read_response_body(ev);
-    return;
 }
 
 static void upstream_read_response_body(event *ev)
@@ -514,7 +505,6 @@ static void upstream_read_response_body(event *ev)
     conn_disable_read(peer);
     conn_enable_write(conn, write_response_all_h);
     write_response_all_h(&conn->write);
-    return;
 }
 
 static void write_response_all_h(event *ev)
@@ -536,7 +526,6 @@ static void write_response_all_h(event *ev)
 
     conn_disable_write(conn);
     finalize_request_h(ev);
-    return;
 }
 
 static void write_response_headers_h(event *ev)
@@ -546,7 +535,7 @@ static void write_response_headers_h(event *ev)
     buffer      *b = rqst->header_out;
     string      *status_str = &status_code_out_str[rqst->status_code];
 
-    /* 写header_out */
+    /* write header_out */
     if (buffer_empty(b)) {
         /* response line */
         buffer_append_literal(b, "HTTP/1.1 ");
@@ -588,7 +577,6 @@ static void write_response_headers_h(event *ev)
     }
 
     ev->handler(ev);
-    return;
 }
 
 static void send_file_h(event *ev)
@@ -602,7 +590,6 @@ static void send_file_h(event *ev)
 
     conn_disable_write(conn);
     finalize_request_h(ev);
-    return;
 }
 
 static void finalize_request_h(event *ev)

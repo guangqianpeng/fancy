@@ -75,7 +75,7 @@ struct location {
     };
 };
 
-/* event loop 开始前必须调用 */
+/* call before loop, empty currently */
 int request_init(mem_pool *pool);
 
 request *request_create(connection *c);

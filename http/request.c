@@ -214,20 +214,19 @@ int check_request_header(request *r)
         return FCY_ERROR;
     }
 
-    /* HTTP/1.1必须有host字段 */
+    /* HTTP/1.1 must have host field */
     if (p->version == HTTP_V11 && !r->has_host_header) {
         r->status_code = STATUS_BAD_REQUEST;
         return FCY_ERROR;
     }
 
-    /* HTTP/1.1 默认开启keep alive*/
+    /* HTTP/1.1 has keep alive default*/
     if (p->version == HTTP_V11 && !r->has_connection_header) {
         r->should_keep_alive = 1;
     }
 
 
-    /* POST请求必须有Content-Length字段, 且字段值>=0
-     * */
+    /* POST request must have Content-Length field */
     if (p->method == METHOD_POST) {
         if (!r->has_content_length_header) {
             r->status_code = STATUS_LENGTH_REQUIRED;
@@ -243,7 +242,7 @@ int check_request_header(request *r)
         }
     }
 
-    /* status code未知 */
+    /* status code is unknown currently */
     return FCY_OK;
 }
 
