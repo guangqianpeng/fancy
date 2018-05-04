@@ -8,7 +8,7 @@
 
 #include "palloc.h"
 
-#define FANCY_PREFIX        "/home/frank/ClionProjects/fancy/"
+#define FANCY_PREFIX        "./"
 #define FANCY_PID_FILE      FANCY_PREFIX"fancy.pid"
 #define FANCY_CONFIG_FILE   FANCY_PREFIX"fancy.conf"
 

@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    /* 单进程模式 */
+    /* single process mode */
     if (!master_process) {
         run_single_process();
         LOG_INFO("quit");

@@ -23,6 +23,9 @@ fancy是一个基于事件驱动(epoll)的多进程web服务器. 其原理与Ngi
 ## 使用
 
 ```
-cmake .
-make
+git clone https://github.com/guangqianpeng/fancy.git
+cd fancy
+./build && ./build install
+cd install
+./fancy
 ```

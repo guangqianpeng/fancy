@@ -17,7 +17,7 @@ set(C_FLAGS
 		)
 string(REPLACE ";" " " CMAKE_C_FLAGS "${C_FLAGS}")
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 include_directories(./base ./event ./http)
@@ -35,4 +35,6 @@ aux_source_directory(. SRC)
 add_executable(fancy ${SRC})
 target_link_libraries(fancy base event http)
 
-install(TARGETS fancy DESTINATION "/usr/bin")
+install(TARGETS fancy DESTINATION ./)
+install(FILES fancy.conf DESTINATION ./)
+install(DIRECTORY html DESTINATION ./)
