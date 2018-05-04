@@ -35,6 +35,6 @@ aux_source_directory(. SRC)
 add_executable(fancy ${SRC})
 target_link_libraries(fancy base event http)
 
-install(TARGETS fancy DESTINATION ./)
 install(FILES fancy.conf DESTINATION ./)
 install(DIRECTORY html DESTINATION ./)
+install(TARGETS fancy DESTINATION ./)
