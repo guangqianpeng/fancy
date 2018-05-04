@@ -3,8 +3,8 @@
 set -x
 
 SOURCE_DIR=`pwd`
-BUILD_DIR=${BUILD_DIR:-./build}
-INSTALL_DIR=${INSTALL_DIR:-../install}
+BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
+INSTALL_DIR=${INSTALL_DIR:-${SOURCE_DIR}/install}
 
 mkdir -p $BUILD_DIR \
     && cd $BUILD_DIR \
