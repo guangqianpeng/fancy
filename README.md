@@ -1,5 +1,7 @@
 #  fancy: A high performance web server
 
+[![Build Status](https://travis-ci.org/guangqianpeng/fancy.svg?branch=master)](https://travis-ci.org/guangqianpeng/fancy)
+
 ## 简介
 
 fancy是一个基于事件驱动(epoll)的多进程web服务器. 其原理与Nginx类似，即 **one loop per process**. 除去测试部分代码，fancy代码量约为4000行. fancy的主要特性有：
