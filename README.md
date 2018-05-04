@@ -25,7 +25,7 @@ fancy是一个基于事件驱动(epoll)的多进程web服务器. 其原理与Ngi
 ```
 git clone https://github.com/guangqianpeng/fancy.git
 cd fancy
-./build && ./build install
+./build.sh && ./build.sh install
 cd install
 ./fancy
 ```
